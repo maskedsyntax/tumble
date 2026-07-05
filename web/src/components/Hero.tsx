@@ -20,6 +20,10 @@ export default function Hero() {
         count.
       </p>
 
+      <p className="animate-fade-up mt-3 text-sm font-medium text-amber">
+        Free to start. One-time unlocks. No subscriptions.
+      </p>
+
       <div className="animate-fade-up mt-9 w-full max-w-md">
         <WaitlistForm />
       </div>
