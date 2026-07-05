@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { emailToDocId, isValidEmail, normalizeEmail } from "@/lib/validation";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import { addDoc, collection, getFirestore, serverTimestamp } from "firebase/firestore/lite";
+import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,26 +13,26 @@ type Body = {
   company?: unknown;
 };
 
-type FirestoreField =
-  | { stringValue: string }
-  | { timestampValue: string }
-  | { nullValue: null };
-
-function getFirestoreRestConfig() {
+function getFirebaseConfig() {
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const apiKey = process.env.FIREBASE_WEB_API_KEY;
 
   if (!projectId || !apiKey) {
     throw new Error(
-      "Missing Firebase REST config. Set FIREBASE_PROJECT_ID and FIREBASE_WEB_API_KEY.",
+      "Missing Firebase config. Set FIREBASE_PROJECT_ID and FIREBASE_WEB_API_KEY.",
     );
   }
 
-  return { projectId, apiKey };
+  return {
+    apiKey,
+    projectId,
+    authDomain: `${projectId}.firebaseapp.com`,
+  };
 }
 
-function asFirestoreFields(data: Record<string, FirestoreField>) {
-  return { fields: data };
+function getWaitlistDb() {
+  const app = getApps().length ? getApp() : initializeApp(getFirebaseConfig());
+  return getFirestore(app);
 }
 
 export async function POST(request: Request) {
@@ -56,36 +58,12 @@ export async function POST(request: Request) {
   const email = normalizeEmail(body.email);
 
   try {
-    const { projectId, apiKey } = getFirestoreRestConfig();
-    const params = new URLSearchParams({
-      documentId: emailToDocId(email),
-      key: apiKey,
+    await addDoc(collection(getWaitlistDb(), "waitlist"), {
+      email,
+      source: "landing",
+      userAgent: request.headers.get("user-agent") ?? null,
+      createdAt: serverTimestamp(),
     });
-    const url =
-      `https://firestore.googleapis.com/v1/projects/${projectId}` +
-      `/databases/(default)/documents/waitlist?${params.toString()}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        asFirestoreFields({
-          email: { stringValue: email },
-          source: { stringValue: "landing" },
-          userAgent: request.headers.get("user-agent")
-            ? { stringValue: request.headers.get("user-agent") as string }
-            : { nullValue: null },
-          createdAt: { timestampValue: new Date().toISOString() },
-        }),
-      ),
-    });
-
-    // Already exists means the person is already on the waitlist. Treat that as
-    // success so repeat submissions stay friendly.
-    if (!res.ok && res.status !== 409) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Firestore REST write failed (${res.status}): ${text}`);
-    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

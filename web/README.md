@@ -27,8 +27,7 @@ it. Without config, submitting shows a graceful "something went wrong" message.
    - Web app `apiKey` → `FIREBASE_WEB_API_KEY`
 5. In Firestore → **Rules**, publish rules that only allow creating waitlist docs.
 
-Emails land in the `waitlist` collection, one document per email (keyed by the
-normalized email, so repeat signups are idempotent).
+Emails land in the `waitlist` collection, one auto-ID document per signup.
 
 ## Deploy to Vercel
 
