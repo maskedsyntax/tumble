@@ -10,14 +10,14 @@ const BEATS = [
     body: "No ads, no unlocks, no “watch this for three more.” Just twelve, fresh each morning, enough to make every shot feel deliberate.",
   },
   {
+    kicker: "Pay once",
+    title: "Need more? Own more.",
+    body: "If twelve is not enough, unlock more rolls with a small one-time payment. No monthly subscription, no renewal, no forever meter running in the background.",
+  },
+  {
     kicker: "Shake to develop",
     title: "You have to wait for it.",
     body: "Take a shot and it comes out blank, face-down. Give your phone a shake and watch it develop, washed-out at first, settling into full color like real instant film.",
-  },
-  {
-    kicker: "The Drawer",
-    title: "Photos that age.",
-    body: "Developed shots land in the Drawer, a loose pile, not a grid. Over weeks they warm and grain like real prints. Nothing synced, nothing in the cloud. Just yours.",
   },
 ];
 

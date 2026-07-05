@@ -60,7 +60,7 @@ export default function WaitlistForm() {
       >
         <p className="font-display text-xl text-cream">You&rsquo;re on the list.</p>
         <p className="mt-1 text-sm text-cream/70">
-          We&rsquo;ll email you the moment Tumble ships.
+          We&rsquo;ll email you when the no-subscription camera ships.
         </p>
       </div>
     );
@@ -69,7 +69,7 @@ export default function WaitlistForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-xl">
       <label htmlFor="email" className="mb-3 block text-sm font-medium text-cream/85">
-        Get notified when Tumble launches.
+        Be first to try Tumble when it launches.
       </label>
 
       {/* Honeypot — visually hidden, off the tab order. Bots fill it, humans don't. */}
@@ -119,7 +119,7 @@ export default function WaitlistForm() {
           status === "error" ? "text-amber" : "text-cream/60"
         }`}
       >
-        {status === "error" ? message : "No spam. One email when we launch."}
+        {status === "error" ? message : "No spam. Just one launch email."}
       </p>
     </form>
   );
