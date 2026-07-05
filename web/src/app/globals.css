@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* ---- Brand tokens ------------------------------------------------------- */
+@theme {
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Graincore — slate-blue base (#2E4052) with a warm gold glow (#DFAB68).
+     Texture comes from film grain, not blur. Calm darker centre for readability. */
+  --color-blue: #2e4052;
+  --color-blue-deep: #223140;
+  --color-blue-lift: #3a5164;
+
+  --color-cream: #f6efe2;
+  --color-cream-dim: #e9dcc4;
+  --color-ink: #1e2a34;
+  --color-amber: #dfab68;
+  --color-gold: #dfab68;
+  --color-charcoal-deep: #202d39;
+}
+
+/* ---- Base --------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+/* Smooth scrolling for anchor/link navigation while preserving normal wheel
+   and trackpad movement through the page. */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--color-cream);
+  /* Slate-blue base (#2E4052). A gentle diagonal — not a centred radial — so
+     there's no symmetric oval vignette. Contour/movement comes from ::before. */
+  background-color: var(--color-blue);
+  background-image: linear-gradient(
+    158deg,
+    #2b3c4c 0%,
+    #263646 46%,
+    #21303f 100%
+  );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Atmospheric glow built only from the two brand colours: warm gold (#DFAB68)
+   and lifted-blue highlights. Overlapping, off-centre, differently-sized blobs
+   are pushed past the edges so their combined contour reads as irregular and
+   organic — no neat ovals. The centre stays clear so the copy is readable.
+   No blur — the soft falloff plus grain does the texturing. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    /* gold cluster, lower-left — three offset blobs make a ragged edge */
+    radial-gradient(38% 34% at 2% 86%, rgba(223, 171, 104, 0.5), rgba(223, 171, 104, 0) 70%),
+    radial-gradient(30% 46% at 16% 106%, rgba(223, 171, 104, 0.42), rgba(223, 171, 104, 0) 72%),
+    radial-gradient(26% 24% at 30% 96%, rgba(223, 171, 104, 0.3), rgba(223, 171, 104, 0) 70%),
+    /* gold cluster, upper-right — offset for asymmetry */
+    radial-gradient(44% 30% at 98% 2%, rgba(223, 171, 104, 0.34), rgba(223, 171, 104, 0) 72%),
+    radial-gradient(32% 40% at 80% -8%, rgba(223, 171, 104, 0.26), rgba(223, 171, 104, 0) 72%),
+    /* lifted-blue highlights on the loose corners for gentle edge movement */
+    radial-gradient(48% 42% at 104% 78%, rgba(58, 81, 100, 0.52), rgba(58, 81, 100, 0) 74%),
+    radial-gradient(30% 36% at 90% 40%, rgba(58, 81, 100, 0.32), rgba(58, 81, 100, 0) 74%),
+    radial-gradient(40% 34% at -2% 10%, rgba(58, 81, 100, 0.42), rgba(58, 81, 100, 0) 74%);
+}
+
+/* Film grain — the primary background texture (graincore). Sits below the page
+   content (z-1 vs z-10) so text stays crisp. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none !important;
+  }
+}

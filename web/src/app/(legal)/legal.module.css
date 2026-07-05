@@ -1,0 +1,7 @@
+.wrap {
+  position: relative;
+  z-index: 10;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 6rem 1.5rem;
+}
