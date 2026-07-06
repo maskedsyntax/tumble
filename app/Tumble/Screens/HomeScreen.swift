@@ -31,10 +31,12 @@ struct HomeScreen: View {
                     DrawerPile(photos: photos) { selected = $0 }
                 }
 
-                // The camera, tucked into the Dynamic Island.
+                // The camera handle. On Dynamic Island phones it merges with the
+                // island; elsewhere it's a clean floating pull-down handle.
                 IslandCamera(
                     screenWidth: geo.size.width,
                     topInset: geo.safeAreaInsets.top,
+                    hasIsland: geo.safeAreaInsets.top >= 51,
                     autoOpen: ProcessInfo.processInfo.arguments.contains("-island")
                 )
                 .environment(app)

@@ -16,6 +16,10 @@ struct IslandCamera: View {
 
     let screenWidth: CGFloat
     let topInset: CGFloat
+    /// Whether this device has a Dynamic Island. When true the closed handle
+    /// merges with the hardware island; when false it renders as a clean,
+    /// visible floating handle just below the notch/status bar.
+    var hasIsland: Bool = true
     /// Called after a shot lands, so the home can react (e.g. counters).
     var onCaptured: () -> Void = {}
     /// Debug: open the window on appear (for previews / screenshots).
@@ -33,7 +37,11 @@ struct IslandCamera: View {
     private let closedW: CGFloat = 126
     private let closedH: CGFloat = 37
     private let closedCorner: CGFloat = 19
-    private let islandTopY: CGFloat = 11
+
+    /// Where the window's top edge sits at rest: over the island on DI phones,
+    /// just below the notch/status bar otherwise (so the notch never lands
+    /// inside the black window).
+    private var anchorTopY: CGFloat { hasIsland ? 11 : topInset + 4 }
 
     private var openW: CGFloat { min(screenWidth - 40, 330) }
     private var previewH: CGFloat { openW * 0.86 }
@@ -47,6 +55,14 @@ struct IslandCamera: View {
     private var contentOpacity: CGFloat { smoothstep(progress, 0.06, 0.42) }
     private var controlsOpacity: CGFloat { smoothstep(progress, 0.55, 1) }
 
+    // On DI phones the closed pill blends with the hardware (no rim/shadow at
+    // rest). On other phones it needs a visible rim and lift so it reads as a
+    // deliberate pull-down handle rather than a stray black pill.
+    private var handleBorderOpacity: CGFloat { hasIsland ? progress * 0.35 : max(0.5, progress * 0.35) }
+    private var handleShadowOpacity: CGFloat { hasIsland ? 0.4 * progress : max(0.28, 0.4 * progress) }
+    private var handleShadowRadius: CGFloat { hasIsland ? 22 * progress : max(10, 22 * progress) }
+    private var handleShadowY: CGFloat { hasIsland ? 12 * progress : max(5, 12 * progress) }
+
     var body: some View {
         ZStack(alignment: .top) {
             // Dim the home behind the window; tap outside to close.
@@ -57,17 +73,19 @@ struct IslandCamera: View {
             }
 
             window
-                .position(x: screenWidth / 2, y: islandTopY + h / 2)
+                .position(x: screenWidth / 2, y: anchorTopY + h / 2)
 
-            // Informational chip just below the island (fades as it opens).
-            if progress < 0.35 {
+            // On DI phones the closed pill hides behind the hardware island, so
+            // show an informational chip below it. On other phones the handle
+            // itself is visible, so this chip would be redundant.
+            if hasIsland && progress < 0.35 {
                 pullTab
                     .position(x: screenWidth / 2, y: topInset + 8)
                     .opacity(1 - smoothstep(progress, 0, 0.3))
                     .allowsHitTesting(false)
             }
 
-            // Drag the Dynamic Island itself down to grow the camera window.
+            // Drag the island / handle down to grow the camera window.
             islandGrabber
         }
         .onAppear {
@@ -99,7 +117,9 @@ struct IslandCamera: View {
             .accessibilityLabel(
                 opened
                     ? "Camera open"
-                    : "Pull down the Dynamic Island for the camera. \(app.roll.remainingLabel)."
+                    : (hasIsland
+                        ? "Pull down the Dynamic Island for the camera. \(app.roll.remainingLabel)."
+                        : "Pull down for the camera. \(app.roll.remainingLabel).")
             )
             .accessibilityAddTraits(.isButton)
     }
@@ -135,9 +155,9 @@ struct IslandCamera: View {
                 .fill(.black)
                 .overlay(
                     RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .strokeBorder(Palette.amber.opacity(progress * 0.35), lineWidth: 1)
+                        .strokeBorder(Palette.amber.opacity(handleBorderOpacity), lineWidth: hasIsland ? 1 : 1.25)
                 )
-                .shadow(color: .black.opacity(0.4 * progress), radius: 22 * progress, y: 12 * progress)
+                .shadow(color: .black.opacity(handleShadowOpacity), radius: handleShadowRadius, y: handleShadowY)
                 .shadow(color: Palette.amber.opacity(0.16 * progress), radius: 30 * progress, y: 10 * progress)
 
             // Open-state content, laid out at full size and revealed top-down as
