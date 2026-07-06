@@ -6,18 +6,32 @@ import TumbleKit
 struct TumbleApp: App {
     @State private var app = AppModel()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("tumble.hasOnboarded") private var hasOnboarded = false
 
     private let container: ModelContainer = {
         do { return try PhotoStore.makeContainer() }
         catch { return try! PhotoStore.makeContainer(inMemory: true) }
     }()
 
+    private var skipOnboarding: Bool {
+        ProcessInfo.processInfo.arguments.contains("-skipOnboard")
+    }
+
     var body: some Scene {
         WindowGroup {
-            HomeScreen()
-                .environment(app)
-                .preferredColorScheme(.dark)
-                .statusBarHidden()
+            Group {
+                if hasOnboarded || skipOnboarding {
+                    HomeScreen()
+                } else {
+                    OnboardingScreen {
+                        withAnimation(.easeInOut(duration: 0.35)) { hasOnboarded = true }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .environment(app)
+            .preferredColorScheme(.dark)
+            .statusBarHidden()
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, phase in

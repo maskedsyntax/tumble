@@ -13,8 +13,6 @@ struct HomeScreen: View {
     @State private var selected: Photo?
     @State private var showPaywall = false
     @State private var nudgeDismissed = false
-    @State private var showHint = false
-    @AppStorage("tumble.hasSeenIslandHint") private var seenHint = false
 
     /// Prompt to own more when the daily roll is running low.
     private let lowRollThreshold = 3
@@ -59,10 +57,6 @@ struct HomeScreen: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                // One-time coachmark: teach the pull-down camera.
-                if showHint {
-                    coachmark(topInset: geo.safeAreaInsets.top)
-                }
             }
             .ignoresSafeArea()
         }
@@ -76,11 +70,6 @@ struct HomeScreen: View {
         .onAppear {
             DebugSeed.run(in: context)
             app.capturedCount = photos.count
-            if !seenHint {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    withAnimation(.easeOut(duration: 0.4)) { showHint = true }
-                }
-            }
             if ProcessInfo.processInfo.arguments.contains("-develop") {
                 selected = photos.first { !$0.isDeveloped }
             } else if ProcessInfo.processInfo.arguments.contains("-detail") {
@@ -93,7 +82,6 @@ struct HomeScreen: View {
             if ProcessInfo.processInfo.arguments.contains("-emptyroll") {
                 for _ in 0..<12 { app.roll.consumeShot() }
             }
-            if ProcessInfo.processInfo.arguments.contains("-hint") { showHint = true }
         }
     }
 
@@ -169,41 +157,4 @@ struct HomeScreen: View {
     }
 
     // MARK: Coachmark
-
-    private func coachmark(topInset: CGFloat) -> some View {
-        ZStack(alignment: .top) {
-            Color.black.opacity(0.55).ignoresSafeArea()
-                .onTapGesture { dismissHint() }
-
-            VStack(spacing: 12) {
-                Image(systemName: "chevron.compact.up")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(Palette.amber)
-                VStack(spacing: 6) {
-                    Text("Your camera lives up here")
-                        .font(Typography.display(20)).foregroundStyle(Palette.cream)
-                    Text("Pull it down to take a shot. Twelve a day —\nshake each one to develop it.")
-                        .font(Typography.sans(14)).foregroundStyle(Palette.cream.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                }
-                Button { dismissHint() } label: {
-                    Text("Got it")
-                        .font(Typography.sans(14, weight: .bold))
-                        .foregroundStyle(Palette.ink)
-                        .padding(.horizontal, 22).padding(.vertical, 10)
-                        .background(Palette.amber, in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 4)
-            }
-            .padding(24)
-            .padding(.top, topInset + 54)
-        }
-        .transition(.opacity)
-    }
-
-    private func dismissHint() {
-        withAnimation(.easeOut(duration: 0.3)) { showHint = false }
-        seenHint = true
-    }
 }
