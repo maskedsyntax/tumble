@@ -17,18 +17,28 @@ enum DebugSeed {
         guard existing == 0 else { return }
 
         let scenes = FilmScene.allCases
-        for (i, scene) in scenes.enumerated() {
+        for i in 0..<count {
+            let scene = scenes[i % scenes.count]
             let photo = Photo(source: .app)
             photo.capturedAt = Date().addingTimeInterval(-Double(i) * 60 * 60 * 24 * 5) // spread ages
             let img = scene.image()
             if let data = img.jpegData(compressionQuality: 0.9) {
                 photo.rawImageName = try? PhotoStore.writeImage(data, id: photo.id, kind: .raw)
             }
-            // Leave the two newest undeveloped so the develop flow is visible.
-            photo.isDeveloped = i >= 2
-            photo.developProgress = i >= 2 ? 1 : 0
+            // Leave the newest undeveloped so the develop flow is visible.
+            photo.isDeveloped = i >= min(2, count - 1)
+            photo.developProgress = photo.isDeveloped ? 1 : 0
             context.insert(photo)
         }
         try? context.save()
+    }
+
+    /// Number of prints to seed — pass `-count N`; defaults to all scenes.
+    private static var count: Int {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-count"), i + 1 < args.count, let n = Int(args[i + 1]) {
+            return max(1, n)
+        }
+        return FilmScene.allCases.count
     }
 }

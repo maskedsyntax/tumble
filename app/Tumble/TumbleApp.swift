@@ -14,14 +14,18 @@ struct TumbleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CameraScreen()
+            HomeScreen()
                 .environment(app)
                 .preferredColorScheme(.dark)
                 .statusBarHidden()
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { app.refresh() }
+            switch phase {
+            case .active: app.enterForeground()   // free the island for dragging
+            case .background: app.enterBackground() // show the status Live Activity
+            default: break
+            }
         }
     }
 }

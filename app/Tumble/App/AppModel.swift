@@ -15,6 +15,10 @@ final class AppModel {
     /// the Drawer.
     var lastCaptured: Photo?
 
+    /// Current number of prints in the Drawer, kept current by the home screen
+    /// so the background Live Activity can show it.
+    var capturedCount = 0
+
     init(roll: RollManager = RollManager()) {
         self.roll = roll
     }
@@ -30,15 +34,18 @@ final class AppModel {
         roll.entitlement = purchases.entitlement
     }
 
-    /// Pick up a midnight rollover whenever the app returns to the foreground.
-    func refresh() { roll.refresh() }
-
-    func startCameraActivity(capturedCount: Int) {
-        cameraActivity.start(remainingLabel: roll.remainingLabel, capturedCount: capturedCount)
+    /// Coming to the foreground: pick up a midnight rollover, and **end** the
+    /// Live Activity so the Dynamic Island is a plain, fully app-owned surface —
+    /// the whole island stays grabbable while you're in the app.
+    func enterForeground() {
+        roll.refresh()
+        cameraActivity.end()
     }
 
-    func updateCameraActivity(capturedCount: Int, status: String = "Camera ready") {
-        cameraActivity.update(remainingLabel: roll.remainingLabel, capturedCount: capturedCount, status: status)
+    /// Going to the background: show the Live Activity as a glanceable status
+    /// surface in the island / Lock Screen.
+    func enterBackground() {
+        cameraActivity.start(remainingLabel: roll.remainingLabel, capturedCount: capturedCount)
     }
 
     /// Store a freshly shot frame: spend a shot, persist the raw bytes, and drop
@@ -50,9 +57,5 @@ final class AppModel {
         }
         lastCaptured = photo
         return true
-    }
-
-    func markShotSaved(capturedCount: Int) {
-        cameraActivity.shotSaved(remainingLabel: roll.remainingLabel, capturedCount: capturedCount)
     }
 }

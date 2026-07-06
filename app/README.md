@@ -52,16 +52,20 @@ shared container. No networking beyond StoreKit.
 - **Shake to develop** — `TumbleKit/Motion/ShakeMonitor.swift` +
   `Tumble/Screens/DevelopView.swift`. Accelerometer energy ramps the develop;
   press-and-hold fallback under Reduce Motion / no accelerometer.
-- **The Drawer & prints** — `TumbleKit/Views/PrintView.swift`,
-  `Tumble/Screens/DrawerScreen.swift`. Scattered pile with the site's exact
-  print treatment (aged grade, grain, vignette, sheen); aging is a function of
-  capture time (`Photo.ageFraction`).
-- **Dynamic Island camera** — `Tumble/Screens/CameraScreen.swift` renders a
-  foreground island-viewfinder layout on Dynamic Island-class devices, with a
-  compact live preview tucked into a black island bezel and controls below it.
-  `TumbleIsland/` + `ActivityKit` state provide the background Live Activity
-  status surface; iOS does not allow a live camera preview inside that background
-  Live Activity, so tapping it deep-links back to the camera.
+- **The Drawer is home** — `Tumble/Screens/HomeScreen.swift` +
+  `Tumble/Views/DrawerPile.swift`. The whole screen is the scattered pile of
+  prints (the site's exact treatment: aged grade, grain, vignette, sheen); aging
+  is a function of capture time (`Photo.ageFraction`). There is no full-screen
+  viewfinder — shots you take land straight here.
+- **Pull-from-island camera** — `Tumble/Screens/IslandCamera.swift`. The camera
+  is a window you pull *out of* the Dynamic Island: a visible tab under the
+  island drags down into a live viewfinder, its geometry tracking your finger
+  (continuous interpolation on a spring — no scale transitions), then springs
+  open. Shoot and the print drops into the Drawer as the window retracts. Only
+  runs the capture session while the window is open. `TumbleIsland/` +
+  `ActivityKit` provide the background Live Activity status surface (iOS does not
+  allow a live camera preview inside a Live Activity, so it stays status-only and
+  deep-links back via `tumble://camera`).
 - **Graincore theme** — `TumbleKit/Theme/`. Ports the tokens and atmosphere from
   `../web/src/app/globals.css`.
 
@@ -72,8 +76,9 @@ apply the StoreKit test config. To exercise the UI without a device, launch with
 debug flags (guarded, no effect in a normal launch):
 
 ```sh
-xcrun simctl launch <device> com.tumble.app -seed -drawer     # seed prints, open Drawer
-xcrun simctl launch <device> com.tumble.app -seed -drawer -develop -devMid  # develop mid-state
+xcrun simctl launch <device> com.tumble.app -seed             # seed the Drawer (home)
+xcrun simctl launch <device> com.tumble.app -seed -island     # pull the island camera open
+xcrun simctl launch <device> com.tumble.app -seed -develop -devMid  # develop mid-state
 xcrun simctl launch <device> com.tumble.app -paywall          # paywall
 xcrun simctl launch <device> com.tumble.app -settings         # settings
 ```
@@ -84,8 +89,8 @@ products and the `group.com.tumble` App Group registered in App Store Connect;
 the `.storekit` config only covers local testing in Xcode.
 
 Dynamic Island testing does not require owned hardware: run the app on a
-Dynamic Island simulator such as iPhone 17 Pro. The foreground island-viewfinder
-layout appears in-app; send the simulator Home to inspect the Live Activity in
-the island / Lock Screen surfaces while the camera session is active. On
-non-Dynamic-Island devices such as iPhone 12, the same Live Activity can still
-be inspected on the Lock Screen, but there is no island hardware surface.
+Dynamic Island simulator such as iPhone 17 Pro. The pull-tab appears under the
+island; drag it down to open the camera window. Send the simulator Home to
+inspect the background Live Activity in the island / Lock Screen surfaces. On
+non-Dynamic-Island devices the pull-tab still works as an in-app handle; only the
+hardware island surface is absent.
