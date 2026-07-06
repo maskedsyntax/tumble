@@ -22,6 +22,8 @@ struct IslandCamera: View {
     var hasIsland: Bool = true
     /// Called after a shot lands, so the home can react (e.g. counters).
     var onCaptured: () -> Void = {}
+    /// Called when an empty roll wants to send the shooter to the paywall.
+    var onNeedMore: () -> Void = {}
     /// Debug: open the window on appear (for previews / screenshots).
     var autoOpen: Bool = false
 
@@ -237,35 +239,60 @@ struct IslandCamera: View {
         }
     }
 
-    private var controls: some View {
-        HStack(spacing: 28) {
-            Text(app.roll.remainingLabel)
-                .font(Typography.sans(12, weight: .semibold))
-                .foregroundStyle(Palette.cream.opacity(0.85))
-                .frame(width: 64, alignment: .leading)
+    @ViewBuilder private var controls: some View {
+        if app.roll.canShoot {
+            HStack(spacing: 28) {
+                Text(app.roll.remainingLabel)
+                    .font(Typography.sans(12, weight: .semibold))
+                    .foregroundStyle(Palette.cream.opacity(0.85))
+                    .frame(width: 64, alignment: .leading)
 
-            Button(action: capture) {
-                ZStack {
-                    Circle().strokeBorder(Palette.cream.opacity(0.9), lineWidth: 3)
-                        .frame(width: 54, height: 54)
-                    Circle().fill(app.roll.canShoot ? Palette.cream : Palette.cream.opacity(0.4))
-                        .frame(width: 42, height: 42)
+                Button(action: capture) {
+                    ZStack {
+                        Circle().strokeBorder(Palette.cream.opacity(0.9), lineWidth: 3)
+                            .frame(width: 54, height: 54)
+                        Circle().fill(Palette.cream)
+                            .frame(width: 42, height: 42)
+                    }
                 }
-            }
-            .buttonStyle(.plain)
-            .disabled(!app.roll.canShoot || !opened)
-            .accessibilityLabel("Take a shot")
+                .buttonStyle(.plain)
+                .disabled(!opened)
+                .accessibilityLabel("Take a shot")
 
-            Button(action: close) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Palette.cream.opacity(0.8))
-                    .frame(width: 64, alignment: .trailing)
+                closeChevron.frame(width: 64, alignment: .trailing)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close camera")
+            .padding(.horizontal, 18)
+        } else {
+            // Empty roll: calm "fresh at sunrise" state with a path to own more.
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("That's the roll for today.")
+                        .font(Typography.sans(13, weight: .semibold)).foregroundStyle(Palette.cream)
+                    Text("Fresh twelve at sunrise.")
+                        .font(Typography.sans(11)).foregroundStyle(Palette.cream.opacity(0.6))
+                }
+                Spacer(minLength: 6)
+                Button { close(); onNeedMore() } label: {
+                    Text("Own more")
+                        .font(Typography.sans(13, weight: .bold)).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(Palette.gold, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                closeChevron
+            }
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 18)
+    }
+
+    private var closeChevron: some View {
+        Button(action: close) {
+            Image(systemName: "chevron.up")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Palette.cream.opacity(0.8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close camera")
     }
 
     // MARK: Gesture

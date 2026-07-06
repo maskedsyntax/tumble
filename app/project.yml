@@ -9,6 +9,9 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
+    # Persist the signing team across `xcodegen generate` so device builds
+    # don't reset to "None". This is the "Aftaab Siddiqui" team.
+    DEVELOPMENT_TEAM: GVGJLY2H53
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
