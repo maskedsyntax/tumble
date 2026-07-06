@@ -41,6 +41,7 @@ targets:
       - target: TumbleKit
       - target: TumbleControls
       - target: TumbleCapture
+      - target: TumbleIsland
     entitlements:
       path: Tumble/Tumble.entitlements
       properties:
@@ -54,6 +55,14 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
         INFOPLIST_KEY_NSMotionUsageDescription: "Tumble reads motion so you can shake a shot to develop it."
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+    info:
+      path: Tumble/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.tumble.app
+            CFBundleURLSchemes:
+              - tumble
 
   # ---- Lock Screen / Control Center control -------------------------------
   TumbleControls:
@@ -99,6 +108,28 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.capture
         INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
+
+  # ---- Dynamic Island / Live Activity surface -----------------------------
+  TumbleIsland:
+    type: app-extension
+    platform: iOS
+    sources:
+      - TumbleIsland
+    dependencies:
+      - target: TumbleKit
+    entitlements:
+      path: TumbleIsland/TumbleIsland.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.tumble
+    info:
+      path: TumbleIsland/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.island
 
   # ---- Tests --------------------------------------------------------------
   TumbleKitTests:

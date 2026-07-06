@@ -38,6 +38,7 @@ xcodebuild -scheme Tumble -destination 'platform=iOS Simulator,name=iPhone 17 Pr
 | `TumbleKit` | Shared domain: models, Roll/quota, storage, film pipeline, StoreKit, theme, camera. |
 | `TumbleControls` | Lock Screen / Control Center control that launches the camera. |
 | `TumbleCapture` | `LockedCameraCapture` extension — the camera while the phone is locked. |
+| `TumbleIsland` | Live Activity / Dynamic Island status surface for the active Tumble camera session. |
 
 All product rules live in `TumbleKit` so the lock-screen extension enforces the
 same Roll and writes to the same Drawer via a shared **App Group**
@@ -55,6 +56,12 @@ shared container. No networking beyond StoreKit.
   `Tumble/Screens/DrawerScreen.swift`. Scattered pile with the site's exact
   print treatment (aged grade, grain, vignette, sheen); aging is a function of
   capture time (`Photo.ageFraction`).
+- **Dynamic Island camera** — `Tumble/Screens/CameraScreen.swift` renders a
+  foreground island-viewfinder layout on Dynamic Island-class devices, with a
+  compact live preview tucked into a black island bezel and controls below it.
+  `TumbleIsland/` + `ActivityKit` state provide the background Live Activity
+  status surface; iOS does not allow a live camera preview inside that background
+  Live Activity, so tapping it deep-links back to the camera.
 - **Graincore theme** — `TumbleKit/Theme/`. Ports the tokens and atmosphere from
   `../web/src/app/globals.css`.
 
@@ -75,3 +82,10 @@ Real camera, shake haptics, in-app purchases, and lock-screen capture require a
 physical device. Purchases also need the `com.tumble.plus` / `com.tumble.unlimited`
 products and the `group.com.tumble` App Group registered in App Store Connect;
 the `.storekit` config only covers local testing in Xcode.
+
+Dynamic Island testing does not require owned hardware: run the app on a
+Dynamic Island simulator such as iPhone 17 Pro. The foreground island-viewfinder
+layout appears in-app; send the simulator Home to inspect the Live Activity in
+the island / Lock Screen surfaces while the camera session is active. On
+non-Dynamic-Island devices such as iPhone 12, the same Live Activity can still
+be inspected on the Lock Screen, but there is no island hardware surface.

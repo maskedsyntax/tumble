@@ -9,6 +9,7 @@ import TumbleKit
 final class AppModel {
     let roll: RollManager
     let purchases = PurchaseManager()
+    let cameraActivity = TumbleCameraActivityCoordinator()
 
     /// The just-captured print, surfaced so the UI can animate it tossing into
     /// the Drawer.
@@ -32,6 +33,14 @@ final class AppModel {
     /// Pick up a midnight rollover whenever the app returns to the foreground.
     func refresh() { roll.refresh() }
 
+    func startCameraActivity(capturedCount: Int) {
+        cameraActivity.start(remainingLabel: roll.remainingLabel, capturedCount: capturedCount)
+    }
+
+    func updateCameraActivity(capturedCount: Int, status: String = "Camera ready") {
+        cameraActivity.update(remainingLabel: roll.remainingLabel, capturedCount: capturedCount, status: status)
+    }
+
     /// Store a freshly shot frame: spend a shot, persist the raw bytes, and drop
     /// an *undeveloped* print into the Drawer. Returns false if the roll is empty.
     @discardableResult
@@ -41,5 +50,9 @@ final class AppModel {
         }
         lastCaptured = photo
         return true
+    }
+
+    func markShotSaved(capturedCount: Int) {
+        cameraActivity.shotSaved(remainingLabel: roll.remainingLabel, capturedCount: capturedCount)
     }
 }
