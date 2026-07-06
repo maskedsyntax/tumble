@@ -1,0 +1,126 @@
+name: Tumble
+options:
+  bundleIdPrefix: com.tumble
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: YES
+    # Run on the Simulator with no signing/team. Device builds still use
+    # Automatic signing — add your team in Signing & Capabilities for those.
+    "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "NO"
+    "CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]": "NO"
+    "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": ""
+
+targets:
+  # ---- Shared domain framework -------------------------------------------
+  TumbleKit:
+    type: framework
+    platform: iOS
+    sources:
+      - TumbleKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.kit
+        SWIFT_EMIT_LOC_STRINGS: NO
+
+  # ---- Main app -----------------------------------------------------------
+  Tumble:
+    type: application
+    platform: iOS
+    sources:
+      - Tumble
+    dependencies:
+      - target: TumbleKit
+      - target: TumbleControls
+      - target: TumbleCapture
+    entitlements:
+      path: Tumble/Tumble.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.tumble
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
+        INFOPLIST_KEY_NSMotionUsageDescription: "Tumble reads motion so you can shake a shot to develop it."
+
+  # ---- Lock Screen / Control Center control -------------------------------
+  TumbleControls:
+    type: app-extension
+    platform: iOS
+    sources:
+      - TumbleControls
+    dependencies:
+      - target: TumbleKit
+    entitlements:
+      path: TumbleControls/TumbleControls.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.tumble
+    info:
+      path: TumbleControls/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.controls
+
+  # ---- Lock-screen camera capture extension -------------------------------
+  TumbleCapture:
+    type: extensionkit-extension
+    platform: iOS
+    sources:
+      - TumbleCapture
+    dependencies:
+      - target: TumbleKit
+    entitlements:
+      path: TumbleCapture/TumbleCapture.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.tumble
+    info:
+      path: TumbleCapture/Info.plist
+      properties:
+        EXAppExtensionAttributes:
+          EXExtensionPointIdentifier: com.apple.lockedcamera-capture
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.capture
+        INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
+
+  # ---- Tests --------------------------------------------------------------
+  TumbleKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - TumbleKitTests
+    dependencies:
+      - target: TumbleKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.kit.tests
+
+schemes:
+  Tumble:
+    build:
+      targets:
+        Tumble: all
+        TumbleKitTests: [test]
+    run:
+      storeKitConfiguration: Tumble.storekit
+    test:
+      targets:
+        - TumbleKitTests
+      gatherCoverageData: true

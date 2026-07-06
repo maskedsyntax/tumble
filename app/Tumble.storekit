@@ -1,0 +1,44 @@
+{
+  "identifier" : "A1B2C3D4-0001-0002-0003-000000000000",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4-1001-0002-0003-000000000000",
+      "localizations" : [
+        {
+          "description" : "Six rolls a day for heavier shooters, still fresh every morning. Pay once, keep it forever.",
+          "displayName" : "Plus — 72 shots a day",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.tumble.plus",
+      "referenceName" : "Plus",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "11.99",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4-1002-0002-0003-000000000000",
+      "localizations" : [
+        {
+          "description" : "No daily limit at all. Shoot as much as you like, for as long as you like. One payment, done.",
+          "displayName" : "Unlimited",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.tumble.unlimited",
+      "referenceName" : "Unlimited",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "com.tumble.app"
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
