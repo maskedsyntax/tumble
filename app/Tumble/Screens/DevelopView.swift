@@ -21,6 +21,9 @@ struct DevelopView: View {
     @State private var holding = false
     @State private var demo = 0            // bumped once to play the gesture demo
     @State private var confirmRemove = false
+    @State private var isSaving = false
+    @State private var saveMessage: String?
+    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
@@ -37,7 +40,8 @@ struct DevelopView: View {
             }
             .padding(24)
 
-            closeButton
+            saveStatus
+            topControls
         }
         .task(id: photo.id) { await setup() }
         .onDisappear { shake.stop() }
@@ -112,7 +116,23 @@ struct DevelopView: View {
             )
     }
 
-    private var closeButton: some View {
+    @ViewBuilder private var saveStatus: some View {
+        if let saveMessage {
+            VStack {
+                Spacer()
+                Text(saveMessage)
+                    .font(Typography.sans(13, weight: .semibold))
+                    .foregroundStyle(Palette.cream.opacity(0.78))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.black.opacity(0.28), in: Capsule())
+                    .padding(.bottom, 58)
+            }
+            .transition(.opacity)
+        }
+    }
+
+    private var topControls: some View {
         VStack {
             HStack(spacing: 10) {
                 Spacer()
@@ -125,6 +145,29 @@ struct DevelopView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove print")
 
+                if developed {
+                    saveOptionsMenu
+
+                    Button { Task { await savePrint() } } label: {
+                        ZStack {
+                            if isSaving {
+                                ProgressView()
+                                    .tint(Palette.cream)
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                        }
+                        .foregroundStyle(Palette.cream)
+                        .frame(width: 35, height: 35)
+                        .background(.black.opacity(0.28), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving)
+                    .accessibilityLabel("Save print to Photos")
+                }
+
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
@@ -135,7 +178,8 @@ struct DevelopView: View {
             }
             Spacer()
         }
-        .padding(.horizontal, 20).padding(.top, 6)
+        .padding(.horizontal, 20)
+        .safeAreaPadding(.top, 6)
         .confirmationDialog(
             "Remove this print from your Drawer?",
             isPresented: $confirmRemove,
@@ -146,6 +190,22 @@ struct DevelopView: View {
         } message: {
             Text("This will not return the shot.")
         }
+    }
+
+    private var saveOptionsMenu: some View {
+        Menu {
+            Toggle(isOn: $saveIncludesPostcardFrame) {
+                Label("Save as postcard", systemImage: "photo.artframe")
+            }
+        } label: {
+            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(saveIncludesPostcardFrame ? Palette.gold : Palette.cream)
+                .frame(width: 35, height: 35)
+                .background(.black.opacity(0.28), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Save format options")
     }
 
     // MARK: Develop logic
@@ -210,6 +270,32 @@ struct DevelopView: View {
         try? context.save()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
+    }
+
+    @MainActor
+    private func savePrint() async {
+        guard developed, !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
+        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
+        let result = await PhotoLibrarySaver.saveDeveloped(photo, style: style)
+        withAnimation(.easeOut(duration: 0.2)) {
+            saveMessage = message(for: result, style: style)
+        }
+    }
+
+    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
+        switch result {
+        case .saved:
+            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved photo to Photos."
+        case .noDevelopedPhotos:
+            return "Develop this print before saving."
+        case .denied:
+            return "Allow Photos access to save prints."
+        case .failed:
+            return "Could not save. Try again."
+        }
     }
 }
 
