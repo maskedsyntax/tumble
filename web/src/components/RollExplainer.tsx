@@ -7,17 +7,17 @@ const BEATS = [
   {
     kicker: "The Roll",
     title: "Twelve shots a day.",
-    body: "No ads, no unlocks, no “watch this for three more.” Just twelve, fresh each morning, enough to make every shot feel deliberate.",
+    body: "Your free roll resets every day. No ads, no watch-this unlocks, no feed disguised as a camera.",
   },
   {
-    kicker: "Pay once",
-    title: "Need more? Own more.",
-    body: "If twelve is not enough, unlock more rolls with a small one-time payment. No monthly subscription, no renewal, no forever meter running in the background.",
+    kicker: "Island camera",
+    title: "Pull down to shoot.",
+    body: "The camera lives as a small top handle. Drag it open, take the shot, and the print drops straight back into the Drawer.",
   },
   {
     kicker: "Shake to develop",
     title: "You have to wait for it.",
-    body: "Take a shot and it comes out blank, face-down. Give your phone a shake and watch it develop, washed-out at first, settling into full color like real instant film.",
+    body: "Fresh prints start blank. Shake your phone to develop them, or press and hold when motion is reduced.",
   },
 ];
 

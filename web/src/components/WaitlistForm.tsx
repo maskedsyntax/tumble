@@ -39,7 +39,7 @@ export default function WaitlistForm() {
 
       if (res.ok && data.ok) {
         setStatus("success");
-        setMessage("You're on the list. We'll email you when Tumble ships.");
+        setMessage("You're on the list. We'll email you when Tumble hits the App Store.");
         setEmail("");
       } else {
         setStatus("error");
@@ -60,7 +60,7 @@ export default function WaitlistForm() {
       >
         <p className="font-display text-xl text-cream">You&rsquo;re on the list.</p>
         <p className="mt-1 text-sm text-cream/70">
-          We&rsquo;ll email you when the no-subscription camera ships.
+          We&rsquo;ll email you when the App Store page is live.
         </p>
       </div>
     );
@@ -69,7 +69,7 @@ export default function WaitlistForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-xl">
       <label htmlFor="email" className="mb-3 block text-sm font-medium text-cream/85">
-        Be first to try Tumble when it launches.
+        Get the App Store link when Tumble launches.
       </label>
 
       {/* Honeypot — visually hidden, off the tab order. Bots fill it, humans don't. */}
@@ -119,7 +119,7 @@ export default function WaitlistForm() {
           status === "error" ? "text-amber" : "text-cream/60"
         }`}
       >
-        {status === "error" ? message : "No spam. Just one launch email."}
+        {status === "error" ? message : "No spam. Just one App Store launch email."}
       </p>
     </form>
   );

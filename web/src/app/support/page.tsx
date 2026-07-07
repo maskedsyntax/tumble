@@ -6,7 +6,7 @@ const SUPPORT_EMAIL = "aftaab@aftab.dev";
 
 export const metadata: Metadata = {
   title: "Support · Tumble",
-  description: "Get help with Tumble, the slower iPhone camera for daily photo rolls.",
+  description: "Get help with Tumble, the private iPhone camera for daily photo rolls.",
 };
 
 export default function SupportPage() {
@@ -25,8 +25,9 @@ export default function SupportPage() {
             Need a hand with your roll?
           </h1>
           <p className="mt-5 leading-relaxed text-cream/80">
-            Tumble is still getting ready for launch. If something feels unclear,
-            broken, or oddly exposed, send a note and we will help from there.
+            Tumble is in final App Store submission prep. For launch questions,
+            purchase restores, privacy requests, or bug reports, email support
+            and we will help from there.
           </p>
 
           <a
@@ -67,8 +68,8 @@ export default function SupportPage() {
             Press and feedback
           </h2>
           <p className="mt-3 leading-relaxed">
-            Send product feedback, bug notes, or anything that helps make Tumble
-            feel more like a real pocket camera.
+            Send product feedback, bug notes, press questions, or review-copy
+            requests before the App Store page goes live.
           </p>
         </article>
       </section>

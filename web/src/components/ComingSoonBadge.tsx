@@ -1,7 +1,7 @@
 /**
- * Pre-launch stand-in for the App Store CTA. The app has no listing yet, so the
- * badge is non-linking and muted, paired with a placeholder QR. Swap in the real
- * Apple badge + live URL + a QR to the listing once it exists (spec §9.1).
+ * Pre-submission stand-in for the App Store CTA. The app has no listing yet, so
+ * the badge is non-linking and muted, paired with a placeholder QR. Swap in the
+ * real Apple badge + live URL + a QR to the listing once it exists (spec §9.1).
  */
 export default function ComingSoonBadge() {
   return (
@@ -33,7 +33,7 @@ export default function ComingSoonBadge() {
       </div>
 
       <p className="text-xs text-cream/50">
-        Coming to iPhone &middot; supported devices confirmed at launch
+        iPhone app in final submission prep &middot; supported devices confirmed at launch
       </p>
     </div>
   );

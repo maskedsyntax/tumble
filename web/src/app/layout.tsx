@@ -18,11 +18,11 @@ const inter = Inter({
 
 const SITE_URL = "https://gettumbleapp.com";
 const DESCRIPTION =
-  "Tumble is a tiny lock-screen camera that makes you wait to see what you shot. Twelve shots a day. Shake to develop. Join the waitlist.";
+  "Tumble is a private iPhone camera in final App Store prep. Pull down from the Dynamic Island or Lock Screen, shoot a daily roll, then shake to develop.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Tumble · A camera that makes you wait",
+  title: "Tumble · A slower camera you can own",
   description: DESCRIPTION,
   applicationName: "Tumble",
   keywords: ["camera", "film camera", "iPhone", "lock screen", "instant photo", "Tumble"],
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: "Tumble",
-    title: "Tumble · A camera that makes you wait",
+    title: "Tumble · A slower camera you can own",
     description: DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tumble · A camera that makes you wait",
+    title: "Tumble · A slower camera you can own",
     description: DESCRIPTION,
   },
   icons: {

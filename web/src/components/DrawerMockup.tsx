@@ -91,8 +91,8 @@ export default function DrawerMockup() {
         Your Drawer
       </h2>
       <p className="mb-8 max-w-md text-center text-cream/75">
-        Not a camera roll. A drawer you toss prints into, and they age the way
-        real photos do.
+        Not a camera roll and not a viewfinder-first app. Your home screen is a
+        pile of prints from today, with older days tucked into collections.
       </p>
 
       <div className="relative">
@@ -106,9 +106,17 @@ export default function DrawerMockup() {
 
           {/* screen */}
           <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-gradient-to-b from-[#2a3a49] to-[#182430]">
+            <div
+              className="absolute left-1/2 top-9 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-amber/30 bg-black/60 px-3 py-1 text-[10px] font-semibold text-cream/90 shadow-lg shadow-black/30"
+              aria-hidden="true"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber" />
+              7 left
+            </div>
+
             <div className="px-5 pt-9 pb-3">
               <div className="font-display text-lg font-semibold text-cream">Drawer</div>
-              <div className="text-[11px] text-cream/50">48 developed &middot; 7 left today</div>
+              <div className="text-[11px] text-cream/50">6 today &middot; 48 total</div>
             </div>
 
             {/* scattered pile */}

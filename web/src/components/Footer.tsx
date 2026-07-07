@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="flex items-center gap-2 font-display text-base font-semibold text-cream/85">
           Tumble
           <span className="font-sans text-xs font-normal text-cream/50">
-            On-device. No account. No cloud.
+            Private iPhone camera. No subscription.
           </span>
         </div>
 
