@@ -13,6 +13,7 @@ struct PrintDetailView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @State private var confirmRemove = false
+    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
 
     init(developed: [Photo], start: Photo) {
         self.developed = developed
@@ -95,6 +96,8 @@ struct PrintDetailView: View {
                 .disabled(current == nil)
                 .accessibilityLabel("Remove print")
 
+                saveOptionsMenu
+
                 Button { Task { await saveCurrent() } } label: {
                     ZStack {
                         if isSaving {
@@ -137,22 +140,39 @@ struct PrintDetailView: View {
         }
     }
 
+    private var saveOptionsMenu: some View {
+        Menu {
+            Toggle(isOn: $saveIncludesPostcardFrame) {
+                Label("Save as postcard", systemImage: "photo.artframe")
+            }
+        } label: {
+            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(saveIncludesPostcardFrame ? Palette.gold : Palette.cream)
+                .frame(width: 35, height: 35)
+                .background(.black.opacity(0.28), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Save format options")
+    }
+
     @MainActor
     private func saveCurrent() async {
         guard let current, !isSaving else { return }
         isSaving = true
         defer { isSaving = false }
 
-        let result = await PhotoLibrarySaver.saveDeveloped(current)
+        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
+        let result = await PhotoLibrarySaver.saveDeveloped(current, style: style)
         withAnimation(.easeOut(duration: 0.2)) {
-            saveMessage = message(for: result)
+            saveMessage = message(for: result, style: style)
         }
     }
 
-    private func message(for result: PhotoLibrarySaveResult) -> String {
+    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
         switch result {
         case .saved:
-            return "Saved to Photos."
+            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved photo to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:

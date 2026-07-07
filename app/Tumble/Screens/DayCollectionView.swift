@@ -10,6 +10,7 @@ struct DayCollectionView: View {
     @State private var selected: Photo?
     @State private var isSaving = false
     @State private var saveMessage: String?
+    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
 
     private var developed: [Photo] {
         day.photos.filter(\.isDeveloped)
@@ -70,30 +71,50 @@ struct DayCollectionView: View {
 
                 Spacer(minLength: 12)
 
-                Button { Task { await saveDay() } } label: {
-                    HStack(spacing: 7) {
-                        if isSaving {
-                            ProgressView()
-                                .tint(Palette.ink)
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "square.and.arrow.down")
-                                .font(.system(size: 14, weight: .semibold))
+                HStack(spacing: 8) {
+                    saveOptionsMenu
+
+                    Button { Task { await saveDay() } } label: {
+                        HStack(spacing: 7) {
+                            if isSaving {
+                                ProgressView()
+                                    .tint(Palette.ink)
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            Text(isSaving ? "Saving" : "Save day")
+                                .font(Typography.sans(13, weight: .bold))
                         }
-                        Text(isSaving ? "Saving" : "Save day")
-                            .font(Typography.sans(13, weight: .bold))
+                        .foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 9)
+                        .background(Palette.gold, in: Capsule())
                     }
-                    .foregroundStyle(Palette.ink)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 9)
-                    .background(Palette.gold, in: Capsule())
+                    .buttonStyle(.plain)
+                    .disabled(isSaving || developed.isEmpty)
+                    .opacity(developed.isEmpty ? 0.45 : 1)
+                    .accessibilityLabel("Save developed prints from this day")
                 }
-                .buttonStyle(.plain)
-                .disabled(isSaving || developed.isEmpty)
-                .opacity(developed.isEmpty ? 0.45 : 1)
-                .accessibilityLabel("Save developed prints from this day")
             }
         }
+    }
+
+    private var saveOptionsMenu: some View {
+        Menu {
+            Toggle(isOn: $saveIncludesPostcardFrame) {
+                Label("Save as postcard", systemImage: "photo.artframe")
+            }
+        } label: {
+            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(saveIncludesPostcardFrame ? Palette.ink : Palette.cream)
+                .frame(width: 34, height: 34)
+                .background(saveIncludesPostcardFrame ? Palette.gold : .black.opacity(0.28), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Save format options")
     }
 
     private var closeButton: some View {
@@ -119,16 +140,18 @@ struct DayCollectionView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let result = await PhotoLibrarySaver.saveDeveloped(in: day.photos)
+        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
+        let result = await PhotoLibrarySaver.saveDeveloped(in: day.photos, style: style)
         withAnimation(.easeOut(duration: 0.2)) {
-            saveMessage = message(for: result)
+            saveMessage = message(for: result, style: style)
         }
     }
 
-    private func message(for result: PhotoLibrarySaveResult) -> String {
+    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
         switch result {
         case .saved(let count):
-            return count == 1 ? "Saved 1 print to Photos." : "Saved \(count) prints to Photos."
+            let noun = style == .postcardFrame ? "postcard" : "photo"
+            return count == 1 ? "Saved 1 \(noun) to Photos." : "Saved \(count) \(noun)s to Photos."
         case .noDevelopedPhotos:
             return "Develop prints before saving them."
         case .denied:

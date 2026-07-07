@@ -1,4 +1,5 @@
 import Photos
+import SwiftUI
 import TumbleKit
 
 enum PhotoLibrarySaveResult: Equatable {
@@ -8,11 +9,16 @@ enum PhotoLibrarySaveResult: Equatable {
     case failed
 }
 
+enum PhotoLibrarySaveStyle {
+    case photoOnly
+    case postcardFrame
+}
+
 /// Writes developed prints to the user's Photos library only when they ask.
 enum PhotoLibrarySaver {
     @MainActor
-    static func saveDeveloped(_ photo: Photo) async -> PhotoLibrarySaveResult {
-        guard photo.isDeveloped, let data = imageData(for: photo) else {
+    static func saveDeveloped(_ photo: Photo, style: PhotoLibrarySaveStyle) async -> PhotoLibrarySaveResult {
+        guard photo.isDeveloped, let data = imageData(for: photo, style: style) else {
             return .noDevelopedPhotos
         }
 
@@ -20,10 +26,10 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    static func saveDeveloped(in photos: [Photo]) async -> PhotoLibrarySaveResult {
+    static func saveDeveloped(in photos: [Photo], style: PhotoLibrarySaveStyle) async -> PhotoLibrarySaveResult {
         let imagesData = photos
             .filter(\.isDeveloped)
-            .compactMap(imageData(for:))
+            .compactMap { imageData(for: $0, style: style) }
 
         guard !imagesData.isEmpty else {
             return .noDevelopedPhotos
@@ -33,9 +39,30 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    private static func imageData(for photo: Photo) -> Data? {
+    private static func imageData(for photo: Photo, style: PhotoLibrarySaveStyle) -> Data? {
         let name = photo.developedImageName ?? photo.rawImageName
-        return PhotoStore.loadImageData(named: name)
+        guard let data = PhotoStore.loadImageData(named: name) else { return nil }
+        guard style == .postcardFrame else { return data }
+        guard let image = UIImage(data: data) else { return nil }
+        return postcardFrameData(for: photo, image: image)
+    }
+
+    @MainActor
+    private static func postcardFrameData(for photo: Photo, image: UIImage) -> Data? {
+        let content = PrintView(
+            image: image,
+            isDeveloped: true,
+            developProgress: 1,
+            age: photo.ageFraction(),
+            caption: photo.caption,
+            width: 1280
+        )
+        .padding(90)
+        .background(Color.white)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 1
+        return renderer.uiImage?.jpegData(compressionQuality: 0.92)
     }
 
     private static func save(_ imagesData: [Data]) async -> PhotoLibrarySaveResult {
