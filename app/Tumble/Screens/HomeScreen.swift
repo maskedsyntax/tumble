@@ -17,6 +17,8 @@ struct HomeScreen: View {
     @State private var nudgeDrag = CGSize.zero
     @State private var drawerCanReset = false
     @State private var drawerResetToken = 0
+    @State private var showDrawerTips = false
+    @AppStorage("tumble.seenDrawerTips") private var seenDrawerTips = false
 
     /// Prompt to own more when the daily roll is running low.
     private let lowRollThreshold = 3
@@ -87,6 +89,16 @@ struct HomeScreen: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
+                // Just-in-time: teach the Drawer's rearrange gestures once a
+                // pile exists (and never on top of the roll nudge).
+                if showDrawerTips && !showsNudge {
+                    drawerTip
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, geo.safeAreaInsets.bottom + 18)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
             }
             .ignoresSafeArea()
         }
@@ -110,6 +122,11 @@ struct HomeScreen: View {
             app.roll.refresh()
             DebugSeed.run(in: context)
             app.capturedCount = photos.count
+            if !seenDrawerTips && todayCount >= 2 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { showDrawerTips = true }
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("-develop") {
                 selected = photos.first { !$0.isDeveloped }
             } else if ProcessInfo.processInfo.arguments.contains("-detail") {
@@ -267,6 +284,36 @@ struct HomeScreen: View {
             nudgeDrag = .zero
             nudgeDismissed = true
         }
+    }
+
+    // MARK: Just-in-time Drawer tip
+
+    private var drawerTip: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "hand.draw")
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.amber)
+            Text("Drag prints to rearrange · pinch to spread · reset ↺ up top")
+                .font(Typography.sans(12, weight: .medium))
+                .foregroundStyle(Palette.cream.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 6)
+            Button { dismissDrawerTips() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Palette.cream.opacity(0.6)).padding(6)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
+        }
+        .padding(.horizontal, 16).padding(.vertical, 11)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.charcoalDeep.opacity(0.92)))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Palette.cream.opacity(0.14)))
+        .shadow(color: .black.opacity(0.4), radius: 14, y: 7)
+    }
+
+    private func dismissDrawerTips() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) { showDrawerTips = false }
+        seenDrawerTips = true
     }
 
     @MainActor

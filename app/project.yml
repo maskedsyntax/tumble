@@ -63,6 +63,8 @@ targets:
     info:
       path: Tumble/Info.plist
       properties:
+        # No non-exempt encryption — skips the export-compliance prompt on every upload.
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLName: com.tumble.app
             CFBundleURLSchemes:

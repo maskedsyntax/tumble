@@ -6,15 +6,20 @@ import SwiftData
 /// lock-screen capture extension so both enforce the same Roll and write to the
 /// same Drawer.
 public enum CaptureService {
+    /// - Parameter consumesRoll: pass `false` for a gifted shot (e.g. the first
+    ///   shot taken during onboarding) so it doesn't spend one of the daily twelve.
     @MainActor
     @discardableResult
     public static func store(
         rawImage: UIImage,
         source: PhotoSource,
         roll: RollManager,
-        in context: ModelContext
+        in context: ModelContext,
+        consumesRoll: Bool = true
     ) -> Photo? {
-        guard roll.consumeShot() else { return nil }
+        if consumesRoll {
+            guard roll.consumeShot() else { return nil }
+        }
 
         let photo = Photo(source: source)
         if let data = rawImage.jpegData(compressionQuality: 0.9) {

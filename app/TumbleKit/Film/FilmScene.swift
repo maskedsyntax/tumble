@@ -23,7 +23,45 @@ public enum FilmScene: CaseIterable, Sendable {
             let cg = ctx.cgContext
             drawLinear(in: cg, rect: rect)
             drawHighlight(in: cg, rect: rect)
+            drawLightLeak(in: cg, rect: rect)
+            drawVignette(in: cg, rect: rect)
         }
+    }
+
+    /// A soft warm light-leak from a corner (screen-blended), the way film
+    /// catches stray light — adds depth over the flat gradient.
+    private func drawLightLeak(in ctx: CGContext, rect: CGRect) {
+        let space = CGColorSpaceCreateDeviceRGB()
+        let leak = self.leak
+        let colors = [leak.color.cgColor, leak.color.withAlphaComponent(0).cgColor] as CFArray
+        guard let gradient = CGGradient(colorsSpace: space, colors: colors, locations: [0, 1]) else { return }
+        ctx.saveGState()
+        ctx.setBlendMode(.screen)
+        let center = CGPoint(x: rect.width * leak.center.x, y: rect.height * leak.center.y)
+        ctx.drawRadialGradient(
+            gradient,
+            startCenter: center, startRadius: 0,
+            endCenter: center, endRadius: rect.width * 0.6,
+            options: []
+        )
+        ctx.restoreGState()
+    }
+
+    /// A gentle vignette so the frame reads as a photograph, not a swatch.
+    private func drawVignette(in ctx: CGContext, rect: CGRect) {
+        let space = CGColorSpaceCreateDeviceRGB()
+        let colors = [
+            UIColor(white: 0, alpha: 0).cgColor,
+            UIColor(white: 0.04, alpha: 0.4).cgColor,
+        ] as CFArray
+        guard let gradient = CGGradient(colorsSpace: space, colors: colors, locations: [0.55, 1]) else { return }
+        let center = CGPoint(x: rect.midX, y: rect.midY * 0.96)
+        ctx.drawRadialGradient(
+            gradient,
+            startCenter: center, startRadius: rect.width * 0.2,
+            endCenter: center, endRadius: rect.width * 0.74,
+            options: [.drawsAfterEndLocation]
+        )
     }
 
     private func drawLinear(in ctx: CGContext, rect: CGRect) {
@@ -52,6 +90,18 @@ public enum FilmScene: CaseIterable, Sendable {
             endCenter: center, endRadius: rect.width * hl.radius,
             options: []
         )
+    }
+
+    /// Warm light-leak colour and corner, per scene.
+    private var leak: (color: UIColor, center: CGPoint) {
+        switch self {
+        case .goldenHour: (UIColor(0xFFC178, 0.32), CGPoint(x: 0.9, y: 0.14))
+        case .blueHourRooftop: (UIColor(0xFFB870, 0.24), CGPoint(x: 0.12, y: 0.16))
+        case .sunlitPark: (UIColor(0xFFF0B0, 0.3), CGPoint(x: 0.85, y: 0.1))
+        case .beachMorning: (UIColor(0xFFE8C0, 0.26), CGPoint(x: 0.9, y: 0.12))
+        case .warmPortrait: (UIColor(0xFFD0A0, 0.34), CGPoint(x: 0.14, y: 0.12))
+        case .pinkDusk: (UIColor(0xFFC8A0, 0.3), CGPoint(x: 0.86, y: 0.85))
+        }
     }
 
     private var spec: SceneSpec {

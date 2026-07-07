@@ -1,83 +1,41 @@
+import AVFoundation
 import StoreKit
+import SwiftData
 import SwiftUI
 import TumbleKit
 
-/// First-run onboarding: a compact, non-scrolling walkthrough of the full
-/// Tumble loop, ending with a one-time purchase moment.
+/// First-run onboarding built around *doing*, not watching. The shooter takes a
+/// real (gifted) first shot, shakes it to develop, and watches it land in the
+/// Drawer — then meets a soft, anti-subscription premium moment. Reaching the
+/// "aha" by acting is the strongest retention lever.
 struct OnboardingScreen: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.modelContext) private var context
     let onDone: () -> Void
 
-    @State private var page = 0
+    enum Step: Int, CaseIterable { case welcome, capture, develop, payoff, premium }
+
+    @State private var step: Step = .welcome
     @State private var appeared = false
     @State private var busy: String?
-
-    private let pageCount = 4
+    @State private var capturedImage: UIImage?
+    @State private var firstPhoto: Photo?
 
     var body: some View {
         GeometryReader { geo in
             let compact = geo.size.height < 720
-            let bottomInset = max(geo.safeAreaInsets.bottom, 14)
-
             ZStack {
                 GraincoreBackground()
 
                 VStack(spacing: 0) {
-                    brandBar
-                        .padding(.top, geo.safeAreaInsets.top + (compact ? 10 : 18))
-                        .padding(.horizontal, 22)
-
-                    TabView(selection: $page) {
-                        OnboardingPage(
-                            kicker: "Shoot fast",
-                            title: "The camera is always up top.",
-                            message: "Pull down, flip front or back, turn on flash, and take the shot before the moment gets too polished.",
-                            chips: ["Pull down", "Switch camera", "Flash"],
-                            compact: compact
-                        ) {
-                            PullDownDemo(compact: compact)
-                        }
-                        .tag(0)
-
-                        OnboardingPage(
-                            kicker: "Make prints",
-                            title: "Every shot becomes a print.",
-                            message: "Photos land face-down in your Drawer. Shake to develop, or hold when motion is not available.",
-                            chips: ["Drawer", "Shake to develop", "12 free daily"],
-                            compact: compact
-                        ) {
-                            PrintFlowDemo(compact: compact)
-                        }
-                        .tag(1)
-
-                        OnboardingPage(
-                            kicker: "Own the Drawer",
-                            title: "Arrange the mess your way.",
-                            message: "Spread the pile, drag prints into new places, and reset the Drawer when you want it tidy again.",
-                            chips: ["Pinch open", "Swap prints", "Reset layout"],
-                            compact: compact
-                        ) {
-                            DrawerControlDemo(compact: compact)
-                        }
-                        .tag(2)
-
-                        PremiumOnboardingPage(
-                            compact: compact,
-                            plusProduct: app.purchases.product(for: .plus),
-                            unlimitedProduct: app.purchases.product(for: .unlimited),
-                            busy: busy,
-                            onBuy: buy,
-                            onRestore: restore,
-                            onStartFree: onDone
-                        )
-                        .tag(3)
+                    if step != .premium {
+                        StepDots(count: 4, index: step.rawValue)
+                            .padding(.top, geo.safeAreaInsets.top + 12)
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .animation(.spring(response: 0.45, dampingFraction: 0.86), value: page)
-
-                    bottomControls(compact: compact)
-                        .padding(.horizontal, 22)
-                        .padding(.bottom, bottomInset)
+                    content(compact: compact)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.top, step == .premium ? geo.safeAreaInsets.top + 14 : 4)
+                        .padding(.bottom, max(geo.safeAreaInsets.bottom, 16))
                 }
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 14)
@@ -87,62 +45,58 @@ struct OnboardingScreen: View {
         .task {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
             await app.startStore()
+            applyDebugStep()
         }
     }
 
-    private var brandBar: some View {
-        HStack {
-            HStack(spacing: 8) {
-                Image(systemName: "camera.aperture")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(width: 28, height: 28)
-                    .background(Palette.gold, in: Circle())
-                Text("Tumble")
-                    .font(Typography.display(22))
-                    .foregroundStyle(Palette.cream)
+    @ViewBuilder private func content(compact: Bool) -> some View {
+        switch step {
+        case .welcome:
+            WelcomeStep(compact: compact) { advance(.capture) }
+        case .capture:
+            CaptureStep(compact: compact) { image in
+                capturedImage = image
+                advance(.develop)
             }
-
-            Spacer()
-
-            Text("Pay once. No subscription.")
-                .font(Typography.sans(11, weight: .semibold))
-                .foregroundStyle(Palette.cream.opacity(0.62))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(.black.opacity(0.22), in: Capsule())
-        }
-    }
-
-    private func bottomControls(compact: Bool) -> some View {
-        VStack(spacing: compact ? 10 : 14) {
-            PageDots(count: pageCount, selection: page)
-
-            if page < pageCount - 1 {
-                Button {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                        page += 1
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(page == 0 ? "Show me the Drawer" : "Continue")
-                        Image(systemName: "arrow.right")
-                    }
-                    .font(Typography.sans(16, weight: .bold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, compact ? 12 : 15)
-                    .background(Palette.gold, in: Capsule())
-                    .shadow(color: Palette.gold.opacity(0.28), radius: 16, y: 8)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Continue onboarding")
+        case .develop:
+            DevelopStep(compact: compact, image: capturedImage) {
+                storeFirstPrint()
+                advance(.payoff)
             }
+        case .payoff:
+            PayoffStep(compact: compact, image: capturedImage) { advance(.premium) }
+        case .premium:
+            PremiumOnboardingPage(
+                compact: compact,
+                image: capturedImage,
+                plusProduct: app.purchases.product(for: .plus),
+                unlimitedProduct: app.purchases.product(for: .unlimited),
+                busy: busy,
+                onBuy: buy,
+                onRestore: restore,
+                onStartFree: onDone
+            )
         }
     }
 
-    @MainActor
-    private func buy(_ tier: Entitlement) async {
+    private func advance(_ s: Step) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.88)) { step = s }
+    }
+
+    /// Persist the developed first print — gifted, so it does not spend a shot.
+    @MainActor private func storeFirstPrint() {
+        guard let capturedImage else { return }
+        let photo = CaptureService.store(
+            rawImage: capturedImage, source: .app, roll: app.roll, in: context, consumesRoll: false
+        )
+        photo?.isDeveloped = true
+        photo?.developProgress = 1
+        try? context.save()
+        firstPhoto = photo
+        app.capturedCount += 1
+    }
+
+    @MainActor private func buy(_ tier: Entitlement) async {
         guard let product = app.purchases.product(for: tier), busy == nil else { return }
         busy = tier.productID
         defer { busy = nil }
@@ -152,62 +106,445 @@ struct OnboardingScreen: View {
         }
     }
 
-    @MainActor
-    private func restore() async {
+    @MainActor private func restore() async {
         guard busy == nil else { return }
         busy = "restore"
         defer { busy = nil }
         await app.purchases.restore()
         app.syncEntitlement()
-        if app.purchases.entitlement > .free {
-            onDone()
+        if app.purchases.entitlement > .free { onDone() }
+    }
+
+    private func applyDebugStep() {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-onbCapture") { step = .capture }
+        else if args.contains("-onbDevelop") { capturedImage = FilmScene.goldenHour.image(); step = .develop }
+        else if args.contains("-onbPayoff") { capturedImage = FilmScene.goldenHour.image(); step = .payoff }
+        else if args.contains("-onbPremium") { step = .premium }
+    }
+}
+
+// MARK: - Welcome / identity
+
+private struct WelcomeStep: View {
+    let compact: Bool
+    let onNext: () -> Void
+    @State private var apertureIn = false
+
+    var body: some View {
+        VStack(spacing: compact ? 16 : 22) {
+            Spacer(minLength: 0)
+
+            heroFan
+                .frame(height: compact ? 210 : 260)
+
+            HStack(spacing: 9) {
+                Image(systemName: "camera.aperture")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Palette.ink)
+                    .frame(width: 32, height: 32)
+                    .background(Palette.gold, in: Circle())
+                    .rotationEffect(.degrees(apertureIn ? 0 : -120))
+                    .scaleEffect(apertureIn ? 1 : 0.5)
+                Text("Tumble").font(Typography.display(24)).foregroundStyle(Palette.cream)
+            }
+
+            VStack(spacing: compact ? 8 : 11) {
+                Text("A camera that\nmakes you wait.")
+                    .font(Typography.display(compact ? 30 : 36))
+                    .foregroundStyle(Palette.cream)
+                    .multilineTextAlignment(.center)
+                Text("Twelve shots a day. Shake each one to develop. No feed, no filters, no rush.")
+                    .font(Typography.sans(compact ? 14 : 15))
+                    .foregroundStyle(Palette.cream.opacity(0.75))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+
+            Label("No account · No cloud · Photos never leave your phone", systemImage: "lock.shield")
+                .font(Typography.sans(11, weight: .semibold))
+                .foregroundStyle(Palette.cream.opacity(0.6))
+                .labelStyle(.titleAndIcon)
+
+            Spacer(minLength: 0)
+
+            PrimaryCTA(title: "Take your first shot", icon: "arrow.right", action: onNext)
+        }
+        .padding(.horizontal, 28)
+        .onAppear {
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.6).delay(0.15)) { apertureIn = true }
+        }
+    }
+
+    private var heroFan: some View {
+        ZStack {
+            PrintView(image: FilmScene.blueHourRooftop.image(size: 420), isDeveloped: true, age: 0.28,
+                      width: compact ? 128 : 150)
+                .rotationEffect(.degrees(-12)).offset(x: -58, y: 12)
+            PrintView(image: FilmScene.sunlitPark.image(size: 420), isDeveloped: true, age: 0.1,
+                      width: compact ? 132 : 156)
+                .rotationEffect(.degrees(10)).offset(x: 58, y: 6)
+            PrintView(image: FilmScene.goldenHour.image(size: 480), isDeveloped: true, age: 0.05,
+                      caption: "first light", width: compact ? 150 : 178)
+                .rotationEffect(.degrees(-2)).offset(y: -8)
+                .parallax(6)
+        }
+        .shadow(color: Palette.gold.opacity(0.16), radius: 26, y: 14)
+    }
+}
+
+// MARK: - Capture (do it)
+
+private struct CaptureStep: View {
+    let compact: Bool
+    let onCaptured: (UIImage) -> Void
+    @StateObject private var camera = CameraController()
+    @State private var flash = false
+    @State private var busy = false
+
+    var body: some View {
+        VStack(spacing: compact ? 14 : 20) {
+            stepText(
+                kicker: "Your turn",
+                title: "Take your first shot.",
+                message: "Point, and press. Don't overthink it — that's the whole idea.",
+                compact: compact
+            )
+
+            Spacer(minLength: 0)
+
+            ZStack {
+                Group {
+                    if camera.isSimulated {
+                        ZStack {
+                            LinearGradient(colors: [Color(hex: 0x2A3A49), Color(hex: 0x172330)],
+                                           startPoint: .top, endPoint: .bottom)
+                            Image(systemName: "camera.aperture")
+                                .font(.system(size: 40, weight: .semibold))
+                                .foregroundStyle(Palette.cream.opacity(0.7))
+                        }
+                    } else {
+                        CameraPreview(session: camera.session)
+                    }
+                }
+                GrainOverlay(opacity: 0.16)
+                Color.white.opacity(flash ? 0.9 : 0)
+            }
+            .frame(width: compact ? 250 : 288, height: compact ? 300 : 344)
+            .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                    .strokeBorder(Palette.amber.opacity(0.3), lineWidth: 1.2)
+            )
+            .shadow(color: .black.opacity(0.4), radius: 22, y: 12)
+
+            Spacer(minLength: 0)
+
+            Button(action: capture) {
+                ZStack {
+                    Circle().strokeBorder(Palette.cream.opacity(0.9), lineWidth: 5).frame(width: 78, height: 78)
+                    Circle().fill(Palette.cream).frame(width: 62, height: 62).scaleEffect(busy ? 0.86 : 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(busy)
+            .accessibilityLabel("Take a shot")
+        }
+        .padding(.horizontal, 28)
+        .task {
+            _ = await AVCaptureDevice.requestAccess(for: .video)
+            camera.start()
+        }
+        .onDisappear { camera.stop() }
+    }
+
+    private func capture() {
+        guard !busy else { return }
+        busy = true
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        camera.capture { image in
+            withAnimation(.easeOut(duration: 0.07)) { flash = true }
+            withAnimation(.easeIn(duration: 0.22).delay(0.07)) { flash = false }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) { onCaptured(image) }
         }
     }
 }
 
-private struct OnboardingPage<Visual: View>: View {
-    let kicker: String
-    let title: String
-    let message: String
-    let chips: [String]
+// MARK: - Develop (the hero moment)
+
+private struct DevelopStep: View {
     let compact: Bool
-    @ViewBuilder var visual: () -> Visual
+    let image: UIImage?
+    let onDeveloped: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shake = ShakeMonitor()
+    @State private var progress: Double = 0
+    @State private var holding = false
+    @State private var lastHaptic = Date.distantPast
+
+    private var usesShake: Bool { shake.isAvailable && !reduceMotion }
+    private var developed: Bool { progress >= 1 }
+
+    var body: some View {
+        VStack(spacing: compact ? 14 : 20) {
+            stepText(
+                kicker: "The best part",
+                title: developed ? "There it is." : "Now shake it to life.",
+                message: developed
+                    ? "That wait? That's the whole point."
+                    : "Give your phone a shake and watch it come up, like real instant film.",
+                compact: compact
+            )
+
+            Spacer(minLength: 0)
+
+            PrintView(image: image, isDeveloped: developed, developProgress: progress, width: compact ? 220 : 262)
+                .overlay(bloom)
+                .scaleEffect(developed ? 1 : 0.99)
+                .rotationEffect(.degrees(progress < 1 && holding ? 1 : 0))
+                .animation(.easeOut(duration: 0.4), value: developed)
+
+            Spacer(minLength: 0)
+
+            if developed {
+                PrimaryCTA(title: "See it in the Drawer", icon: "arrow.right", action: onDeveloped)
+            } else if usesShake {
+                Text("Shake to develop")
+                    .font(Typography.sans(15, weight: .semibold))
+                    .foregroundStyle(Palette.cream.opacity(0.8))
+                    .padding(.bottom, 6)
+            } else {
+                holdButton
+            }
+        }
+        .padding(.horizontal, 28)
+        .task {
+            guard usesShake else { return }
+            shake.onShake = { energy in advance(by: energy * 0.05) }
+            shake.start()
+        }
+        .onDisappear { shake.stop() }
+    }
+
+    private var bloom: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(RadialGradient(colors: [.white.opacity(0.8), .clear], center: .center, startRadius: 0, endRadius: 160))
+            .opacity(smoothstep(progress, 0.72, 0.95) * (1 - smoothstep(progress, 0.95, 1.02)))
+            .allowsHitTesting(false)
+    }
+
+    private var holdButton: some View {
+        Text(holding ? "Developing…" : "Hold to develop")
+            .font(Typography.sans(15, weight: .bold))
+            .foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Palette.amber, in: Capsule())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in if !holding { startHold() } }
+                    .onEnded { _ in holding = false }
+            )
+    }
+
+    private func startHold() {
+        holding = true
+        Task {
+            while holding && progress < 1 {
+                advance(by: 0.014)
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+        }
+    }
+
+    private func advance(by amount: Double) {
+        guard progress < 1 else { return }
+        progress = min(1, progress + amount)
+        rattle()
+        if progress >= 1 { finish() }
+    }
+
+    private func rattle() {
+        let now = Date()
+        guard now.timeIntervalSince(lastHaptic) > 0.09 else { return }
+        lastHaptic = now
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.6)
+    }
+
+    private func finish() {
+        holding = false
+        shake.stop()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+}
+
+// MARK: - Payoff / endowment
+
+private struct PayoffStep: View {
+    let compact: Bool
+    let image: UIImage?
+    let onNext: () -> Void
+    @State private var dropped = false
+    @State private var askedNotif = false
 
     var body: some View {
         VStack(spacing: compact ? 12 : 18) {
-            Spacer(minLength: compact ? 4 : 12)
+            stepText(
+                kicker: "Yours",
+                title: "Here's your first one.",
+                message: "Twelve fresh every morning. Twelve is on purpose — enough to make each one count.",
+                compact: compact
+            )
 
-            visual()
-                .frame(maxWidth: .infinity)
-                .frame(height: compact ? 210 : 275)
+            Spacer(minLength: 0)
 
-            VStack(spacing: compact ? 7 : 9) {
-                Text(kicker).kicker()
-                Text(title)
-                    .font(Typography.display(compact ? 27 : 32))
-                    .foregroundStyle(Palette.cream)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.86)
-                Text(message)
-                    .font(Typography.sans(compact ? 13 : 15))
-                    .foregroundStyle(Palette.cream.opacity(0.72))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.88)
-            }
+            payoffHero
+            .frame(height: compact ? 224 : 268)
 
-            FeatureChips(chips: chips, compact: compact)
+            Spacer(minLength: 0)
 
-            Spacer(minLength: compact ? 2 : 10)
+            // Value-first: offer the morning nudge now that they've felt the loop.
+            notifAsk
+
+            PrimaryCTA(title: "Into the Drawer", icon: "tray.full", action: onNext)
         }
-        .padding(.horizontal, 26)
+        .padding(.horizontal, 28)
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.7).delay(0.15)) { dropped = true }
+        }
+    }
+
+    @ViewBuilder private var notifAsk: some View {
+        if !askedNotif && !RollNotificationScheduler.hasAsked {
+            HStack(spacing: 10) {
+                Image(systemName: "sun.horizon")
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.amber)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("A nudge each morning?")
+                        .font(Typography.sans(13, weight: .semibold)).foregroundStyle(Palette.cream)
+                    Text("We'll ping you when your fresh roll lands.")
+                        .font(Typography.sans(11)).foregroundStyle(Palette.cream.opacity(0.6))
+                }
+                Spacer(minLength: 6)
+                Button {
+                    askedNotif = true
+                    Task { await RollNotificationScheduler.requestAndSchedule() }
+                } label: {
+                    Text("Yes")
+                        .font(Typography.sans(13, weight: .bold)).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 16).padding(.vertical, 8)
+                        .background(Palette.gold, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                Button { askedNotif = true } label: {
+                    Text("Not now")
+                        .font(Typography.sans(12, weight: .semibold)).foregroundStyle(Palette.cream.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.black.opacity(0.25)))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Palette.cream.opacity(0.12)))
+            .transition(.opacity)
+        }
+    }
+
+    private var payoffHero: some View {
+        HStack(alignment: .center, spacing: compact ? 10 : 16) {
+            VStack(alignment: .leading, spacing: compact ? 7 : 9) {
+                HStack(spacing: 7) {
+                    Image(systemName: "tray.full")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Saved to Drawer")
+                        .font(Typography.sans(11, weight: .bold))
+                        .tracking(1.1)
+                        .textCase(.uppercase)
+                }
+                .foregroundStyle(Palette.gold)
+
+                Text("It's in.")
+                    .font(Typography.display(compact ? 20 : 24))
+                    .foregroundStyle(Palette.cream)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, compact ? 10 : 14)
+
+            PrintView(image: image, isDeveloped: true, width: compact ? 146 : 172)
+                .rotationEffect(.degrees(dropped ? -4 : 2))
+                .offset(y: dropped ? 0 : (compact ? -96 : -120))
+                .scaleEffect(dropped ? 0.92 : 1)
+        }
+        .padding(.horizontal, compact ? 8 : 12)
     }
 }
 
+// MARK: - Shared bits
+
+/// A shared title block for the do-it steps.
+private func stepText(kicker: String, title: String, message: String, compact: Bool) -> some View {
+    VStack(spacing: compact ? 6 : 9) {
+        Text(kicker).kicker()
+        Text(title)
+            .font(Typography.display(compact ? 27 : 32))
+            .foregroundStyle(Palette.cream)
+            .multilineTextAlignment(.center)
+            .lineLimit(2).minimumScaleFactor(0.85)
+        Text(message)
+            .font(Typography.sans(compact ? 13 : 15))
+            .foregroundStyle(Palette.cream.opacity(0.72))
+            .multilineTextAlignment(.center)
+            .lineLimit(3).minimumScaleFactor(0.9)
+    }
+    .padding(.horizontal, 8)
+    .padding(.top, compact ? 8 : 20)
+}
+
+private struct PrimaryCTA: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(title)
+                Image(systemName: icon)
+            }
+            .font(Typography.sans(16, weight: .bold))
+            .foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(Palette.gold, in: Capsule())
+            .shadow(color: Palette.gold.opacity(0.28), radius: 16, y: 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct StepDots: View {
+    let count: Int
+    let index: Int
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(0..<count, id: \.self) { i in
+                Capsule()
+                    .fill(i == index ? Palette.gold : Palette.cream.opacity(0.24))
+                    .frame(width: i == index ? 20 : 6, height: 6)
+                    .animation(.spring(response: 0.34, dampingFraction: 0.84), value: index)
+            }
+        }
+    }
+}
+
+// MARK: - Premium (soft, anti-subscription)
+
 private struct PremiumOnboardingPage: View {
     let compact: Bool
+    let image: UIImage?
     let plusProduct: Product?
     let unlimitedProduct: Product?
     let busy: String?
@@ -216,51 +553,31 @@ private struct PremiumOnboardingPage: View {
     let onStartFree: () -> Void
 
     var body: some View {
-        VStack(spacing: compact ? 9 : 13) {
-            Spacer(minLength: compact ? 2 : 8)
-
-            KeepDemo(compact: compact)
-                .frame(height: compact ? 108 : 140)
+        VStack(spacing: compact ? 8 : 12) {
+            Spacer(minLength: compact ? 0 : 6)
 
             VStack(spacing: compact ? 5 : 7) {
-                Text("Keep what matters").kicker()
+                Text("Pay once. Never again.").kicker()
                 Text("Start with the full camera.")
                     .font(Typography.display(compact ? 25 : 31))
                     .foregroundStyle(Palette.cream)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
-                Text("Collections, saving, and removing prints are included. Pay once when you want more daily shots.")
-                    .font(Typography.sans(compact ? 12 : 14))
-                    .foregroundStyle(Palette.cream.opacity(0.72))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.86)
+                    .lineLimit(2).minimumScaleFactor(0.82)
             }
+
+            PremiumFinaleHero(compact: compact, image: image)
 
             HStack(spacing: 8) {
                 MiniPromise(icon: "folder", text: "Collections")
                 MiniPromise(icon: "square.and.arrow.down", text: "Save")
-                MiniPromise(icon: "trash", text: "Remove from Drawer")
+                MiniPromise(icon: "infinity", text: "More shots")
             }
 
             VStack(spacing: compact ? 8 : 10) {
-                PremiumChoiceCard(
-                    tier: .plus,
-                    product: plusProduct,
-                    featured: true,
-                    busy: busy == Entitlement.plus.productID,
-                    onBuy: onBuy
-                )
-
-                PremiumChoiceCard(
-                    tier: .unlimited,
-                    product: unlimitedProduct,
-                    featured: false,
-                    busy: busy == Entitlement.unlimited.productID,
-                    onBuy: onBuy
-                )
+                PremiumChoiceCard(tier: .plus, product: plusProduct, featured: true,
+                                  busy: busy == Entitlement.plus.productID, onBuy: onBuy)
+                PremiumChoiceCard(tier: .unlimited, product: unlimitedProduct, featured: false,
+                                  busy: busy == Entitlement.unlimited.productID, onBuy: onBuy)
             }
 
             HStack(spacing: 12) {
@@ -269,33 +586,28 @@ private struct PremiumOnboardingPage: View {
                         .font(Typography.sans(13, weight: .semibold))
                         .foregroundStyle(Palette.cream.opacity(0.82))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, compact ? 9 : 11)
+                        .padding(.vertical, compact ? 10 : 12)
                         .background(.black.opacity(0.2), in: Capsule())
                         .overlay(Capsule().strokeBorder(Palette.cream.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Start with twelve free shots")
 
                 Button { Task { await onRestore() } } label: {
                     ZStack {
                         if busy == "restore" {
-                            ProgressView()
-                                .tint(Palette.cream)
-                                .controlSize(.small)
+                            ProgressView().tint(Palette.cream).controlSize(.small)
                         } else {
-                            Text("Restore")
-                                .font(Typography.sans(13, weight: .semibold))
+                            Text("Restore").font(Typography.sans(13, weight: .semibold))
                         }
                     }
                     .foregroundStyle(Palette.cream.opacity(0.82))
                     .frame(width: 94)
-                    .padding(.vertical, compact ? 9 : 11)
+                    .padding(.vertical, compact ? 10 : 12)
                     .background(.black.opacity(0.2), in: Capsule())
                     .overlay(Capsule().strokeBorder(Palette.cream.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .disabled(busy != nil)
-                .accessibilityLabel("Restore purchases")
             }
 
             Text("One-time purchase · no renewal · no account")
@@ -304,7 +616,87 @@ private struct PremiumOnboardingPage: View {
 
             Spacer(minLength: compact ? 2 : 6)
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 24)
+    }
+}
+
+private struct PremiumFinaleHero: View {
+    let compact: Bool
+    let image: UIImage?
+
+    var body: some View {
+        ZStack {
+            HStack(alignment: .center, spacing: compact ? 10 : 14) {
+                promiseNote
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Spacer(minLength: 0)
+
+                printStack
+            }
+            .padding(.horizontal, compact ? 8 : 12)
+        }
+        .frame(height: compact ? 118 : 146)
+        .padding(.top, compact ? 0 : 4)
+        .padding(.bottom, compact ? 2 : 6)
+    }
+
+    private var promiseNote: some View {
+        VStack(alignment: .leading, spacing: compact ? 7 : 9) {
+            HStack(spacing: 7) {
+                Image(systemName: "tray.full")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("First print saved")
+                    .font(Typography.sans(10, weight: .bold))
+                    .tracking(0.9)
+                    .textCase(.uppercase)
+            }
+            .foregroundStyle(Palette.gold)
+
+            Text("Keep the Drawer.")
+                .font(Typography.display(compact ? 20 : 24))
+                .foregroundStyle(Palette.cream)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            VStack(alignment: .leading, spacing: compact ? 4 : 5) {
+                PremiumStamp(icon: "checkmark.seal", text: "No subscription")
+                PremiumStamp(icon: "lock.shield", text: "No account")
+            }
+        }
+        .padding(.leading, compact ? 4 : 6)
+    }
+
+    private var printStack: some View {
+        PrintView(
+            image: image ?? FilmScene.goldenHour.image(size: 420),
+            isDeveloped: true,
+            developProgress: 1,
+            age: 0.04,
+            caption: compact ? nil : "first roll",
+            width: compact ? 98 : 122
+        )
+        .rotationEffect(.degrees(-4))
+        .shadow(color: Palette.gold.opacity(0.2), radius: 18, y: 8)
+    }
+}
+
+private struct PremiumStamp: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Palette.gold)
+                .frame(width: 13)
+            Text(text)
+                .font(Typography.sans(10, weight: .semibold))
+                .foregroundStyle(Palette.cream.opacity(0.7))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
     }
 }
 
@@ -336,49 +728,30 @@ private struct PremiumChoiceCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
                     Text(title)
-                        .font(Typography.sans(12, weight: .bold))
-                        .tracking(1.2)
-                        .textCase(.uppercase)
+                        .font(Typography.sans(12, weight: .bold)).tracking(1.2).textCase(.uppercase)
                         .foregroundStyle(featured ? Palette.gold : Palette.cream.opacity(0.62))
                     if featured {
                         Text("Best start")
-                            .font(Typography.sans(9, weight: .bold))
-                            .tracking(0.7)
-                            .textCase(.uppercase)
+                            .font(Typography.sans(9, weight: .bold)).tracking(0.7).textCase(.uppercase)
                             .foregroundStyle(Palette.ink)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
                             .background(Palette.gold, in: Capsule())
                     }
                 }
-
                 Text(shotLine)
-                    .font(Typography.display(featured ? 23 : 20))
-                    .foregroundStyle(Palette.cream)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-
+                    .font(Typography.display(featured ? 23 : 20)).foregroundStyle(Palette.cream)
+                    .lineLimit(1).minimumScaleFactor(0.82)
                 Text("\(product?.displayPrice ?? tier.priceLabel) · pay once")
-                    .font(Typography.sans(12, weight: .semibold))
-                    .foregroundStyle(Palette.cream.opacity(0.62))
+                    .font(Typography.sans(12, weight: .semibold)).foregroundStyle(Palette.cream.opacity(0.62))
             }
-
             Spacer(minLength: 8)
-
             Button { Task { await onBuy(tier) } } label: {
                 ZStack {
-                    if busy {
-                        ProgressView()
-                            .tint(Palette.ink)
-                            .controlSize(.small)
-                    } else {
-                        Text("Own")
-                            .font(Typography.sans(13, weight: .bold))
-                    }
+                    if busy { ProgressView().tint(Palette.ink).controlSize(.small) }
+                    else { Text("Own").font(Typography.sans(13, weight: .bold)) }
                 }
                 .foregroundStyle(Palette.ink)
-                .frame(width: 62)
-                .padding(.vertical, 10)
+                .frame(width: 62).padding(.vertical, 10)
                 .background(Palette.gold, in: Capsule())
             }
             .buttonStyle(.plain)
@@ -386,11 +759,22 @@ private struct PremiumChoiceCard: View {
             .opacity(product == nil ? 0.5 : 1)
             .accessibilityLabel("Buy \(title)")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, featured ? 13 : 11)
+        .padding(.horizontal, 14).padding(.vertical, featured ? 13 : 11)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(featured ? Palette.gold.opacity(0.15) : Palette.cream.opacity(0.055))
+                .fill(
+                    featured
+                        ? LinearGradient(
+                            colors: [Palette.gold.opacity(0.2), Color(hex: 0x2D3741).opacity(0.9)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        : LinearGradient(
+                            colors: [Palette.charcoalDeep.opacity(0.92), Palette.blueDeep.opacity(0.74)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -400,321 +784,23 @@ private struct PremiumChoiceCard: View {
     }
 }
 
-private struct PageDots: View {
-    let count: Int
-    let selection: Int
-
-    var body: some View {
-        HStack(spacing: 7) {
-            ForEach(0..<count, id: \.self) { index in
-                Capsule()
-                    .fill(index == selection ? Palette.gold : Palette.cream.opacity(0.24))
-                    .frame(width: index == selection ? 22 : 7, height: 7)
-                    .animation(.spring(response: 0.34, dampingFraction: 0.84), value: selection)
-            }
-        }
-        .accessibilityLabel("Onboarding page \(selection + 1) of \(count)")
-    }
-}
-
-private struct FeatureChips: View {
-    let chips: [String]
-    let compact: Bool
-
-    var body: some View {
-        HStack(spacing: 7) {
-            ForEach(chips, id: \.self) { chip in
-                Text(chip)
-                    .font(Typography.sans(compact ? 10 : 11, weight: .bold))
-                    .foregroundStyle(Palette.cream.opacity(0.78))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .padding(.horizontal, compact ? 8 : 10)
-                    .padding(.vertical, compact ? 6 : 7)
-                    .background(.black.opacity(0.22), in: Capsule())
-                    .overlay(Capsule().strokeBorder(Palette.cream.opacity(0.12), lineWidth: 1))
-            }
-        }
-    }
-}
-
 private struct MiniPromise: View {
     let icon: String
     let text: String
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Palette.gold)
+            Image(systemName: icon).font(.system(size: 10, weight: .semibold)).foregroundStyle(Palette.gold)
             Text(text)
-                .font(Typography.sans(10, weight: .semibold))
-                .foregroundStyle(Palette.cream.opacity(0.72))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .font(Typography.sans(10, weight: .semibold)).foregroundStyle(Palette.cream.opacity(0.72))
+                .lineLimit(1).minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity).padding(.vertical, 7)
         .background(.black.opacity(0.18), in: Capsule())
     }
 }
 
-/// The looping demo: a black island pill that smoothly stretches into a camera
-/// window and shows the new camera controls.
-private struct PullDownDemo: View {
-    let compact: Bool
-
-    private var openW: CGFloat { compact ? 184 : 214 }
-    private var openH: CGFloat { compact ? 190 : 232 }
-
-    var body: some View {
-        PhaseAnimator([0.0, 1.0]) { progress in
-            frameContent(progress)
-        } animation: { _ in
-            .easeInOut(duration: 1.45)
-        }
-        .frame(width: 250, height: compact ? 210 : 275)
-    }
-
-    @ViewBuilder private func frameContent(_ p: CGFloat) -> some View {
-        let w = lerp(116, openW, p)
-        let h = lerp(32, openH, p)
-        let r = lerp(16, compact ? 32 : 40, p)
-
-        ZStack(alignment: .top) {
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(.black)
-                .frame(width: w, height: h)
-                .overlay(
-                    RoundedRectangle(cornerRadius: r, style: .continuous)
-                        .strokeBorder(Palette.amber.opacity(0.25 + 0.35 * p), lineWidth: 1.2)
-                )
-                .overlay(
-                    cameraPreview(p)
-                        .frame(width: w, height: h)
-                        .clipShape(RoundedRectangle(cornerRadius: r, style: .continuous))
-                )
-                .shadow(color: .black.opacity(0.36 * p), radius: 20 * p, y: 10 * p)
-                .shadow(color: Palette.amber.opacity(0.16 * p), radius: 26 * p, y: 8 * p)
-                .position(x: 125, y: h / 2)
-
-            touchRing
-                .position(x: 125, y: h + (compact ? 18 : 24))
-        }
-    }
-
-    private func cameraPreview(_ p: CGFloat) -> some View {
-        ZStack {
-            LinearGradient(colors: [Color(hex: 0x2A3A49), Color(hex: 0x172330)],
-                           startPoint: .top, endPoint: .bottom)
-            FilmScene.blueHourRooftop.image(size: 420).swiftUIImage
-                .resizable()
-                .scaledToFill()
-                .opacity(0.74)
-            GrainOverlay(opacity: 0.22)
-
-            VStack {
-                HStack {
-                    cameraTool("bolt.fill")
-                    Spacer()
-                    cameraTool("arrow.triangle.2.circlepath.camera")
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 18)
-                Spacer()
-                Circle()
-                    .strokeBorder(Palette.cream.opacity(0.92), lineWidth: 4)
-                    .background(Circle().fill(Palette.cream.opacity(0.16)))
-                    .frame(width: compact ? 46 : 54, height: compact ? 46 : 54)
-                    .padding(.bottom, 16)
-            }
-            .opacity(smoothstep(p, 0.35, 0.78))
-
-            Image(systemName: "camera.aperture")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(Palette.cream.opacity(0.85))
-                .opacity(1 - smoothstep(p, 0.2, 0.65))
-        }
-    }
-
-    private func cameraTool(_ icon: String) -> some View {
-        Image(systemName: icon)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Palette.cream)
-            .frame(width: 34, height: 34)
-            .background(.black.opacity(0.34), in: Circle())
-    }
-
-    private var touchRing: some View {
-        ZStack {
-            Circle().strokeBorder(Palette.cream.opacity(0.35), lineWidth: 7).frame(width: 44, height: 44)
-            Circle().fill(Palette.cream.opacity(0.9)).frame(width: 25, height: 25)
-            Image(systemName: "chevron.compact.down")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Palette.ink.opacity(0.7))
-        }
-    }
-}
-
-private struct PrintFlowDemo: View {
-    let compact: Bool
-    @State private var image = FilmScene.sunlitPark.image(size: 420)
-
-    var body: some View {
-        PhaseAnimator([0.0, 1.0]) { progress in
-            ZStack {
-                drawerTray
-                    .offset(y: compact ? 44 : 60)
-
-                PrintView(
-                    image: image,
-                    isDeveloped: progress > 0.08,
-                    developProgress: progress,
-                    age: 0,
-                    width: compact ? 132 : 158
-                )
-                .rotationEffect(.degrees(lerp(-9, 3, progress)))
-                .offset(x: lerp(-54, 24, progress), y: lerp(-46, 34, progress))
-                .shadow(color: Palette.gold.opacity(0.18 * progress), radius: 20, y: 9)
-
-                Image(systemName: "sparkles")
-                    .font(.system(size: compact ? 24 : 30, weight: .semibold))
-                    .foregroundStyle(Palette.gold)
-                    .offset(x: 72, y: compact ? -48 : -62)
-                    .opacity(smoothstep(progress, 0.45, 1))
-            }
-        } animation: { _ in
-            .easeInOut(duration: 1.6)
-        }
-    }
-
-    private var drawerTray: some View {
-        RoundedRectangle(cornerRadius: 26, style: .continuous)
-            .fill(Palette.charcoalDeep.opacity(0.66))
-            .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(Palette.cream.opacity(0.1), lineWidth: 1)
-            )
-            .frame(width: compact ? 230 : 270, height: compact ? 92 : 112)
-            .overlay(alignment: .topLeading) {
-                Text("Drawer")
-                    .font(Typography.display(compact ? 18 : 21))
-                    .foregroundStyle(Palette.cream.opacity(0.72))
-                    .padding(.leading, 18)
-                    .padding(.top, 12)
-            }
-    }
-}
-
-private struct DrawerControlDemo: View {
-    let compact: Bool
-
-    var body: some View {
-        PhaseAnimator([0.0, 1.0]) { progress in
-            ZStack {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Palette.charcoalDeep.opacity(0.5))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .strokeBorder(Palette.cream.opacity(0.09), lineWidth: 1)
-                    )
-                    .frame(width: compact ? 250 : 292, height: compact ? 188 : 230)
-
-                demoPrint(scene: .goldenHour, width: compact ? 82 : 98)
-                    .rotationEffect(.degrees(lerp(-10, -18, progress)))
-                    .offset(x: lerp(-28, -72, progress), y: lerp(-10, -34, progress))
-                    .zIndex(1)
-                demoPrint(scene: .pinkDusk, width: compact ? 82 : 98)
-                    .rotationEffect(.degrees(lerp(6, 14, progress)))
-                    .offset(x: lerp(20, 72, progress), y: lerp(4, -16, progress))
-                    .zIndex(2)
-                demoPrint(scene: .beachMorning, width: compact ? 84 : 102)
-                    .rotationEffect(.degrees(lerp(1, -2, progress)))
-                    .offset(x: lerp(0, 5, progress), y: lerp(18, 48, progress))
-                    .zIndex(3)
-
-                HStack(spacing: 86) {
-                    Image(systemName: "arrow.left.and.right")
-                    Image(systemName: "arrow.up.and.down")
-                }
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Palette.gold.opacity(0.75))
-                .offset(y: compact ? 90 : 112)
-                .opacity(smoothstep(progress, 0.28, 0.8))
-
-                ButtonChrome(icon: "arrow.counterclockwise")
-                    .offset(x: compact ? 96 : 112, y: compact ? -78 : -94)
-            }
-        } animation: { _ in
-            .easeInOut(duration: 1.5)
-        }
-    }
-
-    private func demoPrint(scene: FilmScene, width: CGFloat) -> some View {
-        PrintView(image: scene.image(size: 360), isDeveloped: true, developProgress: 1, age: 0.2, width: width)
-    }
-}
-
-private struct KeepDemo: View {
-    let compact: Bool
-
-    var body: some View {
-        HStack(spacing: compact ? 10 : 14) {
-            folderCard(title: "Yesterday", count: "9 ready", icon: "folder")
-            ZStack {
-                PrintView(image: FilmScene.warmPortrait.image(size: 320), isDeveloped: true, age: 0.12, width: compact ? 72 : 88)
-                    .rotationEffect(.degrees(-7))
-                    .offset(x: -18, y: 4)
-                PrintView(image: FilmScene.beachMorning.image(size: 320), isDeveloped: true, age: 0.18, width: compact ? 72 : 88)
-                    .rotationEffect(.degrees(8))
-                    .offset(x: 18, y: -2)
-            }
-            folderCard(title: "Saved", count: "Photos", icon: "square.and.arrow.down")
-        }
-    }
-
-    private func folderCard(title: String, count: String, icon: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: compact ? 21 : 25, weight: .semibold))
-                .foregroundStyle(Palette.gold)
-            VStack(spacing: 2) {
-                Text(title)
-                    .font(Typography.sans(12, weight: .bold))
-                    .foregroundStyle(Palette.cream)
-                Text(count)
-                    .font(Typography.sans(10, weight: .medium))
-                    .foregroundStyle(Palette.cream.opacity(0.55))
-            }
-        }
-        .frame(width: compact ? 82 : 96, height: compact ? 86 : 104)
-        .background(Palette.charcoalDeep.opacity(0.66), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Palette.cream.opacity(0.09), lineWidth: 1)
-        )
-    }
-}
-
-private struct ButtonChrome: View {
-    let icon: String
-
-    var body: some View {
-        Image(systemName: icon)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Palette.cream)
-            .frame(width: 34, height: 34)
-            .background(.black.opacity(0.28), in: Circle())
-    }
-}
-
-private extension UIImage {
-    var swiftUIImage: Image { Image(uiImage: self) }
-}
-
-// MARK: - Local interpolation helpers
-
-private func lerp(_ a: CGFloat, _ b: CGFloat, _ t: CGFloat) -> CGFloat { a + (b - a) * t }
+// MARK: - Local helpers
 
 private func smoothstep(_ x: CGFloat, _ edge0: CGFloat, _ edge1: CGFloat) -> CGFloat {
     let t = min(max((x - edge0) / (edge1 - edge0), 0), 1)
