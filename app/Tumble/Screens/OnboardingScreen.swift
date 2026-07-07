@@ -582,13 +582,17 @@ private struct PremiumOnboardingPage: View {
 
             HStack(spacing: 12) {
                 Button(action: onStartFree) {
-                    Text("Start with 12 free shots")
-                        .font(Typography.sans(13, weight: .semibold))
-                        .foregroundStyle(Palette.cream.opacity(0.82))
+                    HStack(spacing: 7) {
+                        Text("Start with 12 free shots")
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                        .font(Typography.sans(14, weight: .bold))
+                        .foregroundStyle(Palette.cream)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, compact ? 10 : 12)
-                        .background(.black.opacity(0.2), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Palette.cream.opacity(0.15), lineWidth: 1))
+                        .padding(.vertical, compact ? 11 : 13)
+                        .background(Palette.cream.opacity(0.075), in: Capsule())
+                        .overlay(Capsule().strokeBorder(Palette.gold.opacity(0.36), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
@@ -600,11 +604,9 @@ private struct PremiumOnboardingPage: View {
                             Text("Restore").font(Typography.sans(13, weight: .semibold))
                         }
                     }
-                    .foregroundStyle(Palette.cream.opacity(0.82))
-                    .frame(width: 94)
-                    .padding(.vertical, compact ? 10 : 12)
-                    .background(.black.opacity(0.2), in: Capsule())
-                    .overlay(Capsule().strokeBorder(Palette.cream.opacity(0.15), lineWidth: 1))
+                    .foregroundStyle(Palette.cream.opacity(0.56))
+                    .frame(width: 70)
+                    .padding(.vertical, compact ? 8 : 10)
                 }
                 .buttonStyle(.plain)
                 .disabled(busy != nil)
