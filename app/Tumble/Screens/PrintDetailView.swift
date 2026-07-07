@@ -1,13 +1,18 @@
 import SwiftUI
+import SwiftData
 import TumbleKit
 
 /// A developed print pulled out of the Drawer, full-screen. Riffle left/right
 /// through the rest of the developed pile; swipe down to toss it back in.
 struct PrintDetailView: View {
+    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     let developed: [Photo]
     @State private var index: Int
     @State private var dragY: CGFloat = 0
+    @State private var isSaving = false
+    @State private var saveMessage: String?
+    @State private var confirmRemove = false
 
     init(developed: [Photo], start: Photo) {
         self.developed = developed
@@ -28,7 +33,8 @@ struct PrintDetailView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
 
             metadata
-            closeButton
+            saveStatus
+            topControls
         }
         .offset(y: dragY)
         .gesture(
@@ -58,10 +64,56 @@ struct PrintDetailView: View {
         }
     }
 
-    private var closeButton: some View {
-        VStack {
-            HStack {
+    @ViewBuilder private var saveStatus: some View {
+        if let saveMessage {
+            VStack {
                 Spacer()
+                Text(saveMessage)
+                    .font(Typography.sans(13, weight: .semibold))
+                    .foregroundStyle(Palette.cream.opacity(0.78))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.black.opacity(0.28), in: Capsule())
+                    .padding(.bottom, 58)
+            }
+            .transition(.opacity)
+        }
+    }
+
+    private var topControls: some View {
+        VStack {
+            HStack(spacing: 10) {
+                Spacer()
+                Button { confirmRemove = true } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.cream)
+                        .frame(width: 35, height: 35)
+                        .background(.black.opacity(0.28), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(current == nil)
+                .accessibilityLabel("Remove print")
+
+                Button { Task { await saveCurrent() } } label: {
+                    ZStack {
+                        if isSaving {
+                            ProgressView()
+                                .tint(Palette.cream)
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                    }
+                    .foregroundStyle(Palette.cream)
+                    .frame(width: 35, height: 35)
+                    .background(.black.opacity(0.28), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving || current == nil)
+                .accessibilityLabel("Save print to Photos")
+
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
@@ -73,6 +125,50 @@ struct PrintDetailView: View {
             Spacer()
         }
         .padding(.horizontal, 20).padding(.top, 6)
+        .confirmationDialog(
+            "Remove this print from your Drawer?",
+            isPresented: $confirmRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Remove print", role: .destructive) { removeCurrent() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will not return the shot.")
+        }
+    }
+
+    @MainActor
+    private func saveCurrent() async {
+        guard let current, !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
+        let result = await PhotoLibrarySaver.saveDeveloped(current)
+        withAnimation(.easeOut(duration: 0.2)) {
+            saveMessage = message(for: result)
+        }
+    }
+
+    private func message(for result: PhotoLibrarySaveResult) -> String {
+        switch result {
+        case .saved:
+            return "Saved to Photos."
+        case .noDevelopedPhotos:
+            return "Develop this print before saving."
+        case .denied:
+            return "Allow Photos access to save prints."
+        case .failed:
+            return "Could not save. Try again."
+        }
+    }
+
+    private func removeCurrent() {
+        guard let current else { return }
+        PhotoStore.deleteImages(for: current)
+        context.delete(current)
+        try? context.save()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        dismiss()
     }
 }
 

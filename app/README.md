@@ -1,4 +1,4 @@
-# Tumble — iOS app
+# Tumble - iOS app
 
 A slower camera you can actually own. Twelve shots a day, shake to develop, and
 a Drawer of prints that age. On-device, no account, no cloud. One-time
@@ -9,7 +9,7 @@ This is the native iOS app that the marketing site (`../web`) is a waitlist for.
 ## Requirements
 
 - Xcode 18+ (built against the iOS 18 SDK; deployment target iOS 18.0)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) — `brew install xcodegen`
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) - `brew install xcodegen`
 
 ## Getting started
 
@@ -37,7 +37,7 @@ xcodebuild -scheme Tumble -destination 'platform=iOS Simulator,name=iPhone 17 Pr
 | `Tumble` | The app (SwiftUI). Camera, Drawer, develop, paywall, settings. |
 | `TumbleKit` | Shared domain: models, Roll/quota, storage, film pipeline, StoreKit, theme, camera. |
 | `TumbleControls` | Lock Screen / Control Center control that launches the camera. |
-| `TumbleCapture` | `LockedCameraCapture` extension — the camera while the phone is locked. |
+| `TumbleCapture` | `LockedCameraCapture` extension - the camera while the phone is locked. |
 | `TumbleIsland` | Live Activity / Dynamic Island status surface for the active Tumble camera session. |
 
 All product rules live in `TumbleKit` so the lock-screen extension enforces the
@@ -47,26 +47,26 @@ shared container. No networking beyond StoreKit.
 
 ### Signature pieces
 
-- **The Roll** — `TumbleKit/Roll/RollManager.swift`. Daily quota (12 / 72 /
+- **The Roll** - `TumbleKit/Roll/RollManager.swift`. Daily quota (12 / 72 /
   unlimited), midnight rollover, mirrored into the App Group.
-- **Shake to develop** — `TumbleKit/Motion/ShakeMonitor.swift` +
+- **Shake to develop** - `TumbleKit/Motion/ShakeMonitor.swift` +
   `Tumble/Screens/DevelopView.swift`. Accelerometer energy ramps the develop;
   press-and-hold fallback under Reduce Motion / no accelerometer.
-- **The Drawer is home** — `Tumble/Screens/HomeScreen.swift` +
+- **The Drawer is home** - `Tumble/Screens/HomeScreen.swift` +
   `Tumble/Views/DrawerPile.swift`. The whole screen is the scattered pile of
   prints (the site's exact treatment: aged grade, grain, vignette, sheen); aging
   is a function of capture time (`Photo.ageFraction`). There is no full-screen
-  viewfinder — shots you take land straight here.
-- **Pull-from-island camera** — `Tumble/Screens/IslandCamera.swift`. The camera
+  viewfinder - shots you take land straight here.
+- **Pull-from-island camera** - `Tumble/Screens/IslandCamera.swift`. The camera
   is a window you pull *out of* the Dynamic Island: a visible tab under the
   island drags down into a live viewfinder, its geometry tracking your finger
-  (continuous interpolation on a spring — no scale transitions), then springs
+  (continuous interpolation on a spring - no scale transitions), then springs
   open. Shoot and the print drops into the Drawer as the window retracts. Only
   runs the capture session while the window is open. `TumbleIsland/` +
   `ActivityKit` provide the background Live Activity status surface (iOS does not
   allow a live camera preview inside a Live Activity, so it stays status-only and
   deep-links back via `tumble://camera`).
-- **Graincore theme** — `TumbleKit/Theme/`. Ports the tokens and atmosphere from
+- **Graincore theme** - `TumbleKit/Theme/`. Ports the tokens and atmosphere from
   `../web/src/app/globals.css`.
 
 ## Simulator vs device

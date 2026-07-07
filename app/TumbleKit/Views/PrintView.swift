@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// A single instant print, mounted on cream stock — the exact treatment from
+/// A single instant print, mounted on cream stock - the exact treatment from
 /// the site's `DrawerMockup`: the photograph, a warm aged grade that grows
 /// with age, film grain, a vignette, and a soft sheen. Also renders the blank,
 /// face-down state for an undeveloped shot.
@@ -89,7 +89,7 @@ public struct PrintView: View {
         .brightness((1 - developProgress) * 0.18)
     }
 
-    // Warm aged grade — the site formula: warm over cool, both scaling with age.
+    // Warm aged grade - the site formula: warm over cool, both scaling with age.
     private var agedGrade: some View {
         LinearGradient(
             colors: [

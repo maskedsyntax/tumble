@@ -3,7 +3,7 @@ import StoreKit
 import Observation
 
 /// StoreKit 2, one-time purchases only. Loads the Plus and Unlimited products,
-/// tracks owned entitlements, and resolves the highest tier — which then drives
+/// tracks owned entitlements, and resolves the highest tier - which then drives
 /// the daily Roll. No subscriptions, ever.
 @MainActor
 @Observable

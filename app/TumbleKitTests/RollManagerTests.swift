@@ -34,6 +34,13 @@ struct RollManagerTests {
         #expect(roll.remaining == 72)
     }
 
+    @Test func shotsLeftSentencePluralizesCorrectly() {
+        #expect(RollManager.shotsLeftSentence(for: 0) == "0 shots left today.")
+        #expect(RollManager.shotsLeftSentence(for: 1) == "1 shot left today.")
+        #expect(RollManager.shotsLeftSentence(for: 2) == "2 shots left today.")
+        #expect(RollManager.shotsLeftSentence(for: 72) == "72 shots left today.")
+    }
+
     @Test func unlimitedNeverBlocks() {
         let roll = RollManager(defaults: makeDefaults(), entitlement: .unlimited)
         #expect(roll.isUnlimited)
@@ -48,7 +55,7 @@ struct RollManagerTests {
         for _ in 0..<12 { roll.consumeShot() }
         #expect(roll.remaining == 0)
 
-        // Jump to the next day and refresh — a fresh roll appears.
+        // Jump to the next day and refresh - a fresh roll appears.
         clock.now = clock.now.addingTimeInterval(60 * 60 * 24)
         roll.refresh()
         #expect(roll.remaining == 12)

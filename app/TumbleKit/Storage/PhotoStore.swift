@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Owns the on-device SwiftData store (kept in the shared App Group container)
-/// and the image files that back each `Photo`. No cloud, no account — this is
+/// and the image files that back each `Photo`. No cloud, no account - this is
 /// the entire persistence layer.
 public enum PhotoStore {
     /// Build the SwiftData container. `inMemory` is used by unit tests.
@@ -35,6 +35,11 @@ public enum PhotoStore {
     public static func deleteImage(named name: String?) {
         guard let name else { return }
         try? FileManager.default.removeItem(at: imageURL(named: name))
+    }
+
+    public static func deleteImages(for photo: Photo) {
+        deleteImage(named: photo.rawImageName)
+        deleteImage(named: photo.developedImageName)
     }
 
     public enum ImageKind {

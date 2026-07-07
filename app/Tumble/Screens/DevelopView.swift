@@ -1,7 +1,8 @@
 import SwiftUI
+import SwiftData
 import TumbleKit
 
-/// The develop table. A blank, face-down print you bring to life by shaking —
+/// The develop table. A blank, face-down print you bring to life by shaking -
 /// washed out at first, settling into full color like real instant film.
 ///
 /// On arrival the print plays a short, one-time gesture demo (a smooth ~2s
@@ -19,6 +20,7 @@ struct DevelopView: View {
     @State private var progress: Double = 0
     @State private var holding = false
     @State private var demo = 0            // bumped once to play the gesture demo
+    @State private var confirmRemove = false
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
@@ -87,7 +89,7 @@ struct DevelopView: View {
             VStack(spacing: 12) {
                 Text("Hold to develop")
                     .font(Typography.display(22)).foregroundStyle(Palette.cream)
-                Text("Press and hold — it comes up slowly.")
+                Text("Press and hold - it comes up slowly.")
                     .font(Typography.sans(14)).foregroundStyle(Palette.cream.opacity(0.7))
                 holdButton
             }
@@ -112,8 +114,17 @@ struct DevelopView: View {
 
     private var closeButton: some View {
         VStack {
-            HStack {
+            HStack(spacing: 10) {
                 Spacer()
+                Button { confirmRemove = true } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.cream)
+                        .padding(10).background(.black.opacity(0.28), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remove print")
+
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
@@ -125,6 +136,16 @@ struct DevelopView: View {
             Spacer()
         }
         .padding(.horizontal, 20).padding(.top, 6)
+        .confirmationDialog(
+            "Remove this print from your Drawer?",
+            isPresented: $confirmRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Remove print", role: .destructive) { removePrint() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will not return the shot.")
+        }
     }
 
     // MARK: Develop logic
@@ -179,6 +200,16 @@ struct DevelopView: View {
         photo.isDeveloped = true
         photo.developProgress = 1
         try? context.save()
+    }
+
+    private func removePrint() {
+        holding = false
+        shake.stop()
+        PhotoStore.deleteImages(for: photo)
+        context.delete(photo)
+        try? context.save()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        dismiss()
     }
 }
 

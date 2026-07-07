@@ -4,7 +4,7 @@ import LockedCameraCapture
 import TumbleKit
 
 /// The capture UI shown on the Lock Screen. Reuses the shared viewfinder,
-/// writes to the shared Drawer, and honors the same Roll — reading the tier the
+/// writes to the shared Drawer, and honors the same Roll - reading the tier the
 /// app mirrored into the App Group (the extension has no StoreKit).
 struct CaptureRoot: View {
     let session: LockedCameraCaptureSession

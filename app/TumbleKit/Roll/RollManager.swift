@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// The daily Roll — the product's whole thesis. Grants a fresh quota of shots
+/// The daily Roll - the product's whole thesis. Grants a fresh quota of shots
 /// each morning (local midnight), enforces it, and never nags. Backed by the
 /// App Group defaults so the lock-screen capture extension decrements the very
 /// same counter.
@@ -82,13 +82,22 @@ public final class RollManager {
         return "\(remaining ?? 0) left today"
     }
 
+    public var remainingShotsSentence: String {
+        if isUnlimited { return "Unlimited shots." }
+        return Self.shotsLeftSentence(for: remaining ?? 0)
+    }
+
+    public static func shotsLeftSentence(for count: Int) -> String {
+        "\(count) \(count == 1 ? "shot" : "shots") left today."
+    }
+
     // MARK: Actions
 
     /// Call when the app becomes active to pick up a midnight rollover.
     public func refresh() { rolloverIfNeeded() }
 
     /// Spend one shot. Returns false when the roll is empty (caller shows the
-    /// calm "fresh at sunrise" state — never a hard modal).
+    /// calm "fresh at sunrise" state - never a hard modal).
     @discardableResult
     public func consumeShot() -> Bool {
         rolloverIfNeeded()

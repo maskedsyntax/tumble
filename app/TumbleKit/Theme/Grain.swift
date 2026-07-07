@@ -3,7 +3,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import UIKit
 
-/// Film grain — the primary background texture ("graincore"). Generated once
+/// Film grain - the primary background texture ("graincore"). Generated once
 /// as a small tileable monochrome noise image and cached. Mirrors the
 /// fractal-noise SVG the site paints in `body::after`.
 public enum Grain {
@@ -31,7 +31,7 @@ public enum Grain {
     }
 }
 
-/// Tiles the grain across a region with an overlay blend at low opacity —
+/// Tiles the grain across a region with an overlay blend at low opacity -
 /// the same treatment as the site (opacity ~0.22, mix-blend-mode: overlay).
 public struct GrainOverlay: View {
     private let opacity: Double

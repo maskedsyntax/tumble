@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The atmospheric backdrop shared across the app — a direct port of the
+/// The atmospheric backdrop shared across the app - a direct port of the
 /// site's `body` background: a diagonal slate gradient, off-center gold and
 /// lifted-blue radial "blobs" pushed past the edges for an organic contour,
 /// and a film-grain overlay. No blur; texture comes from grain.
@@ -16,7 +16,7 @@ public struct GraincoreBackground: View {
                 endPoint: .bottomTrailing
             )
 
-            // Off-center glow blobs — gold lower-left, gold upper-right, and
+            // Off-center glow blobs - gold lower-left, gold upper-right, and
             // lifted-blue on the loose corners.
             GeometryReader { geo in
                 let w = geo.size.width

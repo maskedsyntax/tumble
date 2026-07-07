@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Turns a captured frame into a stored, undeveloped print — spending a shot,
+/// Turns a captured frame into a stored, undeveloped print - spending a shot,
 /// writing the raw bytes, and inserting the `Photo`. Shared by the app and the
 /// lock-screen capture extension so both enforce the same Roll and write to the
 /// same Drawer.

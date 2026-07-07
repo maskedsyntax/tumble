@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the shooter owns. One-time purchases only — no subscriptions, per the
+/// What the shooter owns. One-time purchases only - no subscriptions, per the
 /// product's whole stance. Ordered so the highest owned tier wins.
 public enum Entitlement: String, Sendable, CaseIterable, Comparable {
     case free

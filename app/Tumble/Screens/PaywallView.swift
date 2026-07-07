@@ -2,7 +2,7 @@ import SwiftUI
 import StoreKit
 import TumbleKit
 
-/// "Pay once. Never again." — the app's single Store & About screen. Shows the
+/// "Pay once. Never again." - the app's single Store & About screen. Shows the
 /// three one-time tiers (Free · Plus · Unlimited), Restore, and the on-device
 /// promise. Reached from the header, the low-roll nudge, and the empty roll.
 /// Language stays "own more", not "upgrade".
@@ -52,7 +52,7 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: Hero — a little fan of prints, echoing the Drawer.
+    // MARK: Hero - a little fan of prints, echoing the Drawer.
 
     private var hero: some View {
         ZStack {
@@ -71,7 +71,7 @@ struct PaywallView: View {
                 .font(Typography.display(32))
                 .foregroundStyle(Palette.cream)
                 .multilineTextAlignment(.center)
-            Text("Want more than twelve a day? Unlock it once — no subscriptions, no renewals, ever.")
+            Text("Want more than twelve a day? Unlock it once - no subscriptions, no renewals, ever.")
                 .font(Typography.sans(14))
                 .foregroundStyle(Palette.cream.opacity(0.72))
                 .multilineTextAlignment(.center)
@@ -79,7 +79,7 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: Footer — restore + the on-device promise (folded in from Settings).
+    // MARK: Footer - restore + the on-device promise (folded in from Settings).
 
     private var footer: some View {
         VStack(spacing: 16) {

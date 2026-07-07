@@ -2,7 +2,7 @@ import Foundation
 import CoreMotion
 import Observation
 
-/// Reads the accelerometer and reports shake "jolts" — the energy that drives
+/// Reads the accelerometer and reports shake "jolts" - the energy that drives
 /// shake-to-develop. Gravity (~1g) is subtracted so only real motion counts.
 ///
 /// The accelerometer is unavailable on the Simulator; `isAvailable` lets the UI

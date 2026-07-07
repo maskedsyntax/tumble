@@ -2,8 +2,8 @@ import Foundation
 import SwiftData
 
 /// A single shot. Stored as SwiftData metadata; the pixels live on disk in the
-/// shared container (see `PhotoStore`). A photo starts life *undeveloped* —
-/// blank and face-down in the Drawer — until the shooter shakes it to life.
+/// shared container (see `PhotoStore`). A photo starts life *undeveloped* -
+/// blank and face-down in the Drawer - until the shooter shakes it to life.
 @Model
 public final class Photo {
     /// Stable identity, also used to name the image files on disk.
@@ -44,7 +44,7 @@ public final class Photo {
     }
 
     /// A loose, hand-tossed placement in the drawer area (percent offsets,
-    /// gentle rotation) — echoes the site's `DrawerMockup` scatter.
+    /// gentle rotation) - echoes the site's `DrawerMockup` scatter.
     static func randomScatter() -> (x: Double, y: Double, rotation: Double) {
         (
             x: Double.random(in: 2...52),
@@ -61,7 +61,7 @@ public enum PhotoSource: String, Sendable {
 
 public extension Photo {
     /// How aged the print looks, 0 (fresh) → 1 (fully warmed/faded), mapped
-    /// over `agingSpan`. Purely a function of elapsed time — no stored state,
+    /// over `agingSpan`. Purely a function of elapsed time - no stored state,
     /// so prints visibly warm as the days pass.
     static let agingSpan: TimeInterval = 60 * 60 * 24 * 30 // ~30 days
 

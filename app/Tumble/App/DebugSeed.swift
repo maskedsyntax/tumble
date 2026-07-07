@@ -33,7 +33,7 @@ enum DebugSeed {
         try? context.save()
     }
 
-    /// Number of prints to seed — pass `-count N`; defaults to all scenes.
+    /// Number of prints to seed - pass `-count N`; defaults to all scenes.
     private static var count: Int {
         let args = ProcessInfo.processInfo.arguments
         if let i = args.firstIndex(of: "-count"), i + 1 < args.count, let n = Int(args[i + 1]) {

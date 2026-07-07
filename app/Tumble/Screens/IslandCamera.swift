@@ -5,7 +5,7 @@ import TumbleKit
 /// The camera as a window you pull *out of* the Dynamic Island.
 ///
 /// At rest it's a black pill sitting where the island is. Drag down and it
-/// stretches into a live camera window — geometry tracks your finger, so it
+/// stretches into a live camera window - geometry tracks your finger, so it
 /// feels physically tethered to the island. Release past the threshold and it
 /// springs open; shoot, and the print drops into the Drawer as the window
 /// retracts back into the island.
@@ -102,7 +102,7 @@ struct IslandCamera: View {
     }
 
     /// Invisible catcher over the physical island (and a comfortable margin
-    /// around/below it) so the island itself is the drag handle — grab it and
+    /// around/below it) so the island itself is the drag handle - grab it and
     /// pull down and it swells into the camera window. A tap opens too, but drag
     /// is the primary gesture; there is no separate button to press.
     private var islandGrabber: some View {
@@ -163,7 +163,7 @@ struct IslandCamera: View {
                 .shadow(color: Palette.amber.opacity(0.16 * progress), radius: 30 * progress, y: 10 * progress)
 
             // Open-state content, laid out at full size and revealed top-down as
-            // the window grows — the "pulled from the island" reveal.
+            // the window grows - the "pulled from the island" reveal.
             openContent
                 .frame(width: openW, height: openH, alignment: .top)
                 .frame(width: w, height: h, alignment: .top)
@@ -210,6 +210,24 @@ struct IslandCamera: View {
             preview
                 .frame(width: openW - 16, height: previewH)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(alignment: .topLeading) {
+                    cameraToolButton(
+                        systemName: camera.flashMode == .on ? "bolt.fill" : "bolt.slash",
+                        action: camera.toggleFlash,
+                        enabled: camera.supportsFlash,
+                        accessibilityLabel: camera.flashMode == .on ? "Turn flash off" : "Turn flash on"
+                    )
+                    .padding(12)
+                }
+                .overlay(alignment: .topTrailing) {
+                    cameraToolButton(
+                        systemName: "arrow.triangle.2.circlepath.camera",
+                        action: camera.switchCamera,
+                        enabled: camera.canSwitchCameras && !camera.isSimulated,
+                        accessibilityLabel: "Switch camera"
+                    )
+                    .padding(12)
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .strokeBorder(.white.opacity(0.08), lineWidth: 1)
@@ -223,6 +241,26 @@ struct IslandCamera: View {
             Spacer(minLength: 0)
         }
         .frame(width: openW, height: openH, alignment: .top)
+    }
+
+    private func cameraToolButton(
+        systemName: String,
+        action: @escaping () -> Void,
+        enabled: Bool,
+        accessibilityLabel: String
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.cream.opacity(enabled ? 0.92 : 0.42))
+                .frame(width: 36, height: 36)
+                .background(.black.opacity(enabled ? 0.42 : 0.22), in: Circle())
+                .overlay(Circle().strokeBorder(Palette.cream.opacity(enabled ? 0.16 : 0.08), lineWidth: 1))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     @ViewBuilder private var preview: some View {

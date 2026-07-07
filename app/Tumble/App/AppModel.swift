@@ -35,7 +35,7 @@ final class AppModel {
     }
 
     /// Coming to the foreground: pick up a midnight rollover, and **end** the
-    /// Live Activity so the Dynamic Island is a plain, fully app-owned surface —
+    /// Live Activity so the Dynamic Island is a plain, fully app-owned surface -
     /// the whole island stays grabbable while you're in the app.
     func enterForeground() {
         roll.refresh()

@@ -1,6 +1,6 @@
 import UIKit
 
-/// Synthetic "photographs" — the same gradient scenes the site paints in
+/// Synthetic "photographs" - the same gradient scenes the site paints in
 /// `DrawerMockup`. Used as develop previews and, crucially, as stand-in
 /// captures on the Simulator (which has no camera) so the whole capture →
 /// develop → Drawer flow is demoable without a device. On a real device these

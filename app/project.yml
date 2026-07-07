@@ -17,7 +17,7 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
     # Run on the Simulator with no signing/team. Device builds still use
-    # Automatic signing — add your team in Signing & Capabilities for those.
+    # Automatic signing - add your team in Signing & Capabilities for those.
     "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "NO"
     "CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]": "NO"
     "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": ""
@@ -58,6 +58,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
         INFOPLIST_KEY_NSMotionUsageDescription: "Tumble reads motion so you can shake a shot to develop it."
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tumble saves developed prints to your photo library when you ask."
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
     info:
       path: Tumble/Info.plist

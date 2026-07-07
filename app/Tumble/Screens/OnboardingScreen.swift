@@ -1,7 +1,7 @@
 import SwiftUI
 import TumbleKit
 
-/// First-run onboarding — a clean, dedicated screen (not an overlay on the
+/// First-run onboarding - a clean, dedicated screen (not an overlay on the
 /// Drawer). A looping animation shows the camera stretching down out of the
 /// Dynamic Island so the shooter knows where it lives; "Got it" enters the app.
 struct OnboardingScreen: View {
@@ -26,7 +26,7 @@ struct OnboardingScreen: View {
                         .font(Typography.display(30))
                         .foregroundStyle(Palette.cream)
                         .multilineTextAlignment(.center)
-                    Text("Twelve shots a day. Shake each one to develop —\nthen it lands in your Drawer.")
+                    Text("Twelve shots a day. Shake each one to develop -\nthen it lands in your Drawer.")
                         .font(Typography.sans(15))
                         .foregroundStyle(Palette.cream.opacity(0.72))
                         .multilineTextAlignment(.center)
