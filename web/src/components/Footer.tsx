@@ -1,5 +1,3 @@
-const SUPPORT_EMAIL = "aftaab@aftab.dev";
-
 export default function Footer() {
   return (
     <footer className="relative z-10 snap-start border-t border-cream/10 px-6 py-10">
@@ -18,7 +16,7 @@ export default function Footer() {
           <a href="/terms" className="transition hover:text-cream">
             Terms
           </a>
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="transition hover:text-cream">
+          <a href="/support" className="transition hover:text-cream">
             Support
           </a>
         </nav>
