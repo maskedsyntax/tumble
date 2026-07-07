@@ -11,6 +11,7 @@ import TumbleKit
 /// retracts back into the island.
 struct IslandCamera: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppModel.self) private var app
     @StateObject private var camera = CameraController()
 
@@ -32,6 +33,10 @@ struct IslandCamera: View {
     @State private var opened = false
     @State private var cameraLive = false
     @State private var flash = false
+    @State private var isCapturing = false
+    @State private var ejectionPhase: CGFloat = 0
+    @State private var showEjectedPrint = false
+    @State private var pendingCaptureImage: UIImage?
 
     // MARK: Geometry
 
@@ -56,6 +61,7 @@ struct IslandCamera: View {
     private var corner: CGFloat { lerp(closedCorner, openCorner, progress) }
     private var contentOpacity: CGFloat { smoothstep(progress, 0.06, 0.42) }
     private var controlsOpacity: CGFloat { smoothstep(progress, 0.55, 1) }
+    private var ejectedPrintWidth: CGFloat { min(openW * 0.42, 136) }
 
     // On DI phones the closed pill blends with the hardware (no rim/shadow at
     // rest). On other phones it needs a visible rim and lift so it reads as a
@@ -170,6 +176,11 @@ struct IslandCamera: View {
                 .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
                 .opacity(contentOpacity)
 
+            if showEjectedPrint {
+                ejectedPrint
+                    .opacity(contentOpacity)
+            }
+
             // Flash on capture.
             RoundedRectangle(cornerRadius: corner, style: .continuous)
                 .fill(.white)
@@ -214,7 +225,7 @@ struct IslandCamera: View {
                     cameraToolButton(
                         systemName: camera.flashMode == .on ? "bolt.fill" : "bolt.slash",
                         action: camera.toggleFlash,
-                        enabled: camera.supportsFlash,
+                        enabled: camera.supportsFlash && !isCapturing,
                         accessibilityLabel: camera.flashMode == .on ? "Turn flash off" : "Turn flash on"
                     )
                     .padding(12)
@@ -223,7 +234,7 @@ struct IslandCamera: View {
                     cameraToolButton(
                         systemName: "arrow.triangle.2.circlepath.camera",
                         action: camera.switchCamera,
-                        enabled: camera.canSwitchCameras && !camera.isSimulated,
+                        enabled: camera.canSwitchCameras && !camera.isSimulated && !isCapturing,
                         accessibilityLabel: "Switch camera"
                     )
                     .padding(12)
@@ -234,9 +245,12 @@ struct IslandCamera: View {
                 )
                 .padding(.top, 8)
 
+            printSlot
+                .padding(.top, 7)
+
             controls
                 .opacity(controlsOpacity)
-                .padding(.top, 10)
+                .padding(.top, 5)
 
             Spacer(minLength: 0)
         }
@@ -294,7 +308,8 @@ struct IslandCamera: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(!opened)
+                .disabled(!opened || isCapturing)
+                .opacity(isCapturing ? 0.58 : 1)
                 .accessibilityLabel("Take a shot")
 
                 closeChevron.frame(width: 64, alignment: .trailing)
@@ -330,7 +345,51 @@ struct IslandCamera: View {
                 .foregroundStyle(Palette.cream.opacity(0.8))
         }
         .buttonStyle(.plain)
+        .disabled(isCapturing)
+        .opacity(isCapturing ? 0.42 : 1)
         .accessibilityLabel("Close camera")
+    }
+
+    @ViewBuilder private var printSlot: some View {
+        if isCapturing || showEjectedPrint {
+            ZStack {
+                Capsule()
+                    .fill(.black.opacity(0.72))
+                    .frame(width: openW * 0.5, height: 12)
+                    .shadow(color: .black.opacity(0.38), radius: 8, y: 4)
+                Capsule()
+                    .strokeBorder(Palette.cream.opacity(0.08), lineWidth: 1)
+                    .frame(width: openW * 0.5, height: 12)
+            }
+            .frame(width: openW, height: 14)
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var ejectedPrint: some View {
+        let tuck = ejectedPrintWidth * 0.34
+        let travel = ejectedPrintWidth * (reduceMotion ? 0.76 : 1.05)
+        let fall = max(0, ejectionPhase - 0.74) / 0.26
+        let wobble = reduceMotion ? 0 : sin(Double(ejectionPhase) * .pi * 4.5) * 2.4
+        let fade = 1 - smoothstep(ejectionPhase, 0.82, 1)
+
+        return PrintView(
+            image: nil,
+            isDeveloped: false,
+            developProgress: 0,
+            age: 0,
+            width: ejectedPrintWidth
+        )
+        .rotationEffect(.degrees(wobble + Double(fall) * 5))
+        .scaleEffect(1 - fall * 0.08)
+        .opacity(fade)
+        .shadow(color: Palette.gold.opacity(0.16 * (1 - fall)), radius: 18, y: 8)
+        .position(
+            x: openW / 2,
+            y: previewH + 24 - tuck + travel * ejectionPhase + fall * 44
+        )
+        .accessibilityHidden(true)
     }
 
     // MARK: Gesture
@@ -338,11 +397,13 @@ struct IslandCamera: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
+                guard !isCapturing else { return }
                 startCameraIfNeeded()
                 let base: CGFloat = opened ? 1 : 0
                 progress = clamp(base + value.translation.height / openDistance, 0, 1)
             }
             .onEnded { value in
+                guard !isCapturing else { return }
                 let projected = progress + value.predictedEndTranslation.height / openDistance / 3
                 if projected > 0.42 { open() } else { close() }
             }
@@ -358,6 +419,7 @@ struct IslandCamera: View {
     }
 
     private func close() {
+        guard !isCapturing else { return }
         opened = false
         withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { progress = 0 }
         // Stop the session once it has fully retracted.
@@ -373,17 +435,52 @@ struct IslandCamera: View {
     }
 
     private func capture() {
-        guard app.roll.canShoot, opened else { return }
+        guard app.roll.canShoot, opened, !isCapturing else { return }
+        isCapturing = true
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         camera.capture { image in
             withAnimation(.easeOut(duration: 0.07)) { flash = true }
             withAnimation(.easeIn(duration: 0.22).delay(0.07)) { flash = false }
-            if app.store(rawImage: image, in: context) {
-                onCaptured()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                // Let the print land in the drawer, then retract into the island.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { close() }
+            pendingCaptureImage = image
+            playPrintEjection()
+        }
+    }
+
+    private func playPrintEjection() {
+        showEjectedPrint = true
+        ejectionPhase = 0
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.68)
+            let animation: Animation = reduceMotion
+                ? .easeInOut(duration: 0.62)
+                : .spring(response: 0.82, dampingFraction: 0.74, blendDuration: 0.08)
+            withAnimation(animation) {
+                ejectionPhase = 0.78
             }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.7 : 0.88)) {
+            landPendingCapture()
+            withAnimation(.easeIn(duration: reduceMotion ? 0.24 : 0.3)) {
+                ejectionPhase = 1
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.98 : 1.18)) {
+            showEjectedPrint = false
+            ejectionPhase = 0
+            isCapturing = false
+            close()
+        }
+    }
+
+    private func landPendingCapture() {
+        guard let image = pendingCaptureImage else { return }
+        pendingCaptureImage = nil
+        if app.store(rawImage: image, in: context) {
+            onCaptured()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
     }
 }
