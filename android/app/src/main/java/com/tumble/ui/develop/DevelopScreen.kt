@@ -133,8 +133,10 @@ fun DevelopScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .safeContentPadding()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             CircleIconButton(Icons.Filled.Delete, "Remove print", { confirmRemove = true })
             if (viewModel.isDeveloped) {
@@ -183,27 +185,23 @@ fun DevelopScreen(
 
 @Composable
 private fun DevelopHint(viewModel: DevelopViewModel) {
-    when {
-        viewModel.isDeveloped ->
-            Text("There it is.", style = TumbleType.display(22).copy(color = Palette.cream))
-
-        viewModel.usesShake -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Shake to develop", style = TumbleType.display(22).copy(color = Palette.cream))
-            Text(
-                "Give it a shake and watch it come up.",
-                style = TumbleType.sans(14).copy(color = Palette.cream.copy(alpha = 0.7f), textAlign = TextAlign.Center),
-            )
-        }
-
-        else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Hold to develop", style = TumbleType.display(22).copy(color = Palette.cream))
-            Text(
-                "Press and hold — it comes up slowly.",
-                style = TumbleType.sans(14).copy(color = Palette.cream.copy(alpha = 0.7f), textAlign = TextAlign.Center),
-            )
-            Spacer(Modifier.height(12.dp))
-            HoldButton(viewModel)
-        }
+    if (viewModel.isDeveloped) {
+        Text("There it is.", style = TumbleType.display(22).copy(color = Palette.cream))
+        return
+    }
+    // Shake is primary on a real device; the hold button is always offered too
+    // so it works on emulators / with reduce motion (mirrors the iOS fallback).
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            if (viewModel.usesShake) "Shake to develop" else "Hold to develop",
+            style = TumbleType.display(22).copy(color = Palette.cream),
+        )
+        Text(
+            if (viewModel.usesShake) "Give it a shake — or hold below." else "Press and hold — it comes up slowly.",
+            style = TumbleType.sans(14).copy(color = Palette.cream.copy(alpha = 0.7f), textAlign = TextAlign.Center),
+        )
+        Spacer(Modifier.height(14.dp))
+        HoldButton(viewModel)
     }
 }
 

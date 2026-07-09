@@ -3,6 +3,7 @@ package com.tumble.camera
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -38,9 +39,11 @@ class CameraController(private val context: Context) {
     private var imageCapture: ImageCapture? = null
     private var provider: ProcessCameraProvider? = null
     private var owner: LifecycleOwner? = null
+    private var previewView: PreviewView? = null
     private val mainExecutor = ContextCompat.getMainExecutor(context)
 
     fun attachPreview(view: PreviewView) {
+        previewView = view
         preview.setSurfaceProvider(view.surfaceProvider)
     }
 
@@ -102,18 +105,21 @@ class CameraController(private val context: Context) {
             if (flashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
     }
 
-    /** Capture a still, delivered as a Bitmap on the main thread. */
+    /** Capture a still, delivered as a Bitmap on the main thread, oriented upright. */
     fun capture(onImage: (Bitmap) -> Unit) {
         val capture = imageCapture
         if (isSimulated || capture == null) {
             onImage(FilmScene.random().render())
             return
         }
+        // Orient the still to the current display, like the preview.
+        capture.targetRotation = previewView?.display?.rotation ?: Surface.ROTATION_0
+        val mirror = side == CameraSide.FRONT
         capture.takePicture(
             mainExecutor,
             object : ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(image: ImageProxy) {
-                    val bitmap = image.toBitmap().rotated(image.imageInfo.rotationDegrees)
+                    val bitmap = image.toBitmap().oriented(image.imageInfo.rotationDegrees, mirror)
                     image.close()
                     onImage(bitmap)
                 }
@@ -125,9 +131,13 @@ class CameraController(private val context: Context) {
         )
     }
 
-    private fun Bitmap.rotated(degrees: Int): Bitmap {
-        if (degrees == 0) return this
-        val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+    /** Rotate to upright and mirror front-camera frames so selfies match iOS. */
+    private fun Bitmap.oriented(degrees: Int, mirror: Boolean): Bitmap {
+        if (degrees == 0 && !mirror) return this
+        val matrix = Matrix().apply {
+            if (degrees != 0) postRotate(degrees.toFloat())
+            if (mirror) postScale(-1f, 1f)
+        }
         return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 }

@@ -3,7 +3,7 @@
     <shortcut
         android:shortcutId="take_a_shot"
         android:enabled="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutShortLabel="@string/shortcut_take_shot">
         <intent
             android:action="android.intent.action.VIEW"

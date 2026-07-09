@@ -55,6 +55,11 @@ class HomeViewModel @Inject constructor(
         seenDrawerTips = true
     }
 
+    /** Debug: seed sample prints across several days so Collections is testable. */
+    fun seedDebugDays() {
+        viewModelScope.launch { repo.seedSampleDays() }
+    }
+
     /** Capture from the pull-down camera; the blank print lands in the Drawer. */
     fun capture(bitmap: Bitmap, onResult: (Photo?) -> Unit) {
         viewModelScope.launch {

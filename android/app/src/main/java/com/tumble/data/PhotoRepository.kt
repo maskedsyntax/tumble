@@ -63,4 +63,35 @@ class PhotoRepository @Inject constructor(
         store.deleteImages(photo)
         dao.delete(photo)
     }
+
+    /**
+     * Debug helper (mirrors iOS `DebugSeed`): fills the Drawer with a few days of
+     * sample prints so the Collections / archive UI is testable without waiting
+     * for real days to pass. Newest today is left blank to show the develop flow.
+     */
+    suspend fun seedSampleDays() {
+        val scenes = com.tumble.film.FilmScene.entries
+        val now = java.time.Instant.now()
+        var index = 0
+        for (dayOffset in 0..3) {
+            val perDay = if (dayOffset == 0) 3 else 3
+            for (i in 0 until perDay) {
+                val scene = scenes[index % scenes.size]
+                index++
+                val captured = now
+                    .minus(java.time.Duration.ofDays(dayOffset.toLong()))
+                    .minus(java.time.Duration.ofMinutes((i * 47).toLong()))
+                val photo = Photo.create(capturedAt = captured)
+                val rawName = store.writeImage(scene.render(640), photo.id, PhotoStore.ImageKind.RAW)
+                val developed = !(dayOffset == 0 && i == 0)
+                dao.upsert(
+                    photo.copy(
+                        rawImageName = rawName,
+                        isDeveloped = developed,
+                        developProgress = if (developed) 1.0 else 0.0,
+                    ),
+                )
+            }
+        }
+    }
 }

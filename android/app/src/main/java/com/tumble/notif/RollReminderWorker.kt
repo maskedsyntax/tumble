@@ -31,7 +31,7 @@ class RollReminderWorker(
         )
 
         val notification = NotificationCompat.Builder(applicationContext, RollReminders.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Your fresh roll is ready")
             .setContentText("Twelve new shots are waiting.")
             .setAutoCancel(true)
