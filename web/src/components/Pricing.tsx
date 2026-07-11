@@ -1,6 +1,6 @@
 /**
  * Pricing: free to start, with two one-time unlocks (no subscriptions). The free
- * tier keeps Tumble's identity — the daily Roll — while paid tiers lift the
+ * tier keeps Tumble's identity (the daily Roll) while paid tiers lift the
  * ceiling for people who want it. All one-time purchases per the "no
  * subscriptions" stance.
  */

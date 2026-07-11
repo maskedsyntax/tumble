@@ -18,29 +18,82 @@ const inter = Inter({
 
 const SITE_URL = "https://gettumbleapp.com";
 const DESCRIPTION =
-  "Tumble is a private iPhone camera in final App Store prep. Pull down from the Dynamic Island or Lock Screen, shoot a daily roll, then shake to develop.";
+  "Tumble is a private camera launching on iPhone and Android together. Shoot a daily roll, then shake to develop.";
+
+const TITLE = "Tumble · A slower camera you can own";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Tumble · A slower camera you can own",
+  title: {
+    default: TITLE,
+    template: "%s · Tumble",
+  },
   description: DESCRIPTION,
   applicationName: "Tumble",
-  keywords: ["camera", "film camera", "iPhone", "lock screen", "instant photo", "Tumble"],
+  keywords: [
+    "camera",
+    "film camera",
+    "instant camera",
+    "iPhone camera app",
+    "Android camera app",
+    "lock screen camera",
+    "daily photo roll",
+    "private camera",
+    "Tumble",
+  ],
+  authors: [{ name: "Tumble" }],
+  creator: "Tumble",
+  publisher: "Tumble",
+  category: "photography",
   alternates: { canonical: "/" },
+  formatDetection: { telephone: false, email: false, address: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "Tumble",
-    title: "Tumble · A slower camera you can own",
+    locale: "en_US",
+    title: TITLE,
     description: DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tumble · A slower camera you can own",
+    title: TITLE,
     description: DESCRIPTION,
   },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/favicon.svg" }],
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Tumble",
+  applicationCategory: "PhotoApplication",
+  operatingSystem: "iOS, Android",
+  description: DESCRIPTION,
+  url: SITE_URL,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Tumble",
+    url: SITE_URL,
   },
 };
 
@@ -54,7 +107,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

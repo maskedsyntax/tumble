@@ -1,4 +1,4 @@
-# Tumble — Waitlist site
+# Tumble - Waitlist site
 
 Pre-launch landing page for Tumble. Single Next.js page (App Router + TypeScript
 + Tailwind v4) that captures waitlist emails into Firestore. Deploys to Vercel at
@@ -19,7 +19,7 @@ it. Without config, submitting shows a graceful "something went wrong" message.
 ## Firebase setup (required for waitlist writes)
 
 1. Create a Firebase project (or reuse one) at <https://console.firebase.google.com>.
-2. Build → **Firestore Database** → Create database (production mode is fine — we
+2. Build → **Firestore Database** → Create database (production mode is fine - we
    write through the site API, and Firestore rules restrict what can be created).
 3. Project Settings → **General** → your web app → copy the `apiKey`.
 4. Copy these fields into `.env.local`:
@@ -42,10 +42,10 @@ Emails land in the `waitlist` collection, one auto-ID document per signup.
 
 ## What's a placeholder (swap before/at launch)
 
-- App Store badge + QR are greyed "coming soon" — no live listing yet.
+- App Store + Google Play badges and QRs are greyed "coming soon" - no live
+  listings yet. Both platforms are planned for the same launch window.
 - `/privacy` and `/terms` are short placeholders.
-- Support email `aftaab@aftab.dev` — change it in `src/components/Footer.tsx`
-  and the legal pages if a dedicated inbox is added later.
-- Device-support line ("supported devices confirmed at launch") — finalize once
-  the iOS minimum is known.
+- Support email `aftaab@aftaab.dev` - change it in the support/legal pages if a
+  dedicated inbox is added later.
+- Device-support details - finalize once iOS and Android minimums are locked.
 ```

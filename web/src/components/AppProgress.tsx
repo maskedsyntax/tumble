@@ -1,23 +1,23 @@
 const SURFACES = [
   {
-    name: "Lock Screen capture",
+    name: "Quick capture",
     status: "Built",
-    body: "A LockedCameraCapture extension opens Tumble without turning the app into another feed.",
-  },
-  {
-    name: "Dynamic Island camera",
-    status: "Built",
-    body: "Pull from the island, shoot, and watch the print fall back into the Drawer.",
+    body: "iPhone: Lock Screen and Dynamic Island. Android: home widgets and a Quick Settings tile. Same ritual, platform-native entry points.",
   },
   {
     name: "Daily roll logic",
     status: "Built",
-    body: "Twelve free shots reset daily, with Plus and Unlimited handled by StoreKit 2.",
+    body: "Twelve free shots reset daily on both platforms, with Plus and Unlimited as one-time unlocks.",
+  },
+  {
+    name: "Shake to develop",
+    status: "Built",
+    body: "Fresh prints start blank. Shake your phone to bring the image up, or press and hold when motion is reduced.",
   },
   {
     name: "Private storage",
     status: "Built",
-    body: "Photos stay on device in the shared app container. No account, no cloud, no analytics SDK.",
+    body: "Photos stay on device. No account, no cloud, no analytics SDK. Same on iPhone and Android.",
   },
 ];
 
@@ -29,16 +29,17 @@ export default function AppProgress() {
           Current build
         </div>
         <h2 className="font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
-          The app is in final submission prep.
+          iPhone is in review. Android is launching with it.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
-          Tumble has moved from waitlist idea to native iOS app: camera
-          extensions, Dynamic Island status, StoreKit purchases, privacy
-          manifests, and the Drawer-first shooting flow are now in place.
+          Tumble is no longer just a waitlist idea. The native iOS app is built
+          and sitting in Apple&rsquo;s review queue. The native Android app is at
+          feature parity (same daily roll, shake-to-develop, private Drawer,
+          and one-time unlocks) and is planned for the same launch window.
         </p>
         <p className="mt-4 text-sm font-medium text-amber">
-          Join the launch list and we will send one note when the App Store page
-          is live.
+          Join now and you will get the App Store and Google Play links before
+          we announce them wider.
         </p>
       </div>
 

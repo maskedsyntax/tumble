@@ -16,7 +16,7 @@ export default function DrawerMockup() {
         <div className="absolute -inset-8 rounded-[3rem] bg-gold/20 blur-3xl" aria-hidden="true" />
         <Image
           src={appMockup}
-          alt="Tumble app mockup showing a saved instant print inside the iPhone app."
+          alt="Tumble app mockup showing a saved instant print in the Drawer."
           sizes="(min-width: 768px) 360px, (min-width: 640px) 340px, 86vw"
           className="relative h-auto w-[min(86vw,340px)] rounded-[1.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-cream/15 md:w-[360px]"
         />

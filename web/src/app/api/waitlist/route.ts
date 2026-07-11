@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  // Honeypot tripped — pretend success, write nothing.
+  // Honeypot tripped: pretend success, write nothing.
   if (typeof body.company === "string" && body.company.trim() !== "") {
     return NextResponse.json({ ok: true });
   }

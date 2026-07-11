@@ -1,5 +1,5 @@
 /**
- * The Roll is the whole product thesis (spec §2.1) — scarcity, not a paywall.
+ * The Roll is the whole product thesis (spec §2.1): scarcity, not a paywall.
  * This section makes that land clearly. Three plain beats: the limit, the
  * gesture, the archive.
  */
@@ -10,9 +10,9 @@ const BEATS = [
     body: "Your free roll resets every day. No ads, no watch-this unlocks, no feed disguised as a camera.",
   },
   {
-    kicker: "Island camera",
-    title: "Pull down to shoot.",
-    body: "The camera lives as a small top handle. Drag it open, take the shot, and the print drops straight back into the Drawer.",
+    kicker: "Quick capture",
+    title: "Shoot without opening a feed.",
+    body: "On iPhone, pull from the Dynamic Island or Lock Screen. On Android, use a widget or Quick Settings tile. Same ritual, native entry points.",
   },
   {
     kicker: "Shake to develop",

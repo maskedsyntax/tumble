@@ -39,7 +39,9 @@ export default function WaitlistForm() {
 
       if (res.ok && data.ok) {
         setStatus("success");
-        setMessage("You're on the list. We'll email you when Tumble hits the App Store.");
+        setMessage(
+          "You're in the first launch wave. We'll email you the App Store and Google Play links first.",
+        );
         setEmail("");
       } else {
         setStatus("error");
@@ -54,25 +56,26 @@ export default function WaitlistForm() {
   if (status === "success") {
     return (
       <div
-        className="animate-fade-up rounded-2xl border border-cream/25 bg-cream/10 px-6 py-5 text-center backdrop-blur-sm"
+        className="animate-fade-up w-full rounded-2xl border border-cream/25 bg-cream/10 px-6 py-5 text-center backdrop-blur-sm"
         role="status"
         aria-live="polite"
       >
         <p className="font-display text-xl text-cream">You&rsquo;re on the list.</p>
         <p className="mt-1 text-sm text-cream/70">
-          We&rsquo;ll email you when the App Store page is live.
+          You&rsquo;re in the first launch wave. We&rsquo;ll email you the App Store
+          and Google Play links as soon as they&rsquo;re live.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-xl">
+    <form id="waitlist" onSubmit={handleSubmit} noValidate className="w-full">
       <label htmlFor="email" className="mb-3 block text-sm font-medium text-cream/85">
-        Get the App Store link when Tumble launches.
+        Join the first launch wave before the store links are public.
       </label>
 
-      {/* Honeypot — visually hidden, off the tab order. Bots fill it, humans don't. */}
+      {/* Honeypot: visually hidden, off the tab order. Bots fill it, humans don't. */}
       <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="company">Company</label>
         <input
@@ -119,7 +122,9 @@ export default function WaitlistForm() {
           status === "error" ? "text-amber" : "text-cream/60"
         }`}
       >
-        {status === "error" ? message : "No spam. Just one App Store launch email."}
+        {status === "error"
+          ? message
+          : "No spam. Just the pre-launch notes and both store links first."}
       </p>
     </form>
   );

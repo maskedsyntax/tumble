@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import styles from "../(legal)/legal.module.css";
 
-const SUPPORT_EMAIL = "aftaab@aftab.dev";
+const SUPPORT_EMAIL = "aftaab@aftaab.dev";
 
 export const metadata: Metadata = {
-  title: "Support · Tumble",
-  description: "Get help with Tumble, the private iPhone camera for daily photo rolls.",
+  title: "Support",
+  description:
+    "Get help with Tumble, the private camera for daily photo rolls on iPhone and Android.",
+  alternates: { canonical: "/support" },
 };
 
 export default function SupportPage() {
@@ -25,18 +27,27 @@ export default function SupportPage() {
             Need a hand with your roll?
           </h1>
           <p className="mt-5 leading-relaxed text-cream/80">
-            Tumble is in final App Store submission prep. For launch questions,
+            Tumble is launching on iPhone and Android. For launch questions,
             purchase restores, privacy requests, or bug reports, email support
             and we will help from there.
           </p>
 
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="mt-7 inline-flex items-center justify-center rounded-full border border-amber/50 bg-amber px-5 py-3 text-sm font-semibold text-ink transition hover:bg-cream"
+            className="group mt-8 flex max-w-sm items-center gap-4 rounded-2xl border border-cream/15 bg-cream/[0.06] p-2 pr-5 shadow-[0_18px_50px_-36px_rgba(0,0,0,0.9)] backdrop-blur-md transition hover:border-amber/40 hover:bg-cream/[0.1]"
           >
-            Email support
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber text-ink shadow-[0_10px_24px_-14px_rgba(223,171,104,0.95)] transition group-hover:bg-cream">
+              <MailIcon />
+            </span>
+            <span className="min-w-0 text-left">
+              <span className="block text-[10px] font-semibold uppercase tracking-widest text-cream/55">
+                Email support
+              </span>
+              <span className="mt-0.5 block truncate font-medium text-cream transition group-hover:text-amber">
+                {SUPPORT_EMAIL}
+              </span>
+            </span>
           </a>
-          <p className="mt-3 text-sm text-cream/55">{SUPPORT_EMAIL}</p>
         </div>
 
         <div className="relative mx-auto aspect-[4/5] w-full max-w-64">
@@ -60,7 +71,7 @@ export default function SupportPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Ask about daily rolls, developing photos, purchases, privacy, or the
-            launch waitlist.
+            launch waitlist, on iPhone or Android.
           </p>
         </article>
         <article className="border-t border-cream/15 pt-5">
@@ -69,10 +80,29 @@ export default function SupportPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Send product feedback, bug notes, press questions, or review-copy
-            requests before the App Store page goes live.
+            requests before the store pages go live.
           </p>
         </article>
       </section>
     </main>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
   );
 }

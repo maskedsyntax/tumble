@@ -1,4 +1,4 @@
-// Pragmatic email check — good enough to reject obvious junk without trying to
+// Pragmatic email check: good enough to reject obvious junk without trying to
 // fully implement RFC 5322. Real validation is "did the confirmation land."
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import LaunchWindow from "@/components/LaunchWindow";
 import RollExplainer from "@/components/RollExplainer";
 import DrawerMockup from "@/components/DrawerMockup";
 import AppProgress from "@/components/AppProgress";
@@ -9,6 +10,7 @@ export default function Home() {
   return (
     <main className="relative overflow-hidden">
       <Hero />
+      <LaunchWindow />
       <RollExplainer />
       <DrawerMockup />
       <AppProgress />
