@@ -1,7 +1,7 @@
 /**
  * Pre-launch stand-in for store CTAs. No live listings yet, so badges are
  * non-linking and muted, paired with placeholder QRs. Swap in real App Store /
- * Google Play badges + listing URLs once both stores are live.
+ * Play Store badges + listing URLs once both stores are live.
  */
 export default function ComingSoonBadge() {
   return (
@@ -14,10 +14,10 @@ export default function ComingSoonBadge() {
           label="App Store"
         />
         <PlatformRow
-          ariaLabel="Coming soon to Google Play"
+          ariaLabel="Coming soon to the Play Store"
           icon={<AndroidIcon />}
-          eyebrow="Coming soon on"
-          label="Google Play"
+          eyebrow="Coming soon to the"
+          label="Play Store"
         />
       </div>
 

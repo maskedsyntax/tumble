@@ -58,7 +58,7 @@ No account to create. No cloud to sync to. No analytics SDK. Photos stay on your
 | | |
 |---|---|
 | **App Store** | Coming soon. iPhone build is in Apple review. |
-| **Google Play** | Coming soon. Android planned for the same launch window. |
+| **Play Store** | Coming soon. Android planned for the same launch window. |
 
 Join now if you want to be in the first wave when the store pages open.
 
