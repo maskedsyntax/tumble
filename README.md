@@ -1,47 +1,69 @@
-# tumble
-
 <p align="center">
-  <img src="logo.png" width="128" height="128" alt="Tumble Logo" />
+  <img src="logo.png" width="128" height="128" alt="Tumble" />
 </p>
 
-**A slower camera you can actually own.**
+<h1 align="center">Tumble</h1>
 
-Tumble is a tiny lock-screen camera that makes you wait to see what you shot. Twelve shots a day, shake to develop, and a Drawer of prints that age. No account, no cloud, no social.
+<p align="center"><strong>A slower camera you can own.</strong></p>
 
-[**Join the waitlist at gettumbleapp.com**](https://gettumbleapp.com)
+<p align="center">
+  Twelve shots a day. Shake to develop. Private on iPhone and Android.
+</p>
+
+<p align="center">
+  <a href="https://gettumbleapp.com"><strong>Join the waitlist at gettumbleapp.com</strong></a>
+</p>
 
 ---
 
-## The Ritual
+## Get into the first roll before Tumble opens
 
-Tumble is built around a limit, not an algorithm. It turns the camera back into a small ritual instead of another infinite surface.
+Tumble is a private camera built around a limit, not an algorithm. Shoot a daily roll, shake to develop your prints, and keep everything on your phone. No account. No cloud. No feed.
 
-### 1. The Roll
-**Twelve shots a day. No more.**
-The limit is the point. When you know you only have twelve, you look a little longer before you pull the trigger. The roll resets at midnight.
+**iPhone is in review. Android is launching with it.** The waitlist gets both store links first.
 
-### 2. The Wait
-**Prints start blank. Shake to develop.**
-You don't see what you shot immediately. Prints land in your Drawer as blank exposures. To see them, you have to work for it—physically shake your phone to bring the image to the surface.
+---
 
-### 3. The Drawer
+## How it works
+
+### The Roll
+**Twelve shots a day.**
+
+Your free roll resets every day. No ads, no watch-this unlocks, no feed disguised as a camera. When you know you only have twelve, you look a little longer before you shoot.
+
+### Quick capture
+**Shoot without opening a feed.**
+
+On iPhone, pull from the Dynamic Island or Lock Screen. On Android, use a widget or Quick Settings tile. Same ritual, native entry points.
+
+### Shake to develop
+**You have to wait for it.**
+
+Fresh prints start blank. Shake your phone to bring the image up, or press and hold when motion is reduced.
+
+### The Drawer
 **A pile of prints that age.**
-There is no grid and no feed. Your photos live in a scattered pile. Over time, the prints age—developing grain, vignette, and a physical patina that reflects how long they've been kept.
 
-### 4. Private & Local
+Not a camera roll and not a grid. Your home is a scattered pile of prints. Over time they pick up grain, vignette, and a little patina.
+
+### Private by design
 **On-device. No subscriptions.**
-No account to create. No cloud to sync to. No analytics tracking your eye movement. Everything stays on your hardware. You buy the app once, and you own it forever.
+
+No account to create. No cloud to sync to. No analytics SDK. Photos stay on your phone. Free to start, with optional one-time unlocks if you want a bigger roll.
 
 ---
 
-## Current Status
+## Coming to iPhone and Android
 
-Tumble is currently in the quiet window before launch.
+| | |
+|---|---|
+| **App Store** | Coming soon. iPhone build is in Apple review. |
+| **Google Play** | Coming soon. Android planned for the same launch window. |
 
-*   **iOS:** The native app is built and currently in **Apple Review**.
-*   **Android:** Feature-parity native app is ready and planned for the **same launch window**.
-*   **Web:** Waitlist site is live. Subscribers get the App Store and Google Play links first.
+Join now if you want to be in the first wave when the store pages open.
 
----
+<p align="center">
+  <a href="https://gettumbleapp.com"><strong>gettumbleapp.com</strong></a>
+</p>
 
-*Tumble — Wait for it.*
+<p align="center"><em>Wait for it.</em></p>
