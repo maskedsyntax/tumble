@@ -1,5 +1,10 @@
 package com.tumble.ui
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,7 +52,17 @@ fun TumbleNavHost(
         }
     }
 
-    NavHost(navController = navController, startDestination = start) {
+    // Smooth, consistent transitions across every destination: a gentle
+    // fade + zoom in when a screen opens, and the reverse on the way back —
+    // avoids the default horizontal slide janking against the heavy Drawer/grain.
+    NavHost(
+        navController = navController,
+        startDestination = start,
+        enterTransition = { fadeIn(tween(260)) + scaleIn(initialScale = 0.96f, animationSpec = tween(260)) },
+        exitTransition = { fadeOut(tween(200)) },
+        popEnterTransition = { fadeIn(tween(220)) },
+        popExitTransition = { fadeOut(tween(220)) + scaleOut(targetScale = 0.96f, animationSpec = tween(220)) },
+    ) {
         composable(Routes.ONBOARDING) {
             OnboardingScreen(onFinish = {
                 navController.navigate(Routes.HOME) {

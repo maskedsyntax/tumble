@@ -56,7 +56,7 @@ import androidx.core.content.ContextCompat
 import com.tumble.camera.CameraPreview
 import com.tumble.camera.rememberCameraController
 import com.tumble.film.FilmScene
-import com.tumble.ui.components.CircleIconButton
+import com.tumble.ui.components.CameraToolButton
 import com.tumble.ui.components.PrintView
 import com.tumble.ui.theme.Palette
 import com.tumble.ui.theme.TumbleType
@@ -237,18 +237,20 @@ private fun OpenCameraContent(
                 Image(placeholder, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
             Box(Modifier.fillMaxSize().padding(8.dp)) {
-                if (controller.supportsFlash) {
-                    CircleIconButton(
-                        if (controller.flashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                        "Flash", controller::toggleFlash, Modifier.align(Alignment.TopStart), size = 32,
-                    )
-                }
-                if (controller.canSwitch) {
-                    CircleIconButton(
-                        Icons.Filled.Cameraswitch, "Switch camera", controller::switchCamera,
-                        Modifier.align(Alignment.TopEnd), size = 32,
-                    )
-                }
+                CameraToolButton(
+                    icon = if (controller.flashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                    contentDescription = if (controller.flashOn) "Turn flash off" else "Turn flash on",
+                    enabled = controller.supportsFlash && !capturing,
+                    onClick = controller::toggleFlash,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+                CameraToolButton(
+                    icon = Icons.Filled.Cameraswitch,
+                    contentDescription = "Switch camera",
+                    enabled = controller.canSwitch && !controller.isSimulated && !capturing,
+                    onClick = controller::switchCamera,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
             }
         }
         Spacer(Modifier.height(10.dp))

@@ -260,6 +260,7 @@ struct DevelopView: View {
         photo.isDeveloped = true
         photo.developProgress = 1
         try? context.save()
+        ReviewPrompter.shared.recordDevelopedPrint()
     }
 
     private func removePrint() {
@@ -282,6 +283,9 @@ struct DevelopView: View {
         let result = await PhotoLibrarySaver.saveDeveloped(photo, style: style)
         withAnimation(.easeOut(duration: 0.2)) {
             saveMessage = message(for: result, style: style)
+        }
+        if case .saved = result {
+            ReviewPrompter.shared.recordSavedToPhotos()
         }
     }
 

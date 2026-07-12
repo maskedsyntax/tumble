@@ -48,6 +48,13 @@ class DevelopViewModel @Inject constructor(
     val postcardFrame: StateFlow<Boolean> = prefs.saveIncludesPostcardFrame
     fun setPostcardFrame(value: Boolean) = prefs.setPostcardFrame(value)
 
+    /** Flip the save format and surface a hint about what it does. */
+    fun toggleFrame() {
+        val next = !postcardFrame.value
+        setPostcardFrame(next)
+        saveMessage = if (next) "Saving as a postcard" else "Saving photo only"
+    }
+
     val usesShake: Boolean get() = shake.isAvailable
     val isDeveloped: Boolean get() = progress >= 1f
 
@@ -79,7 +86,11 @@ class DevelopViewModel @Inject constructor(
     private fun finish() {
         shake.stop()
         val current = photo ?: return
-        viewModelScope.launch { repo.updateProgress(current, 1.0) }
+        // Reflect the developed state locally so save()/onCleared use fresh data —
+        // repo.updateProgress only writes the DB, not this in-memory copy.
+        val developed = current.copy(developProgress = 1.0, isDeveloped = true)
+        photo = developed
+        viewModelScope.launch { repo.updateProgress(developed, 1.0) }
         review.recordDevelopedPrint()
         onDeveloped?.invoke()
     }

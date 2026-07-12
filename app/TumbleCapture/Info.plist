@@ -6,6 +6,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Tumble Capture</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -19,7 +21,7 @@
 	<key>EXAppExtensionAttributes</key>
 	<dict>
 		<key>EXExtensionPointIdentifier</key>
-		<string>com.apple.lockedcamera-capture</string>
+		<string>com.apple.securecapture</string>
 	</dict>
 </dict>
 </plist>

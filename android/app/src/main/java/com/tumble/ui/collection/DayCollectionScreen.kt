@@ -18,8 +18,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,9 +72,9 @@ fun DayCollectionScreen(
                         style = TumbleType.sans(13).copy(color = Palette.cream.copy(alpha = 0.55f)),
                     )
                 }
-                CircleIconButton(Icons.Filled.Download, "Save day to Photos", { viewModel.saveDay() })
+                CircleIconButton(Icons.Outlined.FileDownload, "Save day to Photos", { viewModel.saveDay() })
                 Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Filled.Close, "Close", onClose)
+                CircleIconButton(Icons.Rounded.Close, "Close", onClose)
             }
 
             Spacer(Modifier.size(16.dp))

@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.Text
@@ -43,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tumble.camera.CameraPreview
 import com.tumble.camera.rememberCameraController
 import com.tumble.film.FilmScene
+import com.tumble.ui.components.CameraToolButton
 import com.tumble.ui.components.CircleIconButton
 import com.tumble.ui.theme.GraincoreBackground
 import com.tumble.ui.theme.Palette
@@ -99,24 +100,22 @@ fun CaptureScreen(
                     Image(placeholder, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 }
 
-                // Flash + switch overlays.
+                // Flash + switch overlays — always shown, dimmed when unavailable.
                 Box(Modifier.fillMaxSize().padding(12.dp)) {
-                    if (controller.supportsFlash) {
-                        CircleIconButton(
-                            icon = if (controller.flashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                            contentDescription = "Flash",
-                            onClick = controller::toggleFlash,
-                            modifier = Modifier.align(Alignment.TopStart),
-                        )
-                    }
-                    if (controller.canSwitch) {
-                        CircleIconButton(
-                            icon = Icons.Filled.Cameraswitch,
-                            contentDescription = "Switch camera",
-                            onClick = controller::switchCamera,
-                            modifier = Modifier.align(Alignment.TopEnd),
-                        )
-                    }
+                    CameraToolButton(
+                        icon = if (controller.flashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                        contentDescription = if (controller.flashOn) "Turn flash off" else "Turn flash on",
+                        enabled = controller.supportsFlash,
+                        onClick = controller::toggleFlash,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                    CameraToolButton(
+                        icon = Icons.Filled.Cameraswitch,
+                        contentDescription = "Switch camera",
+                        enabled = controller.canSwitch && !controller.isSimulated,
+                        onClick = controller::switchCamera,
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    )
                 }
             }
 
@@ -149,7 +148,7 @@ fun CaptureScreen(
 
         Box(Modifier.fillMaxSize().padding(20.dp)) {
             CircleIconButton(
-                Icons.Filled.Close,
+                Icons.Rounded.Close,
                 "Close",
                 onClose,
                 modifier = Modifier.align(Alignment.TopEnd),

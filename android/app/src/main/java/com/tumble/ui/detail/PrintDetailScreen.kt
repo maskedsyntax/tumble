@@ -14,11 +14,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FilterFrames
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,16 +126,23 @@ fun PrintDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
         ) {
             if (photo != null) {
-                CircleIconButton(Icons.Filled.Delete, "Remove print", { viewModel.delete(photo, onClose) })
                 CircleIconButton(
-                    icon = if (postcardFrame) Icons.Outlined.FilterFrames else Icons.Filled.Image,
-                    contentDescription = "Save format",
-                    onClick = { viewModel.setPostcardFrame(!postcardFrame) },
-                    tint = if (postcardFrame) Palette.gold else Palette.cream,
+                    Icons.Outlined.DeleteOutline, "Remove print", { viewModel.delete(photo, onClose) },
+                    tooltip = "Remove print",
                 )
-                CircleIconButton(Icons.Filled.Download, "Save to Photos", { viewModel.save(photo) })
+                CircleIconButton(
+                    icon = if (postcardFrame) Icons.Outlined.FilterFrames else Icons.Outlined.Image,
+                    contentDescription = "Save format",
+                    onClick = { viewModel.toggleFrame() },
+                    tint = if (postcardFrame) Palette.gold else Palette.cream,
+                    tooltip = if (postcardFrame) "Save photo only" else "Save as postcard",
+                )
+                CircleIconButton(
+                    Icons.Outlined.FileDownload, "Save to Photos", { viewModel.save(photo) },
+                    tooltip = "Save to Photos",
+                )
             }
-            CircleIconButton(Icons.Filled.Close, "Close", onClose)
+            CircleIconButton(Icons.Rounded.Close, "Close", onClose, tooltip = "Close")
         }
 
         viewModel.saveMessage?.let { message ->

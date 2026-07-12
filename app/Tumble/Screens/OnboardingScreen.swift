@@ -207,7 +207,7 @@ private struct CaptureStep: View {
             stepText(
                 kicker: "Your turn",
                 title: "Take your first shot.",
-                message: "Point, and press. Don't overthink it — that's the whole idea.",
+                message: "Point, and press. Don't overthink it - that's the whole idea.",
                 compact: compact
             )
 
@@ -393,7 +393,7 @@ private struct PayoffStep: View {
             stepText(
                 kicker: "Yours",
                 title: "Here's your first one.",
-                message: "Twelve fresh every morning. Twelve is on purpose — enough to make each one count.",
+                message: "Twelve fresh every morning. Twelve is on purpose - enough to make each one count.",
                 compact: compact
             )
 

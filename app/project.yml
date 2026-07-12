@@ -13,7 +13,8 @@ settings:
     # don't reset to "None". This is the "Aftaab Siddiqui" team.
     DEVELOPMENT_TEAM: GVGJLY2H53
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "2"
+    TARGETED_DEVICE_FAMILY: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
     # Run on the Simulator with no signing/team. Device builds still use
@@ -53,6 +54,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
@@ -86,11 +88,13 @@ targets:
     info:
       path: TumbleControls/Info.plist
       properties:
+        CFBundleDisplayName: Tumble Controls
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.controls
+        TARGETED_DEVICE_FAMILY: "1"
 
   # ---- Lock-screen camera capture extension -------------------------------
   TumbleCapture:
@@ -108,11 +112,13 @@ targets:
     info:
       path: TumbleCapture/Info.plist
       properties:
+        CFBundleDisplayName: Tumble Capture
         EXAppExtensionAttributes:
-          EXExtensionPointIdentifier: com.apple.lockedcamera-capture
+          EXExtensionPointIdentifier: com.apple.securecapture
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.capture
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
 
   # ---- Dynamic Island / Live Activity surface -----------------------------
@@ -131,11 +137,13 @@ targets:
     info:
       path: TumbleIsland/Info.plist
       properties:
+        CFBundleDisplayName: Tumble Island
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.island
+        TARGETED_DEVICE_FAMILY: "1"
 
   # ---- Tests --------------------------------------------------------------
   TumbleKitTests:

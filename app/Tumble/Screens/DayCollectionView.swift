@@ -145,6 +145,9 @@ struct DayCollectionView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             saveMessage = message(for: result, style: style)
         }
+        if case .saved = result {
+            ReviewPrompter.shared.recordSavedToPhotos()
+        }
     }
 
     private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {

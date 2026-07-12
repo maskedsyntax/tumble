@@ -1,5 +1,8 @@
 package com.tumble.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,12 +25,15 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +72,11 @@ fun HomeScreen(
     val today = days.firstOrNull { it.displayTitle == "Today" }
     val collections = days.filter { it.displayTitle != "Today" }.take(3)
 
+    // Drawer layout reset: the pile reports when it's been pinched/rearranged, and
+    // bumping the token snaps it back. Mirrors iOS `drawerCanReset`/`drawerResetToken`.
+    var drawerCanReset by remember { mutableStateOf(false) }
+    var drawerResetToken by remember { mutableIntStateOf(0) }
+
     Box(Modifier.fillMaxSize()) {
         GraincoreBackground()
 
@@ -94,8 +105,22 @@ fun HomeScreen(
                         "$total today · $developed developed · ${viewModel.remainingLabel}",
                         style = TumbleType.sans(12).copy(color = Palette.cream.copy(alpha = 0.55f)),
                     )
+                    if (total > 1) {
+                        Text(
+                            "Drag to rearrange · pinch to spread · reset ↺ up top",
+                            style = TumbleType.sans(11).copy(color = Palette.cream.copy(alpha = 0.4f)),
+                        )
+                    }
                 }
-                CircleIconButton(Icons.Outlined.Info, "About & upgrade", onOpenPaywall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedVisibility(visible = drawerCanReset, enter = scaleIn(), exit = scaleOut()) {
+                        Row {
+                            CircleIconButton(Icons.Outlined.Refresh, "Reset drawer layout", { drawerResetToken++ })
+                            Spacer(Modifier.size(10.dp))
+                        }
+                    }
+                    CircleIconButton(Icons.Outlined.Info, "About & upgrade", onOpenPaywall)
+                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -106,6 +131,8 @@ fun HomeScreen(
                 loadBitmap = viewModel::loadBitmap,
                 onTap = { onOpenPrint(it.id, it.isDeveloped) },
                 modifier = Modifier.weight(1f),
+                resetToken = drawerResetToken,
+                onResetAvailabilityChange = { drawerCanReset = it },
             )
 
             // Collections (older days).

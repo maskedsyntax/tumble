@@ -1,18 +1,43 @@
 package com.tumble.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.tumble.R
 
 /**
  * Type ramp mirroring `app/TumbleKit/Theme/Typography.swift`: a serif display
- * face for headlines/captions and a sans face for body. The iOS app ships no
- * bundled Fraunces/Inter files and falls back to the system serif ("New York")
- * and default sans, so we match that here with the platform serif/sans.
+ * face for headlines/captions and a sans face for body. The design uses
+ * Fraunces (the same distinctive display serif as the website); we bundle the
+ * variable font and drive its weight axis per style. Body stays on the platform
+ * sans (close to the site's Inter).
  */
-val DisplayFamily = FontFamily.Serif
+@OptIn(ExperimentalTextApi::class)
+private fun fraunces(weight: FontWeight, italic: Boolean = false): Font = Font(
+    resId = if (italic) R.font.fraunces_italic else R.font.fraunces,
+    weight = weight,
+    style = if (italic) FontStyle.Italic else FontStyle.Normal,
+    variationSettings = FontVariation.Settings(
+        FontVariation.weight(weight.weight),
+        // Bias toward the high-contrast display cut of the optical-size axis.
+        FontVariation.Setting("opsz", 80f),
+    ),
+)
+
+val DisplayFamily = FontFamily(
+    fraunces(FontWeight.Normal),
+    fraunces(FontWeight.Medium),
+    fraunces(FontWeight.SemiBold),
+    fraunces(FontWeight.Bold),
+    fraunces(FontWeight.Normal, italic = true),
+    fraunces(FontWeight.SemiBold, italic = true),
+)
 val BodyFamily = FontFamily.SansSerif
 
 /** Helper builders that mirror `Typography.display(_:)` / `.sans(_:)`. */

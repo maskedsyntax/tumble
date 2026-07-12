@@ -39,6 +39,13 @@ class PrintDetailViewModel @Inject constructor(
     val postcardFrame: StateFlow<Boolean> = prefs.saveIncludesPostcardFrame
     fun setPostcardFrame(value: Boolean) = prefs.setPostcardFrame(value)
 
+    /** Flip the save format and surface a hint about what it does. */
+    fun toggleFrame() {
+        val next = !postcardFrame.value
+        setPostcardFrame(next)
+        saveMessage = if (next) "Saving as a postcard" else "Saving photo only"
+    }
+
     init {
         viewModelScope.launch { reload() }
     }

@@ -16,11 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FilterFrames
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -134,21 +134,28 @@ fun DevelopScreen(
                 .fillMaxWidth()
                 .safeContentPadding()
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CircleIconButton(Icons.Filled.Delete, "Remove print", { confirmRemove = true })
+            CircleIconButton(
+                Icons.Outlined.DeleteOutline, "Remove print", { confirmRemove = true },
+                tooltip = "Remove print",
+            )
             if (viewModel.isDeveloped) {
                 CircleIconButton(
-                    icon = if (postcardFrame) Icons.Outlined.FilterFrames else Icons.Filled.Image,
+                    icon = if (postcardFrame) Icons.Outlined.FilterFrames else Icons.Outlined.Image,
                     contentDescription = "Save format",
-                    onClick = { viewModel.setPostcardFrame(!postcardFrame) },
+                    onClick = { viewModel.toggleFrame() },
                     tint = if (postcardFrame) Palette.gold else Palette.cream,
+                    tooltip = if (postcardFrame) "Save photo only" else "Save as postcard",
                 )
-                CircleIconButton(Icons.Filled.Download, "Save print to Photos", { viewModel.save() })
+                CircleIconButton(
+                    Icons.Outlined.FileDownload, "Save print to Photos", { viewModel.save() },
+                    tooltip = "Save to Photos",
+                )
             }
-            CircleIconButton(Icons.Filled.Close, "Close", onClose)
+            CircleIconButton(Icons.Rounded.Close, "Close", onClose, tooltip = "Close")
         }
 
         viewModel.saveMessage?.let { message ->
@@ -197,7 +204,7 @@ private fun DevelopHint(viewModel: DevelopViewModel) {
             style = TumbleType.display(22).copy(color = Palette.cream),
         )
         Text(
-            if (viewModel.usesShake) "Give it a shake — or hold below." else "Press and hold — it comes up slowly.",
+            if (viewModel.usesShake) "Give it a shake - or hold below." else "Press and hold - it comes up slowly.",
             style = TumbleType.sans(14).copy(color = Palette.cream.copy(alpha = 0.7f), textAlign = TextAlign.Center),
         )
         Spacer(Modifier.height(14.dp))
