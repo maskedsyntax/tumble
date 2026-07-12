@@ -18,7 +18,7 @@ const inter = Inter({
 
 const SITE_URL = "https://gettumbleapp.com";
 const DESCRIPTION =
-  "Tumble is a private camera launching on iPhone and Android together. Shoot a daily roll, then shake to develop.";
+  "Tumble is a private camera launching on iPhone. Shoot a daily roll, then shake to develop.";
 
 const TITLE = "Tumble · A slower camera you can own";
 
@@ -35,7 +35,6 @@ export const metadata: Metadata = {
     "film camera",
     "instant camera",
     "iPhone camera app",
-    "Android camera app",
     "lock screen camera",
     "daily photo roll",
     "private camera",
@@ -82,7 +81,7 @@ const jsonLd = {
   "@type": "SoftwareApplication",
   name: "Tumble",
   applicationCategory: "PhotoApplication",
-  operatingSystem: "iOS, Android",
+  operatingSystem: "iOS",
   description: DESCRIPTION,
   url: SITE_URL,
   offers: {

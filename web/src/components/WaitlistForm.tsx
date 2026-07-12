@@ -40,7 +40,7 @@ export default function WaitlistForm() {
       if (res.ok && data.ok) {
         setStatus("success");
         setMessage(
-          "You're in the first launch wave. We'll email you the App Store and Google Play links first.",
+          "You're in the first launch wave. We'll email you the App Store link first.",
         );
         setEmail("");
       } else {
@@ -63,7 +63,7 @@ export default function WaitlistForm() {
         <p className="font-display text-xl text-cream">You&rsquo;re on the list.</p>
         <p className="mt-1 text-sm text-cream/70">
           You&rsquo;re in the first launch wave. We&rsquo;ll email you the App Store
-          and Google Play links as soon as they&rsquo;re live.
+          link as soon as it&rsquo;s live.
         </p>
       </div>
     );

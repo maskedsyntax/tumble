@@ -1,10 +1,10 @@
 # Tumble Waitlist Warmup Sequence
 
-Purpose: keep existing waitlist subscribers warm while iOS is in Apple review and Android is lined up for the same launch window, and make new signups feel like they are joining the first launch wave instead of a generic mailing list.
+Purpose: keep existing waitlist subscribers warm while iOS is in Apple review, and make new signups feel like they are joining the first launch wave instead of a generic mailing list.
 
 Tone: intimate, specific, low-hype. The scarcity should come from timing and first access, not fake numbers.
 
-## Email 1: The build is with Apple (Android shipping with it)
+## Email 1: The build is with Apple
 
 Subject options:
 - Tumble is in App Review
@@ -12,16 +12,16 @@ Subject options:
 - A quick Tumble launch note
 
 Preview text:
-iPhone is in review. Android is planned for the same launch window.
+iPhone is in review. The App Store link is close.
 
 Body:
 Hey,
 
-Quick update because you joined the Tumble waitlist early: the iPhone app is now in Apple's review process, and the Android app is at feature parity and planned to launch alongside it.
+Quick update because you joined the Tumble waitlist early: the iPhone app is now in Apple's review process.
 
-That means Tumble has moved from "coming soon" to "waiting for the store pages to open." The core flow is the same on both platforms: shoot a daily roll, shake to develop the prints into your Drawer, keep everything on device.
+That means Tumble has moved from "coming soon" to "waiting for the store page to open." The core flow: shoot a daily roll, shake to develop the prints into your Drawer, keep everything on device.
 
-When the App Store and Google Play links are live, this list gets them first. We will send them here before posting wider.
+When the App Store link is live, this list gets it first. We will send it here before posting wider.
 
 Thanks for being in the first wave.
 
@@ -49,7 +49,7 @@ Free users get twelve shots a day. Fresh prints start blank. You shake to develo
 
 The limit is the point. It turns the camera back into a small ritual instead of another infinite surface.
 
-iOS is still in review, Android is lined up for the same window, and this waitlist is still the first place both launch links will go.
+iOS is still in review, and this waitlist is still the first place the launch link will go.
 
 - Tumble
 
@@ -69,11 +69,11 @@ Once the stores open, the first launch email goes to this list.
 Body:
 Hey,
 
-We are in the odd little pre-launch window where the apps are ready (iPhone in Apple review, Android planned for the same launch), but the public store links are not live yet.
+We are in the odd little pre-launch window where the app is ready (iPhone in Apple review), but the public store link is not live yet.
 
-That is why the waitlist matters right now. When the listings open, people here get the links first. After that, we will start sharing Tumble more publicly.
+That is why the waitlist matters right now. When the listing opens, people here get the link first. After that, we will start sharing Tumble more publicly.
 
-If you know someone who would like a slower, private camera on iPhone or Android, now is the right moment to send them to gettumbleapp.com.
+If you know someone who would like a slower, private camera on iPhone, now is the right moment to send them to gettumbleapp.com.
 
 See you on the first roll.
 
@@ -89,13 +89,13 @@ Subject options:
 - You are on the Tumble list
 
 Preview text:
-We will send the App Store and Google Play links as soon as they are live.
+We will send the App Store link as soon as it is live.
 
 Body:
 You are on the Tumble launch list.
 
-iPhone is in Apple review, and Android is planned for the same launch window. As soon as the store pages are live, we will send the links here before announcing them wider.
+iPhone is in Apple review. As soon as the store page is live, we will send the link here before announcing it wider.
 
-Tumble is a private camera with a daily roll, shake-to-develop prints, quick capture on both platforms, no account, no cloud, and no subscription.
+Tumble is a private camera with a daily roll, shake-to-develop prints, quick capture from the Lock Screen and Dynamic Island, no account, no cloud, and no subscription.
 
 Thanks for getting in early.

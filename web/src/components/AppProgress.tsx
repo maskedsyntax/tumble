@@ -2,12 +2,12 @@ const SURFACES = [
   {
     name: "Quick capture",
     status: "Built",
-    body: "iPhone: Lock Screen and Dynamic Island. Android: home widgets and a Quick Settings tile. Same ritual, platform-native entry points.",
+    body: "Pull the camera from the Lock Screen or Dynamic Island — shoot without opening a feed.",
   },
   {
     name: "Daily roll logic",
     status: "Built",
-    body: "Twelve free shots reset daily on both platforms, with Plus and Unlimited as one-time unlocks.",
+    body: "Twelve free shots reset every day, with Plus and Unlimited as one-time unlocks.",
   },
   {
     name: "Shake to develop",
@@ -17,7 +17,7 @@ const SURFACES = [
   {
     name: "Private storage",
     status: "Built",
-    body: "Photos stay on device. No account, no cloud, no analytics SDK. Same on iPhone and Android.",
+    body: "Photos stay on device. No account, no cloud, no analytics SDK.",
   },
 ];
 
@@ -29,17 +29,16 @@ export default function AppProgress() {
           Current build
         </div>
         <h2 className="font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
-          iPhone is in review. Android is launching with it.
+          iPhone is in Apple review.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
           Tumble is no longer just a waitlist idea. The native iOS app is built
-          and sitting in Apple&rsquo;s review queue. The native Android app is at
-          feature parity (same daily roll, shake-to-develop, private Drawer,
-          and one-time unlocks) and is planned for the same launch window.
+          and sitting in Apple&rsquo;s review queue — the daily roll,
+          shake-to-develop, the private Drawer, and one-time unlocks, all done.
         </p>
         <p className="mt-4 text-sm font-medium text-amber">
-          Join now and you will get the App Store and Google Play links before
-          we announce them wider.
+          Join now and you will get the App Store link before we announce it
+          wider.
         </p>
       </div>
 

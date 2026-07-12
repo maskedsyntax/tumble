@@ -12,7 +12,7 @@ const BEATS = [
   {
     kicker: "Quick capture",
     title: "Shoot without opening a feed.",
-    body: "On iPhone, pull from the Dynamic Island or Lock Screen. On Android, use a widget or Quick Settings tile. Same ritual, native entry points.",
+    body: "Pull from the Dynamic Island or Lock Screen. The same ritual, from wherever you already are.",
   },
   {
     kicker: "Shake to develop",

@@ -7,7 +7,7 @@
 <p align="center"><strong>A slower camera you can own.</strong></p>
 
 <p align="center">
-  Twelve shots a day. Shake to develop. Private on iPhone and Android.
+  Twelve shots a day. Shake to develop. Private on iPhone.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 Tumble is a private camera built around a limit, not an algorithm. Shoot a daily roll, shake to develop your prints, and keep everything on your phone. No account. No cloud. No feed.
 
-**iPhone is in review. Android is launching with it.** The waitlist gets both store links first.
+**iPhone is in Apple review.** The waitlist gets the App Store link first.
 
 ---
 
@@ -34,7 +34,7 @@ Your free roll resets every day. No ads, no watch-this unlocks, no feed disguise
 ### Quick capture
 **Shoot without opening a feed.**
 
-On iPhone, pull from the Dynamic Island or Lock Screen. On Android, use a widget or Quick Settings tile. Same ritual, native entry points.
+Pull the camera from the Dynamic Island or Lock Screen. The same ritual, from wherever you already are.
 
 ### Shake to develop
 **You have to wait for it.**
@@ -53,14 +53,13 @@ No account to create. No cloud to sync to. No analytics SDK. Photos stay on your
 
 ---
 
-## Coming to iPhone and Android
+## Coming to iPhone
 
 | | |
 |---|---|
 | **App Store** | Coming soon. iPhone build is in Apple review. |
-| **Play Store** | Coming soon. Android planned for the same launch window. |
 
-Join now if you want to be in the first wave when the store pages open.
+Join now if you want to be in the first wave when the store page opens.
 
 <p align="center">
   <a href="https://gettumbleapp.com"><strong>gettumbleapp.com</strong></a>

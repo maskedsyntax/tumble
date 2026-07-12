@@ -1,5 +1,0 @@
-<resources>
-    <string name="app_name">Tumble</string>
-    <string name="shortcut_take_shot">Take a shot</string>
-    <string name="widget_description">Shots left today · tap for the camera</string>
-</resources>

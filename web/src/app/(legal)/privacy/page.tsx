@@ -23,15 +23,14 @@ export default function PrivacyPage() {
             Tumble on your phone
           </h2>
           <p className="mt-3">
-            Tumble is built to keep your photos on your device. On iPhone and
-            Android, the app stores your prints, daily roll state, and
-            entitlement state locally so the main app and quick-capture entry
-            points can work together without a cloud account.
+            Tumble is built to keep your photos on your device. The app stores
+            your prints, daily roll state, and entitlement state locally so the
+            main app and quick-capture entry points can work together without a
+            cloud account.
           </p>
           <p className="mt-3">
-            On iPhone, that includes the shared app group used by Lock Screen
-            capture, Control Center, and Dynamic Island status. On Android,
-            photos and preferences stay in the app&rsquo;s private storage.
+            That includes the shared app group used by Lock Screen capture,
+            Control Center, and Dynamic Island status.
           </p>
           <p className="mt-3">
             Tumble does not require an account, does not provide cloud sync, and
@@ -44,9 +43,8 @@ export default function PrivacyPage() {
             Purchases
           </h2>
           <p className="mt-3">
-            Plus and Unlimited are one-time in-app purchases. On iPhone they are
-            handled by Apple through StoreKit; on Android they are handled by
-            Google Play Billing. Tumble uses the store&rsquo;s transaction
+            Plus and Unlimited are one-time in-app purchases, handled by Apple
+            through StoreKit. Tumble uses the store&rsquo;s transaction
             information to unlock the highest roll tier you own and to restore
             purchases.
           </p>
@@ -59,8 +57,7 @@ export default function PrivacyPage() {
           <p className="mt-3">
             If you join the launch list, we store your email address, signup
             source, timestamp, and browser user agent in Firebase so we can send
-            the App Store and Google Play launch emails and reduce spam
-            submissions.
+            the App Store launch email and reduce spam submissions.
           </p>
           <p className="mt-3">
             If you email support, we receive the contact information and message

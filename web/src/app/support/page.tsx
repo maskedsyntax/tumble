@@ -7,7 +7,7 @@ const SUPPORT_EMAIL = "aftaab@aftaab.dev";
 export const metadata: Metadata = {
   title: "Support",
   description:
-    "Get help with Tumble, the private camera for daily photo rolls on iPhone and Android.",
+    "Get help with Tumble, the private camera for daily photo rolls on iPhone.",
   alternates: { canonical: "/support" },
 };
 
@@ -27,7 +27,7 @@ export default function SupportPage() {
             Need a hand with your roll?
           </h1>
           <p className="mt-5 leading-relaxed text-cream/80">
-            Tumble is launching on iPhone and Android. For launch questions,
+            Tumble is launching on iPhone. For launch questions,
             purchase restores, privacy requests, or bug reports, email support
             and we will help from there.
           </p>
@@ -71,7 +71,7 @@ export default function SupportPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Ask about daily rolls, developing photos, purchases, privacy, or the
-            launch waitlist, on iPhone or Android.
+            launch waitlist.
           </p>
         </article>
         <article className="border-t border-cream/15 pt-5">

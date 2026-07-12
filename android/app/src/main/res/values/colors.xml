@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Graincore slate-blue base, mirrors TumbleKit/Theme/Palette.swift (#2E4052). -->
-    <color name="graincore_blue">#FF2E4052</color>
-</resources>

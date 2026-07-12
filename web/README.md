@@ -42,10 +42,9 @@ Emails land in the `waitlist` collection, one auto-ID document per signup.
 
 ## What's a placeholder (swap before/at launch)
 
-- App Store + Google Play badges and QRs are greyed "coming soon" - no live
-  listings yet. Both platforms are planned for the same launch window.
+- The App Store badge and QR are greyed "coming soon" - no live listing yet.
 - `/privacy` and `/terms` are short placeholders.
 - Support email `aftaab@aftaab.dev` - change it in the support/legal pages if a
   dedicated inbox is added later.
-- Device-support details - finalize once iOS and Android minimums are locked.
+- Device-support details - finalize once the iOS minimum is locked.
 ```

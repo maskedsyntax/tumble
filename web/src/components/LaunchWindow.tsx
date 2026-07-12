@@ -1,13 +1,13 @@
 const WINDOWS = [
   {
-    label: "Dual launch",
-    title: "iPhone and Android in the same window.",
-    body: "The iOS build is in Apple review. Android is at feature parity and planned to ship alongside it, so the first wave is not iPhone-only.",
+    label: "In review",
+    title: "The iPhone build is in Apple review.",
+    body: "It's built and sitting in Apple's review queue. The first wave starts the moment the App Store page goes live.",
   },
   {
     label: "First roll",
     title: "Launch-week notes go to the waitlist first.",
-    body: "People on the list will get both store links before we post wider. That makes the first wave feel like a small room, not a public drop.",
+    body: "People on the list will get the store link before we post wider. That makes the first wave feel like a small room, not a public drop.",
   },
   {
     label: "One chance",
@@ -27,10 +27,9 @@ export default function LaunchWindow() {
           Tumble is close enough that joining now matters.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
-          iOS is in Apple review and Android is lined up for the same launch.
-          This is the quiet window before the public links exist. The waitlist
-          is the easiest way to be in the first wave instead of hearing about
-          it later.
+          iOS is in Apple review. This is the quiet window before the public
+          link exists. The waitlist is the easiest way to be in the first wave
+          instead of hearing about it later.
         </p>
       </div>
 

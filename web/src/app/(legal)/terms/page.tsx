@@ -24,7 +24,7 @@ export default function TermsPage() {
           </h2>
           <p className="mt-3">
             This site introduces Tumble and lets you sign up for the launch
-            email when the App Store and Google Play listings go live. Joining
+            email when the App Store listing goes live. Joining
             the launch list is free, is not a purchase, and does not promise
             early access or a specific release date.
           </p>
@@ -35,10 +35,9 @@ export default function TermsPage() {
             App availability
           </h2>
           <p className="mt-3">
-            Tumble is planned for iPhone and Android in the same launch window.
-            The iOS build is currently in Apple review; the Android build is
-            planned to ship alongside it. Features, pricing, screenshots, and
-            device support may still change before either store listing is live.
+            Tumble is planned for iPhone. The iOS build is currently in Apple
+            review. Features, pricing, screenshots, and device support may still
+            change before the store listing is live.
           </p>
         </section>
 
@@ -49,8 +48,8 @@ export default function TermsPage() {
           <p className="mt-3">
             The app is free to start and offers optional one-time in-app
             purchases for higher daily shot limits. Purchases are processed by
-            Apple on the App Store and by Google on Google Play, and are subject
-            to each store&rsquo;s terms and policies.
+            Apple on the App Store and are subject to the App Store&rsquo;s terms
+            and policies.
           </p>
         </section>
 
