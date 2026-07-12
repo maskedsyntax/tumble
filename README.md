@@ -20,7 +20,7 @@
 
 Tumble is a private camera built around a limit, not an algorithm. Shoot a daily roll, shake to develop your prints, and keep everything on your phone. No account. No cloud. No feed.
 
-**iPhone is in Apple review.** The waitlist gets the App Store link first.
+**The iPhone app is in Apple review.** The waitlist gets the App Store link first.
 
 ---
 
@@ -57,7 +57,7 @@ No account to create. No cloud to sync to. No analytics SDK. Photos stay on your
 
 | | |
 |---|---|
-| **App Store** | Coming soon. iPhone build is in Apple review. |
+| **App Store** | Coming soon. The iPhone app is in Apple review. |
 
 Join now if you want to be in the first wave when the store page opens.
 

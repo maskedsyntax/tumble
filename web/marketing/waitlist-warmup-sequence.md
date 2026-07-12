@@ -12,7 +12,7 @@ Subject options:
 - A quick Tumble launch note
 
 Preview text:
-iPhone is in review. The App Store link is close.
+The iPhone app is in review. The App Store link is close.
 
 Body:
 Hey,
@@ -94,7 +94,7 @@ We will send the App Store link as soon as it is live.
 Body:
 You are on the Tumble launch list.
 
-iPhone is in Apple review. As soon as the store page is live, we will send the link here before announcing it wider.
+The iPhone app is in Apple review. As soon as the store page is live, we will send the link here before announcing it wider.
 
 Tumble is a private camera with a daily roll, shake-to-develop prints, quick capture from the Lock Screen and Dynamic Island, no account, no cloud, and no subscription.
 

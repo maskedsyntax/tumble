@@ -1,7 +1,7 @@
 const WINDOWS = [
   {
     label: "In review",
-    title: "The iPhone build is in Apple review.",
+    title: "The iPhone app is in Apple review.",
     body: "It's built and sitting in Apple's review queue. The first wave starts the moment the App Store page goes live.",
   },
   {

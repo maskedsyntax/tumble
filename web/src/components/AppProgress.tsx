@@ -29,7 +29,7 @@ export default function AppProgress() {
           Current build
         </div>
         <h2 className="font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
-          iPhone is in Apple review.
+          The iPhone app is in Apple review.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
           Tumble is no longer just a waitlist idea. The native iOS app is built
