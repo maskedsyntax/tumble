@@ -14,6 +14,7 @@ struct PrintDetailView: View {
     @State private var saveMessage: String?
     @State private var confirmRemove = false
     @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     init(developed: [Photo], start: Photo) {
         self.developed = developed
@@ -51,6 +52,10 @@ struct PrintDetailView: View {
 
     private var current: Photo? {
         developed.indices.contains(index) ? developed[index] : nil
+    }
+
+    private var memoryFilterPreset: TumbleMemoryFilterPreset {
+        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
 
     @ViewBuilder private var metadata: some View {
@@ -142,6 +147,14 @@ struct PrintDetailView: View {
 
     private var saveOptionsMenu: some View {
         Menu {
+            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
+                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
+                    Text(preset.displayName).tag(preset.rawValue)
+                }
+            }
+
+            Divider()
+
             Toggle(isOn: $saveIncludesPostcardFrame) {
                 Label("Save as postcard", systemImage: "photo.artframe")
             }
@@ -175,7 +188,7 @@ struct PrintDetailView: View {
     private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
         switch result {
         case .saved:
-            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved photo to Photos."
+            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved \(memoryFilterPreset.exportLabel) photo to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:

@@ -24,9 +24,13 @@ struct DevelopView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
+    private var memoryFilterPreset: TumbleMemoryFilterPreset {
+        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
+    }
 
     var body: some View {
         ZStack {
@@ -44,7 +48,7 @@ struct DevelopView: View {
             topControls
         }
         .task(id: photo.id) { await setup() }
-        .onDisappear { shake.stop() }
+        .onDisappear { persistPartialProgress(); shake.stop() }
     }
 
     // MARK: Print + gesture demo
@@ -145,9 +149,9 @@ struct DevelopView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove print")
 
-                if developed {
-                    saveOptionsMenu
+                saveOptionsMenu
 
+                if developed {
                     Button { Task { await savePrint() } } label: {
                         ZStack {
                             if isSaving {
@@ -194,6 +198,14 @@ struct DevelopView: View {
 
     private var saveOptionsMenu: some View {
         Menu {
+            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
+                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
+                    Text(preset.displayName).tag(preset.rawValue)
+                }
+            }
+
+            Divider()
+
             Toggle(isOn: $saveIncludesPostcardFrame) {
                 Label("Save as postcard", systemImage: "photo.artframe")
             }
@@ -240,6 +252,7 @@ struct DevelopView: View {
     private func advance(by amount: Double) {
         guard progress < 1 else { return }
         progress = min(1, progress + amount)
+        photo.developProgress = progress
         rattle()
         if progress >= 1 { finish() }
     }
@@ -259,8 +272,23 @@ struct DevelopView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         photo.isDeveloped = true
         photo.developProgress = 1
+        renderDevelopedMemoryPhoto()
         try? context.save()
         ReviewPrompter.shared.recordDevelopedPrint()
+    }
+
+    private func renderDevelopedMemoryPhoto() {
+        guard let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: memoryFilterPreset)
+        else { return }
+        photo.developedImageName = try? PhotoStore.writeImage(memoryData, id: photo.id, kind: .developed)
+        image = UIImage(data: memoryData)
+    }
+
+    private func persistPartialProgress() {
+        guard !developed, progress > 0 else { return }
+        photo.developProgress = max(photo.developProgress, progress)
+        try? context.save()
     }
 
     private func removePrint() {
@@ -292,7 +320,7 @@ struct DevelopView: View {
     private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
         switch result {
         case .saved:
-            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved photo to Photos."
+            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved \(memoryFilterPreset.exportLabel) photo to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:

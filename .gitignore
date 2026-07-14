@@ -65,3 +65,7 @@ fastlane/test_output
 .DS_Store
 .idea/
 .claude/
+
+# Local filter preview output
+filter-lab-output/
+test-output/

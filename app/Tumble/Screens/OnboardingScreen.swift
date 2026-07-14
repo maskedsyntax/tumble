@@ -91,6 +91,11 @@ struct OnboardingScreen: View {
         )
         photo?.isDeveloped = true
         photo?.developProgress = 1
+        if let photo,
+           let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+           let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: TumbleMemoryFilterPreset.stored()) {
+            photo.developedImageName = try? PhotoStore.writeImage(memoryData, id: photo.id, kind: .developed)
+        }
         try? context.save()
         firstPhoto = photo
         app.capturedCount += 1

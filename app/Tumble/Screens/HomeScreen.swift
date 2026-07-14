@@ -18,6 +18,7 @@ struct HomeScreen: View {
     @State private var drawerCanReset = false
     @State private var drawerResetToken = 0
     @State private var showDrawerTips = false
+    @State private var showArchive = false
     @AppStorage("tumble.seenDrawerTips") private var seenDrawerTips = false
 
     /// Prompt to own more when the daily roll is running low.
@@ -30,10 +31,13 @@ struct HomeScreen: View {
     }
     private var todayPhotos: [Photo] { today?.photos ?? [] }
     private var todayCount: Int { today?.totalCount ?? 0 }
-    private var collectionDays: [PhotoDay] {
-        Array(photoDays.filter { day in
+    private var archiveDays: [PhotoDay] {
+        photoDays.filter { day in
             !Calendar.current.isDate(day.dayStart, inSameDayAs: Date())
-        }.prefix(3))
+        }
+    }
+    private var collectionDays: [PhotoDay] {
+        Array(archiveDays.prefix(3))
     }
     private var remaining: Int? { app.roll.remaining }
     private var showsNudge: Bool {
@@ -108,6 +112,9 @@ struct HomeScreen: View {
         }
         .fullScreenCover(item: $selectedDay) { day in
             DayCollectionView(day: day)
+        }
+        .fullScreenCover(isPresented: $showArchive) {
+            ArchiveView(days: archiveDays)
         }
         .sheet(isPresented: $showPaywall) { PaywallView().environment(app) }
         .task { await app.startStore() }
@@ -195,9 +202,19 @@ struct HomeScreen: View {
                         .font(Typography.display(22))
                         .foregroundStyle(Palette.cream)
                     Spacer()
-                    Text(collectionDays.count == 1 ? "1 day" : "\(collectionDays.count) days")
-                        .font(Typography.sans(12, weight: .semibold))
-                        .foregroundStyle(Palette.cream.opacity(0.5))
+                    if archiveDays.count > collectionDays.count {
+                        Button { showArchive = true } label: {
+                            Text("View all")
+                                .font(Typography.sans(12, weight: .bold))
+                                .foregroundStyle(Palette.gold)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("View all collections")
+                    } else {
+                        Text(collectionDays.count == 1 ? "1 day" : "\(collectionDays.count) days")
+                            .font(Typography.sans(12, weight: .semibold))
+                            .foregroundStyle(Palette.cream.opacity(0.5))
+                    }
                 }
 
                 VStack(spacing: 10) {
@@ -331,6 +348,60 @@ struct HomeScreen: View {
     }
 
     // MARK: Coachmark
+}
+
+private struct ArchiveView: View {
+    @Environment(\.dismiss) private var dismiss
+    let days: [PhotoDay]
+    @State private var selectedDay: PhotoDay?
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            GraincoreBackground()
+
+            ScrollView(showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Archive")
+                            .font(Typography.display(34))
+                            .foregroundStyle(Palette.cream)
+                        Text("Every older daily roll, newest first.")
+                            .font(Typography.sans(13))
+                            .foregroundStyle(Palette.cream.opacity(0.58))
+                    }
+                    .padding(.bottom, 12)
+
+                    ForEach(days) { day in
+                        Button { selectedDay = day } label: {
+                            DayCollectionRow(day: day)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 72)
+                .padding(.bottom, 44)
+            }
+
+            HStack {
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.cream)
+                        .padding(10)
+                        .background(.black.opacity(0.3), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close archive")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+        .fullScreenCover(item: $selectedDay) { day in
+            DayCollectionView(day: day)
+        }
+    }
 }
 
 private struct DayCollectionRow: View {

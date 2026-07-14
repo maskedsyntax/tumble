@@ -28,6 +28,11 @@ enum DebugSeed {
             // Leave the newest undeveloped so the develop flow is visible.
             photo.isDeveloped = i >= min(2, count - 1)
             photo.developProgress = photo.isDeveloped ? 1 : 0
+            if photo.isDeveloped,
+               let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: TumbleMemoryFilterPreset.defaultPreset) {
+                photo.developedImageName = try? PhotoStore.writeImage(memoryData, id: photo.id, kind: .developed)
+            }
             context.insert(photo)
         }
         try? context.save()

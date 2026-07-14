@@ -11,9 +11,14 @@ struct DayCollectionView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     private var developed: [Photo] {
         day.photos.filter(\.isDeveloped)
+    }
+
+    private var memoryFilterPreset: TumbleMemoryFilterPreset {
+        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
 
     private let columns = [
@@ -103,6 +108,14 @@ struct DayCollectionView: View {
 
     private var saveOptionsMenu: some View {
         Menu {
+            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
+                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
+                    Text(preset.displayName).tag(preset.rawValue)
+                }
+            }
+
+            Divider()
+
             Toggle(isOn: $saveIncludesPostcardFrame) {
                 Label("Save as postcard", systemImage: "photo.artframe")
             }
@@ -153,8 +166,11 @@ struct DayCollectionView: View {
     private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
         switch result {
         case .saved(let count):
-            let noun = style == .postcardFrame ? "postcard" : "photo"
-            return count == 1 ? "Saved 1 \(noun) to Photos." : "Saved \(count) \(noun)s to Photos."
+            if style == .postcardFrame {
+                return count == 1 ? "Saved 1 postcard to Photos." : "Saved \(count) postcards to Photos."
+            }
+            let label = memoryFilterPreset.exportLabel
+            return count == 1 ? "Saved 1 \(label) photo to Photos." : "Saved \(count) \(label) photos to Photos."
         case .noDevelopedPhotos:
             return "Develop prints before saving them."
         case .denied:

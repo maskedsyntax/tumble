@@ -40,11 +40,20 @@ enum PhotoLibrarySaver {
 
     @MainActor
     private static func imageData(for photo: Photo, style: PhotoLibrarySaveStyle) -> Data? {
-        let name = photo.developedImageName ?? photo.rawImageName
-        guard let data = PhotoStore.loadImageData(named: name) else { return nil }
+        guard let data = memoryPhotoData(for: photo) else { return nil }
         guard style == .postcardFrame else { return data }
         guard let image = UIImage(data: data) else { return nil }
         return postcardFrameData(for: photo, image: image)
+    }
+
+    @MainActor
+    private static func memoryPhotoData(for photo: Photo) -> Data? {
+        let preset = TumbleMemoryFilterPreset.stored()
+        if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+           let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: preset) {
+            return memoryData
+        }
+        return PhotoStore.loadImageData(named: photo.developedImageName ?? photo.rawImageName)
     }
 
     @MainActor
