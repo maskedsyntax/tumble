@@ -129,7 +129,7 @@ export default function OpengraphImage() {
               color: "rgba(246,239,226,0.85)",
             }}
           >
-            iPhone · App Store soon · gettumbleapp.com
+            iPhone · Available on the App Store · gettumbleapp.com
           </div>
         </div>
       </div>

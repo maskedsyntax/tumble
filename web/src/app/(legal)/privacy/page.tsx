@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         &larr; Back to Tumble
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold text-cream">Privacy</h1>
-      <p className="mt-2 text-sm text-cream/50">Last updated July 11, 2026.</p>
+      <p className="mt-2 text-sm text-cream/50">Last updated July 14, 2026.</p>
 
       <div className="mt-8 space-y-8 leading-relaxed text-cream/80">
         <section>
@@ -55,9 +55,9 @@ export default function PrivacyPage() {
             Website and waitlist
           </h2>
           <p className="mt-3">
-            If you join the launch list, we store your email address, signup
-            source, timestamp, and browser user agent in Firebase so we can send
-            the App Store launch email and reduce spam submissions.
+            If you joined the launch list, we stored your email address, signup
+            source, timestamp, and browser user agent in Firebase so we could
+            send the App Store launch email and reduce spam submissions.
           </p>
           <p className="mt-3">
             If you email support, we receive the contact information and message

@@ -40,7 +40,7 @@ export default function WaitlistForm() {
       if (res.ok && data.ok) {
         setStatus("success");
         setMessage(
-          "You're in the first launch wave. We'll email you the App Store link first.",
+          "You're on the update list. We'll email you occasional Tumble notes.",
         );
         setEmail("");
       } else {
@@ -62,8 +62,7 @@ export default function WaitlistForm() {
       >
         <p className="font-display text-xl text-cream">You&rsquo;re on the list.</p>
         <p className="mt-1 text-sm text-cream/70">
-          You&rsquo;re in the first launch wave. We&rsquo;ll email you the App Store
-          link as soon as it&rsquo;s live.
+          We&rsquo;ll email you occasional Tumble notes and app updates.
         </p>
       </div>
     );
@@ -72,7 +71,7 @@ export default function WaitlistForm() {
   return (
     <form id="waitlist" onSubmit={handleSubmit} noValidate className="w-full">
       <label htmlFor="email" className="mb-3 block text-sm font-medium text-cream/85">
-        Join the first launch wave before the store links are public.
+        Get occasional Tumble notes and app updates.
       </label>
 
       {/* Honeypot: visually hidden, off the tab order. Bots fill it, humans don't. */}
@@ -111,7 +110,7 @@ export default function WaitlistForm() {
           disabled={status === "submitting"}
           className="min-w-[10.5rem] shrink-0 rounded-full bg-amber px-6 py-3.5 text-center text-base font-semibold text-ink shadow-[0_14px_32px_-18px_rgba(223,171,104,0.9)] transition-colors hover:bg-cream focus:outline-none focus:ring-2 focus:ring-cream/80 focus:ring-offset-2 focus:ring-offset-blue-deep disabled:cursor-wait disabled:opacity-80"
         >
-          {status === "submitting" ? "Joining…" : "Join the waitlist"}
+          {status === "submitting" ? "Joining…" : "Get updates"}
         </button>
       </div>
 
@@ -124,7 +123,7 @@ export default function WaitlistForm() {
       >
         {status === "error"
           ? message
-          : "No spam. Just the pre-launch notes and both store links first."}
+          : "No spam. Just occasional release notes from Tumble."}
       </p>
     </form>
   );

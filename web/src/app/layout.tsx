@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { APP_STORE_URL } from "@/lib/app-store";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -18,7 +19,7 @@ const inter = Inter({
 
 const SITE_URL = "https://gettumbleapp.com";
 const DESCRIPTION =
-  "Tumble is a private camera launching on iPhone. Shoot a daily roll, then shake to develop.";
+  "Tumble is a private instant camera for iPhone. Shoot a daily roll, then shake to develop.";
 
 const TITLE = "Tumble · A slower camera you can own";
 
@@ -84,6 +85,7 @@ const jsonLd = {
   operatingSystem: "iOS",
   description: DESCRIPTION,
   url: SITE_URL,
+  downloadUrl: APP_STORE_URL,
   offers: {
     "@type": "Offer",
     price: "0",

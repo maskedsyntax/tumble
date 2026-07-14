@@ -26,19 +26,18 @@ export default function AppProgress() {
     <section className="relative z-10 mx-auto grid max-w-5xl gap-9 px-6 py-14 md:grid-cols-[0.9fr_1.1fr] md:items-center md:py-18">
       <div>
         <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-gold">
-          Current build
+          Live build
         </div>
         <h2 className="font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
-          The iPhone app is in Apple review.
+          The iPhone app is on the App Store.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
-          Tumble is no longer just a waitlist idea. The native iOS app is built
-          and sitting in Apple&rsquo;s review queue — the daily roll,
-          shake-to-develop, the private Drawer, and one-time unlocks, all done.
+          Tumble is no longer just a waitlist idea. The native iOS app is live
+          with the daily roll, shake-to-develop, the private Drawer, and
+          one-time unlocks.
         </p>
         <p className="mt-4 text-sm font-medium text-amber">
-          Join now and you will get the App Store link before we announce it
-          wider.
+          Download it now and start with twelve free shots today.
         </p>
       </div>
 

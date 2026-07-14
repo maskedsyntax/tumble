@@ -15,7 +15,7 @@ export default function TermsPage() {
         &larr; Back to Tumble
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold text-cream">Terms</h1>
-      <p className="mt-2 text-sm text-cream/50">Last updated July 11, 2026.</p>
+      <p className="mt-2 text-sm text-cream/50">Last updated July 14, 2026.</p>
 
       <div className="mt-8 space-y-8 leading-relaxed text-cream/80">
         <section>
@@ -23,10 +23,10 @@ export default function TermsPage() {
             Website and launch list
           </h2>
           <p className="mt-3">
-            This site introduces Tumble and lets you sign up for the launch
-            email when the App Store listing goes live. Joining
-            the launch list is free, is not a purchase, and does not promise
-            early access or a specific release date.
+            This site introduces Tumble and links to the App Store listing.
+            If you joined the launch list before release, that signup was free,
+            was not a purchase, and did not promise early access or a specific
+            release date.
           </p>
         </section>
 
@@ -35,9 +35,8 @@ export default function TermsPage() {
             App availability
           </h2>
           <p className="mt-3">
-            Tumble is planned for iPhone. The iOS build is currently in Apple
-            review. Features, pricing, screenshots, and device support may still
-            change before the store listing is live.
+            Tumble is available for iPhone on the App Store. Features, pricing,
+            screenshots, and device support may change over time.
           </p>
         </section>
 

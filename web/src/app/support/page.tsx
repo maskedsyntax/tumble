@@ -27,9 +27,9 @@ export default function SupportPage() {
             Need a hand with your roll?
           </h1>
           <p className="mt-5 leading-relaxed text-cream/80">
-            Tumble is launching on iPhone. For launch questions,
-            purchase restores, privacy requests, or bug reports, email support
-            and we will help from there.
+            Tumble is live on iPhone. For purchase restores, privacy requests,
+            bug reports, or launch questions, email support and we will help
+            from there.
           </p>
 
           <a
@@ -71,7 +71,7 @@ export default function SupportPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Ask about daily rolls, developing photos, purchases, privacy, or the
-            launch waitlist.
+            App Store release.
           </p>
         </article>
         <article className="border-t border-cream/15 pt-5">
@@ -80,7 +80,7 @@ export default function SupportPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Send product feedback, bug notes, press questions, or review-copy
-            requests before the store pages go live.
+            requests now that Tumble is live.
           </p>
         </article>
       </section>

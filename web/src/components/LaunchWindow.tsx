@@ -1,18 +1,18 @@
 const WINDOWS = [
   {
-    label: "In review",
-    title: "The iPhone app is in Apple review.",
-    body: "It's built and sitting in Apple's review queue. The first wave starts the moment the App Store page goes live.",
+    label: "Live",
+    title: "Tumble is out on iPhone.",
+    body: "The App Store page is live, so the first roll is no longer waiting on review. Download it and start shooting today.",
   },
   {
     label: "First roll",
-    title: "Launch-week notes go to the waitlist first.",
-    body: "People on the list will get the store link before we post wider. That makes the first wave feel like a small room, not a public drop.",
+    title: "The daily roll is ready.",
+    body: "Twelve free shots reset every morning. Shoot deliberately, then shake to develop the prints into your private Drawer.",
   },
   {
-    label: "One chance",
-    title: "The first cohort only happens once.",
-    body: "Join now if you want to be part of the first group developing a Tumble roll as soon as either store page is live.",
+    label: "Own it",
+    title: "Launch pricing stays simple.",
+    body: "Tumble is free to start, with Plus and Unlimited available as one-time unlocks. No subscriptions, no renewal games.",
   },
 ];
 
@@ -21,15 +21,14 @@ export default function LaunchWindow() {
     <section className="relative z-10 mx-auto max-w-5xl px-6 py-12 md:py-16">
       <div className="mb-8 max-w-2xl">
         <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-gold">
-          Launch window
+          Now available
         </div>
         <h2 className="font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
-          Tumble is close enough that joining now matters.
+          Tumble is open for its first real rolls.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
-          iOS is in Apple review. This is the quiet window before the public
-          link exists. The waitlist is the easiest way to be in the first wave
-          instead of hearing about it later.
+          The iPhone app has cleared review and is live on the App Store. If you
+          were waiting for the public link, this is it.
         </p>
       </div>
 
