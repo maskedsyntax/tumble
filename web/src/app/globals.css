@@ -112,9 +112,27 @@ body::after {
   animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Soft “live” pulse for the release banner indicator */
+@keyframes release-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.release-pulse {
+  animation: release-pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
 /* ---- Reduced motion ----------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-up {
+  .animate-fade-up,
+  .release-pulse {
     animation: none !important;
   }
 }
