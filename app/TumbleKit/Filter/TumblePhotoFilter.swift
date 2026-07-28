@@ -132,26 +132,30 @@ public enum TumbleMemoryFilterPreset: String, CaseIterable, Identifiable, Sendab
     private static func parameters(for preset: TumbleMemoryFilterPreset) -> Parameters {
         switch preset {
         case .fadedInstant:
+            // Washed-out instant film: milky lifted blacks, muted color,
+            // cool-leaning, soft halation bloom.
             Parameters(
-                saturation: 0.80,
-                contrast: 0.88,
-                brightness: 0.020,
-                blackLift: 0.070,
-                warmth: 0.65,
-                halation: 0.10,
-                grain: 0.20,
-                vignette: 0.10
+                saturation: 0.62,
+                contrast: 0.80,
+                brightness: 0.030,
+                blackLift: 0.110,
+                warmth: 0.30,
+                halation: 0.16,
+                grain: 0.24,
+                vignette: 0.16
             )
         case .warmArchive:
+            // Aged archive print: rich warm grade, deep vignette, fuller
+            // color and contrast - a photo that sat in a shoebox for decades.
             Parameters(
-                saturation: 0.88,
-                contrast: 0.90,
-                brightness: 0.010,
-                blackLift: 0.055,
-                warmth: 0.75,
-                halation: 0.08,
-                grain: 0.16,
-                vignette: 0.07
+                saturation: 1.05,
+                contrast: 1.00,
+                brightness: -0.005,
+                blackLift: 0.030,
+                warmth: 1.40,
+                halation: 0.12,
+                grain: 0.20,
+                vignette: 0.22
             )
         }
     }
@@ -162,11 +166,11 @@ public enum TumbleMemoryFilterPreset: String, CaseIterable, Identifiable, Sendab
 
     private static func warmGrade(_ image: CIImage, warmth: Double) -> CIImage {
         image.applyingFilter("CIColorMatrix", parameters: [
-            "inputRVector": CIVector(x: 1.0 + warmth * 0.045, y: warmth * 0.012, z: -warmth * 0.012, w: 0),
-            "inputGVector": CIVector(x: warmth * 0.006, y: 1.0 + warmth * 0.012, z: 0, w: 0),
-            "inputBVector": CIVector(x: -warmth * 0.026, y: -warmth * 0.006, z: 1.0 - warmth * 0.040, w: 0),
+            "inputRVector": CIVector(x: 1.0 + warmth * 0.075, y: warmth * 0.020, z: -warmth * 0.020, w: 0),
+            "inputGVector": CIVector(x: warmth * 0.010, y: 1.0 + warmth * 0.020, z: 0, w: 0),
+            "inputBVector": CIVector(x: -warmth * 0.045, y: -warmth * 0.010, z: 1.0 - warmth * 0.070, w: 0),
             "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-            "inputBiasVector": CIVector(x: warmth * 0.018, y: warmth * 0.010, z: warmth * -0.006, w: 0),
+            "inputBiasVector": CIVector(x: warmth * 0.030, y: warmth * 0.016, z: warmth * -0.010, w: 0),
         ])
     }
 

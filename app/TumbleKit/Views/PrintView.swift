@@ -44,10 +44,9 @@ public struct PrintView: View {
 
             if let caption, isDeveloped {
                 Text(caption)
-                    .font(Typography.display(width * 0.052, weight: .regular))
-                    .italic()
-                    .foregroundStyle(Palette.ink.opacity(0.7))
-                    .padding(.top, width * 0.06)
+                    .font(Typography.script(width * 0.068))
+                    .foregroundStyle(Palette.ink.opacity(0.72))
+                    .padding(.top, width * 0.045)
             }
         }
         .padding(width * 0.06)

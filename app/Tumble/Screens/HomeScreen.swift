@@ -117,6 +117,11 @@ struct HomeScreen: View {
             ArchiveView(days: archiveDays)
         }
         .sheet(isPresented: $showPaywall) { PaywallView().environment(app) }
+        // Debug: open the postcard studio over the first developed print.
+        .sheet(isPresented: .constant(ProcessInfo.processInfo.arguments.contains("-postcardSheet"))) {
+            PostcardSaveSheet(photo: photos.first(where: \.isDeveloped), onSave: {})
+                .presentationDetents([.large])
+        }
         .task { await app.startStore() }
         .task { await keepRollFresh() }
         .onChange(of: photos.count) { _, n in app.capturedCount = n }

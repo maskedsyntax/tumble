@@ -10,11 +10,16 @@ struct DayCollectionView: View {
     @State private var selected: Photo?
     @State private var isSaving = false
     @State private var saveMessage: String?
-    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @State private var showPostcardSheet = false
+    @AppStorage(PostcardFrameStyle.storageKey) private var frameStyleRaw = PostcardFrameStyle.none.rawValue
     @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     private var developed: [Photo] {
         day.photos.filter(\.isDeveloped)
+    }
+
+    private var frameStyle: PostcardFrameStyle {
+        PostcardFrameStyle(rawValue: frameStyleRaw) ?? .none
     }
 
     private var memoryFilterPreset: TumbleMemoryFilterPreset {
@@ -59,6 +64,12 @@ struct DayCollectionView: View {
         }
         .fullScreenCover(item: $selected) { photo in
             PrintStage(photo: photo, developed: developed)
+        }
+        .sheet(isPresented: $showPostcardSheet) {
+            PostcardSaveSheet(photo: nil, previewPhoto: developed.first, onSave: {
+                Task { await saveDay() }
+            }, saveEnabled: !developed.isEmpty)
+            .presentationDetents([.large])
         }
     }
 
@@ -107,27 +118,15 @@ struct DayCollectionView: View {
     }
 
     private var saveOptionsMenu: some View {
-        Menu {
-            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
-                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
-                    Text(preset.displayName).tag(preset.rawValue)
-                }
-            }
-
-            Divider()
-
-            Toggle(isOn: $saveIncludesPostcardFrame) {
-                Label("Save as postcard", systemImage: "photo.artframe")
-            }
-        } label: {
-            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+        Button { showPostcardSheet = true } label: {
+            Image(systemName: frameStyle == .none ? "photo" : "photo.artframe")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(saveIncludesPostcardFrame ? Palette.ink : Palette.cream)
+                .foregroundStyle(frameStyle == .none ? Palette.cream : Palette.ink)
                 .frame(width: 34, height: 34)
-                .background(saveIncludesPostcardFrame ? Palette.gold : .black.opacity(0.28), in: Circle())
+                .background(frameStyle == .none ? .black.opacity(0.28) : Palette.gold, in: Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Save format options")
+        .accessibilityLabel("Postcard and save options")
     }
 
     private var closeButton: some View {
@@ -153,20 +152,19 @@ struct DayCollectionView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
-        let result = await PhotoLibrarySaver.saveDeveloped(in: day.photos, style: style)
+        let result = await PhotoLibrarySaver.saveDeveloped(in: day.photos, style: frameStyle)
         withAnimation(.easeOut(duration: 0.2)) {
-            saveMessage = message(for: result, style: style)
+            saveMessage = message(for: result, style: frameStyle)
         }
         if case .saved = result {
             ReviewPrompter.shared.recordSavedToPhotos()
         }
     }
 
-    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
+    private func message(for result: PhotoLibrarySaveResult, style: PostcardFrameStyle) -> String {
         switch result {
         case .saved(let count):
-            if style == .postcardFrame {
+            if style != .none {
                 return count == 1 ? "Saved 1 postcard to Photos." : "Saved \(count) postcards to Photos."
             }
             let label = memoryFilterPreset.exportLabel

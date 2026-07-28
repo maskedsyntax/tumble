@@ -26,6 +26,8 @@ public final class Photo {
     public var rotation: Double = 0
 
     public var caption: String?
+    /// The postcard frame chosen for this print; nil = no frame.
+    public var frameStyleRaw: String?
     /// Where the shot came from: the app or the lock-screen extension.
     public var source: String = PhotoSource.app.rawValue
 
@@ -60,6 +62,14 @@ public enum PhotoSource: String, Sendable {
 }
 
 public extension Photo {
+    /// The postcard frame this print is mounted in, on screen and at export.
+    /// Defaults to `.none` - a fresh print has no frame until the shooter
+    /// picks one.
+    var frameStyle: PostcardFrameStyle {
+        get { frameStyleRaw.flatMap(PostcardFrameStyle.init(rawValue:)) ?? .none }
+        set { frameStyleRaw = newValue == .none ? nil : newValue.rawValue }
+    }
+
     /// How aged the print looks, 0 (fresh) → 1 (fully warmed/faded), mapped
     /// over `agingSpan`. Purely a function of elapsed time - no stored state,
     /// so prints visibly warm as the days pass.

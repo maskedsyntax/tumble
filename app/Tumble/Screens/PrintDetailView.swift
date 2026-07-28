@@ -13,7 +13,7 @@ struct PrintDetailView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @State private var confirmRemove = false
-    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @State private var showPostcardSheet = false
     @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     init(developed: [Photo], start: Photo) {
@@ -27,7 +27,7 @@ struct PrintDetailView: View {
 
             TabView(selection: $index) {
                 ForEach(Array(developed.enumerated()), id: \.element.id) { i, photo in
-                    DetailPrint(photo: photo)
+                    DetailPrint(photo: photo, filter: memoryFilterPreset)
                         .tag(i)
                         .padding(.horizontal, 24)
                 }
@@ -39,6 +39,12 @@ struct PrintDetailView: View {
             topControls
         }
         .offset(y: dragY)
+        .sheet(isPresented: $showPostcardSheet) {
+            PostcardSaveSheet(photo: current, onSave: {
+                Task { await saveCurrent() }
+            })
+            .presentationDetents([.large])
+        }
         .gesture(
             // Toss back into the drawer with a downward flick.
             DragGesture()
@@ -56,6 +62,10 @@ struct PrintDetailView: View {
 
     private var memoryFilterPreset: TumbleMemoryFilterPreset {
         TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
+    }
+
+    private var frameStyle: PostcardFrameStyle {
+        current?.frameStyle ?? .none
     }
 
     @ViewBuilder private var metadata: some View {
@@ -146,27 +156,16 @@ struct PrintDetailView: View {
     }
 
     private var saveOptionsMenu: some View {
-        Menu {
-            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
-                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
-                    Text(preset.displayName).tag(preset.rawValue)
-                }
-            }
-
-            Divider()
-
-            Toggle(isOn: $saveIncludesPostcardFrame) {
-                Label("Save as postcard", systemImage: "photo.artframe")
-            }
-        } label: {
-            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+        Button { showPostcardSheet = true } label: {
+            Image(systemName: frameStyle == .none ? "photo" : "photo.artframe")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(saveIncludesPostcardFrame ? Palette.gold : Palette.cream)
+                .foregroundStyle(frameStyle == .none ? Palette.cream : Palette.gold)
                 .frame(width: 35, height: 35)
                 .background(.black.opacity(0.28), in: Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Save format options")
+        .disabled(current == nil)
+        .accessibilityLabel("Postcard and save options")
     }
 
     @MainActor
@@ -175,20 +174,19 @@ struct PrintDetailView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
-        let result = await PhotoLibrarySaver.saveDeveloped(current, style: style)
+        let result = await PhotoLibrarySaver.saveDeveloped(current, style: frameStyle)
         withAnimation(.easeOut(duration: 0.2)) {
-            saveMessage = message(for: result, style: style)
+            saveMessage = message(for: result, style: frameStyle)
         }
         if case .saved = result {
             ReviewPrompter.shared.recordSavedToPhotos()
         }
     }
 
-    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
+    private func message(for result: PhotoLibrarySaveResult, style: PostcardFrameStyle) -> String {
         switch result {
         case .saved:
-            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved \(memoryFilterPreset.exportLabel) photo to Photos."
+            return style == .none ? "Saved \(memoryFilterPreset.exportLabel) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:
@@ -208,24 +206,39 @@ struct PrintDetailView: View {
     }
 }
 
-/// One full-screen print that loads its bytes and shows age-accurate grade.
+/// One full-screen print that loads its bytes and shows age-accurate grade,
+/// mounted in the chosen postcard frame when one is set.
 private struct DetailPrint: View {
     let photo: Photo
+    let filter: TumbleMemoryFilterPreset
     @State private var image: UIImage?
 
     var body: some View {
-        PrintView(
-            image: image,
-            isDeveloped: true,
-            developProgress: 1,
-            age: photo.ageFraction(),
-            caption: photo.caption,
-            width: 320
-        )
+        Group {
+            if photo.frameStyle == .none {
+                PrintView(
+                    image: image,
+                    isDeveloped: true,
+                    developProgress: 1,
+                    age: photo.ageFraction(),
+                    caption: photo.caption,
+                    width: 320
+                )
+            } else {
+                PostcardFrameView(style: photo.frameStyle, image: image, photo: photo, width: 320)
+            }
+        }
         .rotationEffect(.degrees(photo.rotation * 0.25))
-        .task(id: photo.id) {
-            let name = photo.developedImageName ?? photo.rawImageName
-            image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+        .task(id: "\(photo.id)|\(filter.rawValue)") {
+            // Render the chosen memory filter live, so the print on screen
+            // matches exactly what saves to Photos.
+            if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: filter) {
+                image = UIImage(data: memoryData)
+            } else {
+                let name = photo.developedImageName ?? photo.rawImageName
+                image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+            }
         }
     }
 }

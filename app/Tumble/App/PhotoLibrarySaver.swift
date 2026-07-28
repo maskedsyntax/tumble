@@ -9,15 +9,10 @@ enum PhotoLibrarySaveResult: Equatable {
     case failed
 }
 
-enum PhotoLibrarySaveStyle {
-    case photoOnly
-    case postcardFrame
-}
-
 /// Writes developed prints to the user's Photos library only when they ask.
 enum PhotoLibrarySaver {
     @MainActor
-    static func saveDeveloped(_ photo: Photo, style: PhotoLibrarySaveStyle) async -> PhotoLibrarySaveResult {
+    static func saveDeveloped(_ photo: Photo, style: PostcardFrameStyle) async -> PhotoLibrarySaveResult {
         guard photo.isDeveloped, let data = imageData(for: photo, style: style) else {
             return .noDevelopedPhotos
         }
@@ -26,7 +21,7 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    static func saveDeveloped(in photos: [Photo], style: PhotoLibrarySaveStyle) async -> PhotoLibrarySaveResult {
+    static func saveDeveloped(in photos: [Photo], style: PostcardFrameStyle) async -> PhotoLibrarySaveResult {
         let imagesData = photos
             .filter(\.isDeveloped)
             .compactMap { imageData(for: $0, style: style) }
@@ -39,11 +34,11 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    private static func imageData(for photo: Photo, style: PhotoLibrarySaveStyle) -> Data? {
+    private static func imageData(for photo: Photo, style: PostcardFrameStyle) -> Data? {
         guard let data = memoryPhotoData(for: photo) else { return nil }
-        guard style == .postcardFrame else { return data }
+        guard style != .none else { return data }
         guard let image = UIImage(data: data) else { return nil }
-        return postcardFrameData(for: photo, image: image)
+        return postcardFrameData(for: photo, image: image, style: style)
     }
 
     @MainActor
@@ -57,17 +52,10 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    private static func postcardFrameData(for photo: Photo, image: UIImage) -> Data? {
-        let content = PrintView(
-            image: image,
-            isDeveloped: true,
-            developProgress: 1,
-            age: photo.ageFraction(),
-            caption: photo.caption,
-            width: 1280
-        )
-        .padding(90)
-        .background(Color.white)
+    private static func postcardFrameData(for photo: Photo, image: UIImage, style: PostcardFrameStyle) -> Data? {
+        let content = PostcardFrameView(style: style, image: image, photo: photo, width: 1600)
+            .padding(110)
+            .background(Color.white)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = 1

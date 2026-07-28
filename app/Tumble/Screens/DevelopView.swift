@@ -23,11 +23,12 @@ struct DevelopView: View {
     @State private var confirmRemove = false
     @State private var isSaving = false
     @State private var saveMessage: String?
-    @AppStorage("tumble.saveIncludesPostcardFrame") private var saveIncludesPostcardFrame = false
+    @State private var showPostcardSheet = false
     @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
+    private var frameStyle: PostcardFrameStyle { photo.frameStyle }
     private var memoryFilterPreset: TumbleMemoryFilterPreset {
         TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
@@ -49,18 +50,30 @@ struct DevelopView: View {
         }
         .task(id: photo.id) { await setup() }
         .onDisappear { persistPartialProgress(); shake.stop() }
+        .sheet(isPresented: $showPostcardSheet, onDismiss: refreshPreviewImage) {
+            PostcardSaveSheet(photo: photo, onSave: {
+                Task { await savePrint() }
+            }, saveEnabled: developed)
+            .presentationDetents([.large])
+        }
     }
 
     // MARK: Print + gesture demo
 
     private var printCard: some View {
-        PrintView(
-            image: image,
-            isDeveloped: developed,
-            developProgress: progress,
-            age: 0,
-            width: 280
-        )
+        Group {
+            if developed, frameStyle != .none {
+                PostcardFrameView(style: frameStyle, image: image, photo: photo, width: 280)
+            } else {
+                PrintView(
+                    image: image,
+                    isDeveloped: developed,
+                    developProgress: progress,
+                    age: 0,
+                    width: 280
+                )
+            }
+        }
         // One-time, self-terminating "rock" that demonstrates the shake, then
         // rests at zero. No looping, no jitter.
         .keyframeAnimator(initialValue: DemoMotion(), trigger: demo) { view, m in
@@ -149,9 +162,9 @@ struct DevelopView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove print")
 
-                saveOptionsMenu
-
                 if developed {
+                    saveOptionsMenu
+
                     Button { Task { await savePrint() } } label: {
                         ZStack {
                             if isSaving {
@@ -197,27 +210,15 @@ struct DevelopView: View {
     }
 
     private var saveOptionsMenu: some View {
-        Menu {
-            Picker("Memory filter", selection: $memoryFilterPresetRaw) {
-                ForEach(TumbleMemoryFilterPreset.allCases) { preset in
-                    Text(preset.displayName).tag(preset.rawValue)
-                }
-            }
-
-            Divider()
-
-            Toggle(isOn: $saveIncludesPostcardFrame) {
-                Label("Save as postcard", systemImage: "photo.artframe")
-            }
-        } label: {
-            Image(systemName: saveIncludesPostcardFrame ? "photo.artframe" : "photo")
+        Button { showPostcardSheet = true } label: {
+            Image(systemName: frameStyle == .none ? "photo" : "photo.artframe")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(saveIncludesPostcardFrame ? Palette.gold : Palette.cream)
+                .foregroundStyle(frameStyle == .none ? Palette.cream : Palette.gold)
                 .frame(width: 35, height: 35)
                 .background(.black.opacity(0.28), in: Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Save format options")
+        .accessibilityLabel("Postcard and save options")
     }
 
     // MARK: Develop logic
@@ -275,6 +276,12 @@ struct DevelopView: View {
         renderDevelopedMemoryPhoto()
         try? context.save()
         ReviewPrompter.shared.recordDevelopedPrint()
+
+        // Let the reveal land, then bring up frame and filter options.
+        Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            showPostcardSheet = true
+        }
     }
 
     private func renderDevelopedMemoryPhoto() {
@@ -289,6 +296,16 @@ struct DevelopView: View {
         guard !developed, progress > 0 else { return }
         photo.developProgress = max(photo.developProgress, progress)
         try? context.save()
+    }
+
+    /// Re-render the on-screen print with the currently selected memory
+    /// filter, so what you see is exactly what saves.
+    private func refreshPreviewImage() {
+        guard developed,
+              let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
+              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: memoryFilterPreset)
+        else { return }
+        image = UIImage(data: memoryData)
     }
 
     private func removePrint() {
@@ -307,20 +324,19 @@ struct DevelopView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let style: PhotoLibrarySaveStyle = saveIncludesPostcardFrame ? .postcardFrame : .photoOnly
-        let result = await PhotoLibrarySaver.saveDeveloped(photo, style: style)
+        let result = await PhotoLibrarySaver.saveDeveloped(photo, style: frameStyle)
         withAnimation(.easeOut(duration: 0.2)) {
-            saveMessage = message(for: result, style: style)
+            saveMessage = message(for: result, style: frameStyle)
         }
         if case .saved = result {
             ReviewPrompter.shared.recordSavedToPhotos()
         }
     }
 
-    private func message(for result: PhotoLibrarySaveResult, style: PhotoLibrarySaveStyle) -> String {
+    private func message(for result: PhotoLibrarySaveResult, style: PostcardFrameStyle) -> String {
         switch result {
         case .saved:
-            return style == .postcardFrame ? "Saved postcard to Photos." : "Saved \(memoryFilterPreset.exportLabel) photo to Photos."
+            return style == .none ? "Saved \(memoryFilterPreset.exportLabel) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:

@@ -52,7 +52,7 @@ struct IslandCamera: View {
 
     private var openW: CGFloat { min(screenWidth - 40, 330) }
     private var previewH: CGFloat { openW * 0.86 }
-    private var openH: CGFloat { previewH + 96 }
+    private var openH: CGFloat { previewH + 110 }
     private var openCorner: CGFloat { 42 }
     private var openDistance: CGFloat { openH - closedH }
 
@@ -102,6 +102,12 @@ struct IslandCamera: View {
             if ProcessInfo.processInfo.arguments.contains("-islandHalf") {
                 startCameraIfNeeded()
                 progress = 0.5
+            }
+            // Debug: freeze the fully open camera window.
+            if ProcessInfo.processInfo.arguments.contains("-islandOpen") {
+                startCameraIfNeeded()
+                opened = true
+                progress = 1
             }
         }
         .onDisappear { camera.stop() }
@@ -168,6 +174,21 @@ struct IslandCamera: View {
                 .shadow(color: .black.opacity(handleShadowOpacity), radius: handleShadowRadius, y: handleShadowY)
                 .shadow(color: Palette.amber.opacity(0.16 * progress), radius: 30 * progress, y: 10 * progress)
 
+            // The cream camera body blooms over the black island pill as the
+            // window opens - the pill "becomes" the camera.
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: 0xF7F1E3), Color(hex: 0xEADFC7)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: corner, style: .continuous)
+                        .strokeBorder(.black.opacity(0.18), lineWidth: 0.75)
+                )
+                .opacity(smoothstep(progress, 0.12, 0.5))
+
             // Open-state content, laid out at full size and revealed top-down as
             // the window grows - the "pulled from the island" reveal.
             openContent
@@ -219,8 +240,8 @@ struct IslandCamera: View {
     private var openContent: some View {
         VStack(spacing: 0) {
             preview
-                .frame(width: openW - 16, height: previewH)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .frame(width: openW - 24, height: previewH)
+                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                 .overlay(alignment: .topLeading) {
                     cameraToolButton(
                         systemName: camera.flashMode == .on ? "bolt.fill" : "bolt.slash",
@@ -239,14 +260,15 @@ struct IslandCamera: View {
                     )
                     .padding(12)
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-                )
-                .padding(.top, 8)
+                // Recessed viewfinder bezel set into the body; radii nest
+                // concentrically with the window (42 - 12 inset, - 5 bezel).
+                .padding(5)
+                .background(Color(hex: 0x171D23), in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .shadow(color: .black.opacity(0.28), radius: 5, y: 3)
+                .padding(.top, 12)
 
             printSlot
-                .padding(.top, 7)
+                .padding(.top, 9)
 
             controls
                 .opacity(controlsOpacity)
@@ -294,17 +316,26 @@ struct IslandCamera: View {
     @ViewBuilder private var controls: some View {
         if app.roll.canShoot {
             HStack(spacing: 28) {
-                Text(app.roll.remainingLabel)
-                    .font(Typography.sans(12, weight: .semibold))
-                    .foregroundStyle(Palette.cream.opacity(0.85))
+                filmCounter
                     .frame(width: 64, alignment: .leading)
 
                 Button(action: capture) {
                     ZStack {
-                        Circle().strokeBorder(Palette.cream.opacity(0.9), lineWidth: 3)
-                            .frame(width: 54, height: 54)
-                        Circle().fill(Palette.cream)
-                            .frame(width: 42, height: 42)
+                        Circle()
+                            .strokeBorder(Palette.ink.opacity(0.28), lineWidth: 1.5)
+                            .frame(width: 56, height: 56)
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: 0xD2503F), Color(hex: 0xA83A32)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                            .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                        Circle()
+                            .strokeBorder(.white.opacity(0.25), lineWidth: 1)
+                            .frame(width: 36, height: 36)
                     }
                 }
                 .buttonStyle(.plain)
@@ -320,9 +351,9 @@ struct IslandCamera: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("That's the roll for today.")
-                        .font(Typography.sans(13, weight: .semibold)).foregroundStyle(Palette.cream)
+                        .font(Typography.sans(13, weight: .semibold)).foregroundStyle(Palette.ink)
                     Text("Fresh twelve at sunrise.")
-                        .font(Typography.sans(11)).foregroundStyle(Palette.cream.opacity(0.6))
+                        .font(Typography.sans(11)).foregroundStyle(Palette.ink.opacity(0.55))
                 }
                 Spacer(minLength: 6)
                 Button { close(); onNeedMore() } label: {
@@ -338,11 +369,30 @@ struct IslandCamera: View {
         }
     }
 
+    /// The shots-left readout as a little embossed counter window - just the
+    /// number, like the frame counter on a film camera.
+    private var filmCounter: some View {
+        Text(app.roll.remaining.map(String.init) ?? "∞")
+            .font(.system(size: 14, weight: .bold, design: .monospaced))
+            .foregroundStyle(Palette.amber)
+            .lineLimit(1)
+            .frame(minWidth: 30)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Color(hex: 0x171D23), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(.white.opacity(0.12), lineWidth: 0.75)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+            .accessibilityLabel(app.roll.remainingLabel)
+    }
+
     private var closeChevron: some View {
         Button(action: close) {
             Image(systemName: "chevron.up")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Palette.cream.opacity(0.8))
+                .foregroundStyle(Palette.ink.opacity(0.55))
         }
         .buttonStyle(.plain)
         .disabled(isCapturing)
@@ -354,12 +404,12 @@ struct IslandCamera: View {
         if isCapturing || showEjectedPrint {
             ZStack {
                 Capsule()
-                    .fill(.black.opacity(0.72))
-                    .frame(width: openW * 0.5, height: 12)
-                    .shadow(color: .black.opacity(0.38), radius: 8, y: 4)
+                    .fill(Color(hex: 0x171D23))
+                    .frame(width: openW * 0.56, height: 11)
+                    .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
                 Capsule()
-                    .strokeBorder(Palette.cream.opacity(0.08), lineWidth: 1)
-                    .frame(width: openW * 0.5, height: 12)
+                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                    .frame(width: openW * 0.56, height: 11)
             }
             .frame(width: openW, height: 14)
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
