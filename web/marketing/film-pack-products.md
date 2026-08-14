@@ -9,7 +9,7 @@ and `web/src/components/FilmPacks.tsx` (the site).
 | Display name | Price (USD) | Product ID |
 |---|---|---|
 | Ninety-Six Film Pack | $1.99 | `com.tumble.pack.nineties` |
-| Darkroom Film Pack | $1.99 | `com.tumble.pack.darkroom` |
+| Darkroom Film Pack | $1.99 | `com.tumble.pack.darkroom2` |
 | Long Summer Film Pack | $1.99 | `com.tumble.pack.summer` |
 | All Film Packs | $4.99 | `com.tumble.pack.all` |
 
@@ -55,12 +55,16 @@ film packs" rather than "these three".
    StoreKit for these strings by name.
 2. Price: **$1.99** (packs) / **$4.99** (bundle) as the US base. Leave Apple's
    automatic territory conversion on; do not hand-set per-country prices.
-3. Display name and description: copy the `localizations` blocks from
+3. Darkroom's ID carries a `2`. The first draft was created as a consumable,
+   and type cannot be edited after creation - App Store Connect reserves the
+   product ID *and* the reference name forever, even for deleted drafts. Pick
+   the type carefully the first time.
+4. Display name and description: copy the `localizations` blocks from
    `app/Tumble.storekit` so the store and the app agree word for word.
-4. Each product needs a **review screenshot** — a capture of `PackPaywallView`
+5. Each product needs a **review screenshot** — a capture of `PackPaywallView`
    showing that pack. Apple rejects IAPs without one.
-5. Set **Availability** to all territories.
-6. Submit the products **with the build**, not before. Products submitted alone
+6. Set **Availability** to all territories.
+7. Submit the products **with the build**, not before. Products submitted alone
    sit in "Waiting for Review" against nothing.
 
 ## Before shipping

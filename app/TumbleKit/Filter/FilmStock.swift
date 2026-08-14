@@ -211,7 +211,9 @@ public enum FilmStockCatalog {
             id: PackID.darkroom,
             name: "Darkroom",
             blurb: "Black and white, printed by hand.",
-            productID: "com.tumble.pack.darkroom"
+            // Not `.darkroom`: that ID was burned on a draft created as a
+            // consumable, and App Store Connect reserves IDs forever.
+            productID: "com.tumble.pack.darkroom2"
         ),
         FilmPack(
             id: PackID.summer,
