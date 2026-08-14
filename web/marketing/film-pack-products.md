@@ -6,12 +6,23 @@ and `web/src/components/FilmPacks.tsx` (the site).
 
 ## The lineup
 
-| Product | Reference name | Price (USD) | Product ID |
-|---|---|---|---|
-| Ninety-Six | Ninety-Six Film Pack | $1.99 | `com.tumble.pack.nineties` |
-| Darkroom | Darkroom Film Pack | $1.99 | `com.tumble.pack.darkroom` |
-| Long Summer | Long Summer Film Pack | $1.99 | `com.tumble.pack.summer` |
-| All packs | All Film Packs | $4.99 | `com.tumble.pack.all` |
+| Display name | Price (USD) | Product ID |
+|---|---|---|
+| Ninety-Six Film Pack | $1.99 | `com.tumble.pack.nineties` |
+| Darkroom Film Pack | $1.99 | `com.tumble.pack.darkroom` |
+| Long Summer Film Pack | $1.99 | `com.tumble.pack.summer` |
+| All Film Packs | $4.99 | `com.tumble.pack.all` |
+
+App Store descriptions, kept inside Apple's 45-character limit — the display
+name is what appears on the purchase confirmation sheet, so each one reads as
+a thing you are buying:
+
+| Product | Description (chars) |
+|---|---|
+| Ninety-Six | Five 90s disposable looks, flash and all. (41) |
+| Darkroom | Five hand-printed black-and-white looks. (40) |
+| Long Summer | Five summer looks: leaks, flares and haze. (42) |
+| All Film Packs | All 15 looks. Every pack, one payment. (38) |
 
 All four are **non-consumable**, one-time, non-family-shareable — the same
 stance as the Roll tiers. No subscriptions, ever.

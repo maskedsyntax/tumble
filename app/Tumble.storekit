@@ -38,7 +38,7 @@
       "internalID": "A1B2C3D4-1003-0002-0003-000000000000",
       "localizations": [
         {
-          "description": "Drugstore disposables, flash and all. Five looks: Disposable, Flash Night, Date Stamp, Pool Party and Camcorder.",
+          "description": "Five 90s disposable looks, flash and all.",
           "displayName": "Ninety-Six Film Pack",
           "locale": "en_US"
         }
@@ -53,7 +53,7 @@
       "internalID": "A1B2C3D4-1004-0002-0003-000000000000",
       "localizations": [
         {
-          "description": "Black and white, printed by hand. Five looks: Silver, Charcoal, Sepia Print, Platinum and Newsprint.",
+          "description": "Five hand-printed black-and-white looks.",
           "displayName": "Darkroom Film Pack",
           "locale": "en_US"
         }
@@ -68,7 +68,7 @@
       "internalID": "A1B2C3D4-1005-0002-0003-000000000000",
       "localizations": [
         {
-          "description": "Leaks, flares and blown-out afternoons. Five looks: Light Leak, Golden Hour, Fogged, Cross Process and Hazy.",
+          "description": "Five summer looks: leaks, flares and haze.",
           "displayName": "Long Summer Film Pack",
           "locale": "en_US"
         }
@@ -83,7 +83,7 @@
       "internalID": "A1B2C3D4-1006-0002-0003-000000000000",
       "localizations": [
         {
-          "description": "Every film pack, for less than buying them one at a time. Fifteen looks across Ninety-Six, Darkroom and Long Summer.",
+          "description": "All 15 looks. Every pack, one payment.",
           "displayName": "All Film Packs",
           "locale": "en_US"
         }
