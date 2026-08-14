@@ -69,3 +69,10 @@ fastlane/test_output
 # Local filter preview output
 filter-lab-output/
 test-output/
+
+# Node deps and rendered video output (regenerate with `npm i` / remotion render)
+node_modules/
+video/out/
+
+# Local filter test fixtures
+test-images/

@@ -109,12 +109,15 @@ struct HomeScreen: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: showsNudge)
         .fullScreenCover(item: $selected) { photo in
             PrintStage(photo: photo, developed: photos.filter(\.isDeveloped))
+                .environment(app)
         }
         .fullScreenCover(item: $selectedDay) { day in
             DayCollectionView(day: day)
+                .environment(app)
         }
         .fullScreenCover(isPresented: $showArchive) {
             ArchiveView(days: archiveDays)
+                .environment(app)
         }
         .sheet(isPresented: $showPaywall) { PaywallView().environment(app) }
         // Debug: open the postcard studio over the first developed print.
@@ -357,6 +360,7 @@ struct HomeScreen: View {
 
 private struct ArchiveView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var app
     let days: [PhotoDay]
     @State private var selectedDay: PhotoDay?
 
@@ -405,6 +409,7 @@ private struct ArchiveView: View {
         }
         .fullScreenCover(item: $selectedDay) { day in
             DayCollectionView(day: day)
+                .environment(app)
         }
     }
 }

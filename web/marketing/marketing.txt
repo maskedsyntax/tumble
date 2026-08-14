@@ -1,0 +1,142 @@
+TUMBLE MARKETING NOTES
+=======================
+
+
+DISCORD ANNOUNCEMENT POST ("lookwhatimade" channel)
+-----------------------------------------------------
+Tumble, a slower camera you can own
+
+Just shipped this. It's live on the App Store now.
+
+Tumble is a camera app built around a limit instead of an algorithm. You get
+twelve shots a day, a "roll" that resets every morning. No unlimited
+shooting, no ads to unlock more, no feed disguised as a camera.
+
+The twist: your photos don't show up instantly. You shake your phone to
+"develop" them (or press and hold if you've got reduce motion on). Prints
+land in a scattered pile called the Drawer instead of a grid, and they age
+over time, picking up grain, vignette, a little patina.
+
+Everything's on-device. No account, no cloud, no analytics SDK. Free to
+start, with optional one-time unlocks for a bigger roll.
+
+Nostalgic film looks (think faded instant, warm archive tones) are already
+cooking and landing in the next update soon.
+
+Grab it here: https://apps.apple.com/us/app/tumble-instant-camera/id6788386458
+
+Wait for it.
+
+
+INSTAGRAM STRATEGY (budget: Rs. 500)
+-----------------------------------------------------
+Given the tiny ad budget, organic content is what actually matters. Ads are
+a small boost on top of proven organic content, not a standalone campaign.
+
+Content pillars (Reels-first, that's where reach comes from):
+1. The shake-to-develop moment - blank print, shake, image resolves. Best
+   scroll-stopping hook, reuse with different photos/music.
+2. Before/after grain - flat phone photo cut to the aged, vignetted print.
+3. The Drawer as physical metaphor - slow pan across scattered pile of
+   prints, like dumping out a shoebox of old photos.
+4. Contrast narrative - "your camera roll" (doomscroll grid) vs. "Tumble"
+   (calm twelve-shot roll). Text-on-screen, no voiceover needed.
+5. The constraint story - "You get 12 shots a day. That's it." Framed as a
+   feature, inherently shareable/debatable in comments.
+6. Founder-voice posts - building an app that pushes back against
+   infinite-scroll, on Instagram itself. Lean into that tension.
+7. Filter previews (once faded-instant/warm-archive/soft-memory ship) -
+   carousel comparing the three styles on the same photo.
+
+Cadence: 3-4 Reels/week, 1 static carousel/week.
+
+Ad spend plan for Rs. 500:
+- Don't open Ads Manager and split budget across a formal campaign, the
+  overhead eats a tiny budget.
+- Post organically for a few days first.
+- Pick the best-performing Reel (saves/shares matter more than likes).
+- Use the in-app "Boost post" button on that single Reel (not a new
+  campaign). Target interests: film photography, disposable camera, VSCO,
+  analog photography. Age 18-34, target country/city.
+- Run the boost for 3-5 days (not 1 day) so delivery has time to optimize.
+- Basically: let organic performance pick the winner, then push proven
+  content further with the budget.
+
+
+HOW TO CREATE THE VIDEOS (no editing experience needed)
+-----------------------------------------------------
+1. Capture footage
+   - In-app moments (shake-to-develop, Drawer, roll counter): use iPhone's
+     built-in Screen Recording (Settings > Control Center > add "Screen
+     Recording", then swipe down, tap record).
+   - Physical "hands holding the phone" shots: use a second phone/camera to
+     film the first phone's screen and the shaking motion. Natural light
+     near a window, plain background, hold the filming phone steady.
+
+   IMPORTANT: screen recording alone does NOT do justice to the shake
+   feature. It only shows the on-screen reveal (print resolving), not the
+   physical shake that causes it. Combine both:
+     - External shot: hand shaking the phone (from a second phone/camera).
+     - Screen recording: the develop animation on the phone itself.
+     - Cut between them (1-2 sec each) or use picture-in-picture with the
+       external shot as the main frame and the screen recording inset.
+   This shows cause (shake) and effect (image resolves) together, which is
+   what actually sells the feature.
+
+2. Edit with CapCut (free, iOS/Android, beginner-friendly)
+   - Import clips, trim to the good parts.
+   - Add text overlay hooks (e.g. "You only get 12 shots today"), keep on
+     screen 1-2 sec.
+   - Add a trending/calm sound from CapCut's built-in library.
+   - Keep total length 8-20 sec (loop clips like the develop animation can
+     be 3-5 sec).
+   - Export vertical 9:16 for Reels.
+
+3. Example first video
+   - Screen-record: open app, take a shot, shake to develop.
+   - Trim to just the shake -> reveal moment in CapCut.
+   - Add opening text: "You have to wait for it."
+   - Add a calm/lofi trending sound underneath.
+   - Export and post as a Reel.
+
+
+CAROUSEL POST IDEAS (static photo posts)
+-----------------------------------------------------
+1. "How it works" walkthrough (for people who haven't seen the app):
+   - Slide 1: Hook, "A camera with only 12 shots a day"
+   - Slide 2: Screenshot of the Roll/shot counter
+   - Slide 3: Screenshot of a print mid-develop (blank -> resolving)
+   - Slide 4: Screenshot of the Drawer (scattered pile)
+   - Slide 5: "Download on the App Store" CTA
+
+2. This vs. that comparison (high save/share format):
+   - Your camera roll: unlimited shots, cloud sync, a feed, an algorithm.
+   - Tumble: 12 shots, on-device, no feed, no account.
+
+3. Manifesto / text-only carousel (plain background, big typography):
+   - "Your camera roll has 40,000 photos."
+   - "You remember none of them."
+   - "Tumble gives you twelve a day."
+   - "You'll actually look at these."
+
+4. Privacy claims, one per slide:
+   - "No account." / "No cloud." / "No analytics SDK." / "Everything stays
+     on your phone."
+
+5. Filter showcase (once faded-instant/warm-archive/soft-memory ship):
+   - Same subject shot in each of the three filters, one per slide, last
+     slide the unfiltered original for contrast.
+
+6. Real prints from the Drawer (once there are early users):
+   - Curated actual user photos, grain/vignette visible. Ask early users
+     for permission to repost as UGC.
+
+Priority order: start with #1 and #3 (don't need real user content or
+shipped filters yet), then move to #5 and #6 once filters ship and users
+exist.
+
+
+KEY LINKS
+-----------------------------------------------------
+App Store: https://apps.apple.com/us/app/tumble-instant-camera/id6788386458
+Website: https://gettumbleapp.com

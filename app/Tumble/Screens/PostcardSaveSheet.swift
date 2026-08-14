@@ -20,10 +20,14 @@ struct PostcardSaveSheet: View {
     var saveEnabled: Bool = true
 
     @AppStorage(PostcardFrameStyle.storageKey) private var frameStyleRaw = PostcardFrameStyle.none.rawValue
-    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
+
+    /// Called when a locked stock is tapped in the look picker, with its pack.
+    var onLockedPack: (FilmPack) -> Void = { _ in }
 
     @State private var note = ""
     @State private var image: UIImage?
+    /// Bumped whenever the look changes, to re-render the preview.
+    @State private var lookRefresh = 0
 
     private var frameStyle: PostcardFrameStyle {
         if let photo { return photo.frameStyle }
@@ -39,10 +43,6 @@ struct PostcardSaveSheet: View {
         } else {
             frameStyleRaw = style.rawValue
         }
-    }
-
-    private var memoryFilterPreset: TumbleMemoryFilterPreset {
-        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
 
     /// The print the previews render from.
@@ -64,8 +64,11 @@ struct PostcardSaveSheet: View {
                         .padding(.top, 14)
                 }
 
+                lookPicker
+                    .padding(.top, 14)
+
                 framePicker
-                    .padding(.top, 16)
+                    .padding(.top, 14)
 
                 footer
                     .padding(.top, 14)
@@ -76,12 +79,16 @@ struct PostcardSaveSheet: View {
         .onAppear {
             note = photo?.caption ?? ""
         }
-        .task(id: "\(previewSource?.id.uuidString ?? "none")|\(memoryFilterPresetRaw)") {
+        .task(id: "\(previewSource?.id.uuidString ?? "none")|\(previewSource?.filterID ?? "")|\(lookRefresh)") {
             guard let source = previewSource else { return }
-            // Preview renders the chosen memory filter live, so what you see
-            // is exactly what lands in Photos.
+            // Preview renders the print's own stock live, so what you see is
+            // exactly what lands in Photos.
             if let rawData = PhotoStore.loadImageData(named: source.rawImageName),
-               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: memoryFilterPreset) {
+               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
+                   from: rawData,
+                   grade: source.filmStock.grade,
+                   capturedAt: source.capturedAt
+               ) {
                 image = UIImage(data: memoryData)
             } else {
                 let name = source.developedImageName ?? source.rawImageName
@@ -168,6 +175,26 @@ struct PostcardSaveSheet: View {
         .accessibilityElement(children: .contain)
     }
 
+    /// The look shelf, shown for a single print. Batch saves keep each print's
+    /// own look (chosen when it developed), so there's nothing global to set.
+    @ViewBuilder private var lookPicker: some View {
+        if let photo {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Look")
+                    .font(Typography.sans(11, weight: .semibold))
+                    .tracking(1.5)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.amber)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                LookPickerView(
+                    photo: photo,
+                    onChange: { lookRefresh += 1 },
+                    onLocked: onLockedPack
+                )
+            }
+        }
+    }
+
     private var framePicker: some View {
         HStack(spacing: 7) {
             ForEach(PostcardFrameStyle.allCases) { style in
@@ -227,26 +254,6 @@ struct PostcardSaveSheet: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            Menu {
-                Picker("Memory filter", selection: $memoryFilterPresetRaw) {
-                    ForEach(TumbleMemoryFilterPreset.allCases) { preset in
-                        Text(preset.displayName).tag(preset.rawValue)
-                    }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "camera.filters")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Filter")
-                        .font(Typography.sans(13, weight: .semibold))
-                }
-                .foregroundStyle(Palette.cream)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 11)
-                .background(.black.opacity(0.28), in: Capsule())
-            }
-            .accessibilityLabel("Memory filter")
-
             Button {
                 dismiss()
                 onSave()

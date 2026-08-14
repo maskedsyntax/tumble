@@ -43,9 +43,14 @@ enum PhotoLibrarySaver {
 
     @MainActor
     private static func memoryPhotoData(for photo: Photo) -> Data? {
-        let preset = TumbleMemoryFilterPreset.stored()
+        // Render this print's own stock, so the file that lands in Photos matches
+        // the look picked for it - not a global default.
         if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-           let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: preset) {
+           let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
+               from: rawData,
+               grade: photo.filmStock.grade,
+               capturedAt: photo.capturedAt
+           ) {
             return memoryData
         }
         return PhotoStore.loadImageData(named: photo.developedImageName ?? photo.rawImageName)

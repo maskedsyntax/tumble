@@ -7,6 +7,7 @@ import TumbleKit
 struct PrintDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var app
     let developed: [Photo]
     @State private var index: Int
     @State private var dragY: CGFloat = 0
@@ -14,7 +15,7 @@ struct PrintDetailView: View {
     @State private var saveMessage: String?
     @State private var confirmRemove = false
     @State private var showPostcardSheet = false
-    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
+    @State private var lockedPack: FilmPack?
 
     init(developed: [Photo], start: Photo) {
         self.developed = developed
@@ -27,7 +28,7 @@ struct PrintDetailView: View {
 
             TabView(selection: $index) {
                 ForEach(Array(developed.enumerated()), id: \.element.id) { i, photo in
-                    DetailPrint(photo: photo, filter: memoryFilterPreset)
+                    DetailPrint(photo: photo)
                         .tag(i)
                         .padding(.horizontal, 24)
                 }
@@ -42,8 +43,14 @@ struct PrintDetailView: View {
         .sheet(isPresented: $showPostcardSheet) {
             PostcardSaveSheet(photo: current, onSave: {
                 Task { await saveCurrent() }
-            })
+            }, onLockedPack: { lockedPack = $0 })
             .presentationDetents([.large])
+            .environment(app)
+        }
+        .sheet(item: $lockedPack) { pack in
+            PackPaywallView(pack: pack)
+                .environment(app)
+                .presentationDetents([.medium, .large])
         }
         .gesture(
             // Toss back into the drawer with a downward flick.
@@ -58,10 +65,6 @@ struct PrintDetailView: View {
 
     private var current: Photo? {
         developed.indices.contains(index) ? developed[index] : nil
-    }
-
-    private var memoryFilterPreset: TumbleMemoryFilterPreset {
-        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
 
     private var frameStyle: PostcardFrameStyle {
@@ -186,7 +189,7 @@ struct PrintDetailView: View {
     private func message(for result: PhotoLibrarySaveResult, style: PostcardFrameStyle) -> String {
         switch result {
         case .saved:
-            return style == .none ? "Saved \(memoryFilterPreset.exportLabel) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
+            return style == .none ? "Saved \((current?.filmStock.name ?? "").lowercased()) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:
@@ -210,7 +213,6 @@ struct PrintDetailView: View {
 /// mounted in the chosen postcard frame when one is set.
 private struct DetailPrint: View {
     let photo: Photo
-    let filter: TumbleMemoryFilterPreset
     @State private var image: UIImage?
 
     var body: some View {
@@ -229,11 +231,15 @@ private struct DetailPrint: View {
             }
         }
         .rotationEffect(.degrees(photo.rotation * 0.25))
-        .task(id: "\(photo.id)|\(filter.rawValue)") {
-            // Render the chosen memory filter live, so the print on screen
-            // matches exactly what saves to Photos.
+        .task(id: "\(photo.id)|\(photo.filterID ?? "")") {
+            // Render this print's own stock live, so the print on screen matches
+            // exactly what saves to Photos.
             if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: filter) {
+               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
+                   from: rawData,
+                   grade: photo.filmStock.grade,
+                   capturedAt: photo.capturedAt
+               ) {
                 image = UIImage(data: memoryData)
             } else {
                 let name = photo.developedImageName ?? photo.rawImageName

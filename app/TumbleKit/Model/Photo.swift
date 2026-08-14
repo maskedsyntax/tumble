@@ -26,6 +26,9 @@ public final class Photo {
     public var rotation: Double = 0
 
     public var caption: String?
+    /// The film stock (look) baked into this print. nil = the app default at the
+    /// time it was developed. A stable `FilmStock.id`, never a display name.
+    public var filterID: String?
     /// The postcard frame chosen for this print; nil = no frame.
     public var frameStyleRaw: String?
     /// Where the shot came from: the app or the lock-screen extension.
@@ -62,6 +65,14 @@ public enum PhotoSource: String, Sendable {
 }
 
 public extension Photo {
+    /// The film stock this print is developed with. Reads through the catalog so
+    /// a removed pack falls back gracefully; an unset `filterID` resolves to the
+    /// app default. Setting it stores the stable stock id.
+    var filmStock: FilmStock {
+        get { FilmStockCatalog.resolve(filterID) }
+        set { filterID = newValue.id }
+    }
+
     /// The postcard frame this print is mounted in, on screen and at export.
     /// Defaults to `.none` - a fresh print has no frame until the shooter
     /// picks one.

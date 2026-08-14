@@ -1,3 +1,5 @@
+import { Stamp } from "./FilmEdge";
+
 /**
  * Pricing: free to start, with two one-time unlocks (no subscriptions). The free
  * tier keeps Tumble's identity (the daily Roll) while paid tiers lift the
@@ -44,10 +46,10 @@ const TIERS: Tier[] = [
 export default function Pricing() {
   return (
     <section className="relative z-10 mx-auto flex max-w-5xl flex-col justify-center px-6 py-14 md:py-18">
-      <div className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-gold">
-        Pay once. Never again.
+      <div className="mb-3 flex justify-center">
+        <Stamp>Pay once. Never again.</Stamp>
       </div>
-      <h2 className="text-center font-display text-3xl font-semibold text-cream sm:text-4xl">
+      <h2 className="text-center font-display text-3xl font-bold text-cream sm:text-4xl">
         Free to start. Yours to keep.
       </h2>
       <p className="mx-auto mt-3 mb-12 max-w-md text-center text-cream/75">
@@ -90,7 +92,7 @@ export default function Pricing() {
         ))}
       </div>
 
-      <p className="mt-8 text-center text-xs text-cream/45">
+      <p className="mt-8 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-cream/45">
         One-time purchases · no subscriptions · restore anytime
       </p>
     </section>

@@ -13,6 +13,7 @@ struct DevelopView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppModel.self) private var app
     let photo: Photo
 
     @State private var shake = ShakeMonitor()
@@ -24,14 +25,11 @@ struct DevelopView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @State private var showPostcardSheet = false
-    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
+    @State private var lockedPack: FilmPack?
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
     private var frameStyle: PostcardFrameStyle { photo.frameStyle }
-    private var memoryFilterPreset: TumbleMemoryFilterPreset {
-        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
-    }
 
     var body: some View {
         ZStack {
@@ -53,8 +51,14 @@ struct DevelopView: View {
         .sheet(isPresented: $showPostcardSheet, onDismiss: refreshPreviewImage) {
             PostcardSaveSheet(photo: photo, onSave: {
                 Task { await savePrint() }
-            }, saveEnabled: developed)
+            }, saveEnabled: developed, onLockedPack: { lockedPack = $0 })
             .presentationDetents([.large])
+            .environment(app)
+        }
+        .sheet(item: $lockedPack) { pack in
+            PackPaywallView(pack: pack)
+                .environment(app)
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -273,6 +277,11 @@ struct DevelopView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         photo.isDeveloped = true
         photo.developProgress = 1
+        // Bake in the shooter's current default look, unless this print already
+        // carries a chosen stock (e.g. resumed from a partial develop).
+        if photo.filterID == nil {
+            photo.filterID = FilmStockCatalog.stored().id
+        }
         renderDevelopedMemoryPhoto()
         try? context.save()
         ReviewPrompter.shared.recordDevelopedPrint()
@@ -286,7 +295,11 @@ struct DevelopView: View {
 
     private func renderDevelopedMemoryPhoto() {
         guard let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: memoryFilterPreset)
+              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
+                  from: rawData,
+                  grade: photo.filmStock.grade,
+                  capturedAt: photo.capturedAt
+              )
         else { return }
         photo.developedImageName = try? PhotoStore.writeImage(memoryData, id: photo.id, kind: .developed)
         image = UIImage(data: memoryData)
@@ -303,7 +316,11 @@ struct DevelopView: View {
     private func refreshPreviewImage() {
         guard developed,
               let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(from: rawData, preset: memoryFilterPreset)
+              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
+                  from: rawData,
+                  grade: photo.filmStock.grade,
+                  capturedAt: photo.capturedAt
+              )
         else { return }
         image = UIImage(data: memoryData)
     }
@@ -336,7 +353,7 @@ struct DevelopView: View {
     private func message(for result: PhotoLibrarySaveResult, style: PostcardFrameStyle) -> String {
         switch result {
         case .saved:
-            return style == .none ? "Saved \(memoryFilterPreset.exportLabel) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
+            return style == .none ? "Saved \(photo.filmStock.name.lowercased()) photo to Photos." : "Saved \(style.displayName.lowercased()) to Photos."
         case .noDevelopedPhotos:
             return "Develop this print before saving."
         case .denied:

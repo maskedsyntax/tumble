@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Branded link-sharing card (used by Open Graph + Twitter).
-export const alt = "Tumble · A slower camera you can own";
+export const alt = "Tumble · A film camera for iPhone";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -97,8 +97,8 @@ export default function OpengraphImage() {
               maxWidth: "900px",
             }}
           >
-            <div style={{ display: "flex" }}>A slower camera</div>
-            <div style={{ display: "flex", color: "#dfab68" }}>you can own.</div>
+            <div style={{ display: "flex" }}>One shot.</div>
+            <div style={{ display: "flex", color: "#dfab68" }}>Every film.</div>
           </div>
           <div
             style={{
@@ -108,7 +108,8 @@ export default function OpengraphImage() {
               maxWidth: "860px",
             }}
           >
-            Pull it down, shoot a daily roll, then shake to develop.
+            A private film camera for iPhone. Shoot a daily roll, shake to
+            develop, finish on real film stock.
           </div>
         </div>
 

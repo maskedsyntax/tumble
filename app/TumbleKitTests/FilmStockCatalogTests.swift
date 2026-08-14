@@ -1,0 +1,118 @@
+import Testing
+import UIKit
+@testable import TumbleKit
+
+struct FilmStockCatalogTests {
+    // MARK: Catalog integrity
+
+    @Test func stockIDsAreUnique() {
+        let ids = FilmStockCatalog.all.map(\.id)
+        #expect(Set(ids).count == ids.count)
+    }
+
+    @Test func everyStockBelongsToAKnownPack() {
+        let packIDs = Set(FilmStockCatalog.packs.map(\.id))
+        for stock in FilmStockCatalog.all {
+            #expect(packIDs.contains(stock.packID))
+        }
+    }
+
+    @Test func packProductIDsAreUniqueAndNamespaced() {
+        let productIDs = FilmStockCatalog.packs.compactMap(\.productID)
+        #expect(Set(productIDs).count == productIDs.count)
+        for id in productIDs {
+            #expect(id.hasPrefix("com.tumble.pack."))
+        }
+    }
+
+    @Test func exactlyOnePackIsFree() {
+        let free = FilmStockCatalog.packs.filter(\.isFree)
+        #expect(free.count == 1)
+        #expect(free.first?.id == FilmStockCatalog.PackID.core)
+    }
+
+    @Test func groupedByPackCoversEveryStockInPackOrder() {
+        let grouped = FilmStockCatalog.groupedByPack
+        #expect(grouped.map(\.pack.id) == FilmStockCatalog.packs.map(\.id))
+        let flattened = grouped.flatMap { $0.stocks.map(\.id) }
+        #expect(Set(flattened) == Set(FilmStockCatalog.all.map(\.id)))
+    }
+
+    // MARK: Resolution & defaults
+
+    @Test func resolveFallsBackToDefaultForUnknownID() {
+        #expect(FilmStockCatalog.resolve("does-not-exist").id == FilmStockCatalog.defaultStock.id)
+        #expect(FilmStockCatalog.resolve(nil).id == FilmStockCatalog.defaultStock.id)
+    }
+
+    @Test func defaultStockIsTheV1FadedInstant() {
+        // The default must stay the v1.1 look so upgrades don't silently regrade.
+        #expect(FilmStockCatalog.defaultStock.id == FilmStockCatalog.LegacyID.fadedInstant)
+    }
+
+    @Test func legacyPresetIDsStillResolve() {
+        // These strings are persisted on shipped devices - they must resolve forever.
+        #expect(FilmStockCatalog.stock(for: FilmStockCatalog.LegacyID.fadedInstant) != nil)
+        #expect(FilmStockCatalog.stock(for: FilmStockCatalog.LegacyID.warmArchive) != nil)
+    }
+
+    // MARK: Migration
+
+    @Test func storedMigratesV1PresetKey() {
+        let defaults = UserDefaults(suiteName: "test.migration.\(UUID().uuidString)")!
+        defaults.set(FilmStockCatalog.LegacyID.warmArchive, forKey: FilmStockCatalog.legacyPresetKey)
+
+        let migrated = FilmStockCatalog.stored(in: defaults)
+
+        #expect(migrated.id == FilmStockCatalog.LegacyID.warmArchive)
+        // The new key is written and the old one cleared.
+        #expect(defaults.string(forKey: FilmStockCatalog.storageKey) == FilmStockCatalog.LegacyID.warmArchive)
+        #expect(defaults.string(forKey: FilmStockCatalog.legacyPresetKey) == nil)
+    }
+
+    @Test func storedPrefersNewKeyOverLegacy() {
+        let defaults = UserDefaults(suiteName: "test.newkey.\(UUID().uuidString)")!
+        defaults.set("silver", forKey: FilmStockCatalog.storageKey)
+        defaults.set(FilmStockCatalog.LegacyID.warmArchive, forKey: FilmStockCatalog.legacyPresetKey)
+
+        #expect(FilmStockCatalog.stored(in: defaults).id == "silver")
+    }
+
+    @Test func storedFallsBackToDefaultWhenEmpty() {
+        let defaults = UserDefaults(suiteName: "test.empty.\(UUID().uuidString)")!
+        #expect(FilmStockCatalog.stored(in: defaults).id == FilmStockCatalog.defaultStock.id)
+    }
+}
+
+struct LRUCacheTests {
+    @Test func evictsLeastRecentlyUsed() {
+        let cache = LRUCache<String, Int>(capacity: 2)
+        cache.set(1, for: "a")
+        cache.set(2, for: "b")
+        _ = cache.value(for: "a")     // a is now most-recent
+        cache.set(3, for: "c")        // evicts b (LRU)
+
+        #expect(cache.value(for: "a") == 1)
+        #expect(cache.value(for: "b") == nil)
+        #expect(cache.value(for: "c") == 3)
+    }
+
+    @Test func updatingKeyKeepsItAndDoesNotGrow() {
+        let cache = LRUCache<String, Int>(capacity: 2)
+        cache.set(1, for: "a")
+        cache.set(2, for: "b")
+        cache.set(9, for: "a")        // update, not insert
+        cache.set(3, for: "c")        // evicts b, not a
+
+        #expect(cache.value(for: "a") == 9)
+        #expect(cache.value(for: "b") == nil)
+        #expect(cache.value(for: "c") == 3)
+    }
+
+    @Test func removeAllClears() {
+        let cache = LRUCache<String, Int>(capacity: 4)
+        cache.set(1, for: "a")
+        cache.removeAll()
+        #expect(cache.value(for: "a") == nil)
+    }
+}

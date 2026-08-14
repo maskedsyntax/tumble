@@ -2,8 +2,12 @@
 
 /* ---- Brand tokens ------------------------------------------------------- */
 @theme {
-  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Space Mono — the film voice: frame counters, date stamps, edge printing. */
+  --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+  /* Caveat — the same handwriting the app writes postcard notes in. */
+  --font-script: var(--font-script), ui-rounded, cursive;
 
   /* Graincore - slate-blue base (#2E4052) with a warm gold glow (#DFAB68).
      Texture comes from film grain, not blur. Calm darker centre for readability. */
@@ -129,10 +133,27 @@ body::after {
   animation: release-pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
+/* Soft crossfade as the hero print swaps film stocks. */
+@keyframes stock-in {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-stock-in {
+  animation: stock-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ---- Reduced motion ----------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
-  .release-pulse {
+  .release-pulse,
+  .animate-stock-in {
     animation: none !important;
   }
 }

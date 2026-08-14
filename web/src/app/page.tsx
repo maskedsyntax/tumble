@@ -1,8 +1,9 @@
 import Hero from "@/components/Hero";
-import LaunchWindow from "@/components/LaunchWindow";
 import RollExplainer from "@/components/RollExplainer";
-import DrawerMockup from "@/components/DrawerMockup";
-import AppProgress from "@/components/AppProgress";
+import AppShowcase from "@/components/AppShowcase";
+import PostcardFrames from "@/components/PostcardFrames";
+import FilmPacks from "@/components/FilmPacks";
+import Releases from "@/components/Releases";
 import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
 import ReleaseBanner from "@/components/ReleaseBanner";
@@ -12,10 +13,11 @@ export default function Home() {
     <main className="relative overflow-hidden">
       <ReleaseBanner />
       <Hero />
-      <LaunchWindow />
       <RollExplainer />
-      <DrawerMockup />
-      <AppProgress />
+      <AppShowcase />
+      <PostcardFrames />
+      <FilmPacks />
+      <Releases />
       <Pricing />
       <Footer />
     </main>

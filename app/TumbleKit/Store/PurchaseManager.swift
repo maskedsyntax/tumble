@@ -17,7 +17,12 @@ public final class PurchaseManager {
         Entitlement.highest(fromProductIDs: ownedProductIDs)
     }
 
-    @ObservationIgnored private let productIDs = ["com.tumble.plus", "com.tumble.unlimited"]
+    /// Tier products (daily Roll) plus the one-time film-pack unlocks. Packs are
+    /// separate buys - they never change the Roll tier - so they load here but
+    /// resolve their ownership through `ownsPack`, not `entitlement`.
+    @ObservationIgnored private let tierProductIDs = ["com.tumble.plus", "com.tumble.unlimited"]
+    @ObservationIgnored private lazy var productIDs: [String] =
+        tierProductIDs + FilmStockCatalog.packs.compactMap(\.productID)
     @ObservationIgnored private var updatesTask: Task<Void, Never>?
 
     public init() {}
@@ -40,6 +45,25 @@ public final class PurchaseManager {
     public func product(for tier: Entitlement) -> Product? {
         guard let id = tier.productID else { return nil }
         return products.first { $0.id == id }
+    }
+
+    /// The StoreKit product backing a paid film pack, if loaded.
+    public func product(for pack: FilmPack) -> Product? {
+        guard let id = pack.productID else { return nil }
+        return products.first { $0.id == id }
+    }
+
+    /// Whether the shooter can use a pack. The free pack is always unlocked;
+    /// paid packs unlock on purchase.
+    public func ownsPack(_ packID: String) -> Bool {
+        guard let pack = FilmStockCatalog.pack(for: packID) else { return false }
+        guard let productID = pack.productID else { return true }
+        return ownedProductIDs.contains(productID)
+    }
+
+    /// Whether a stock is available to apply, i.e. its pack is owned.
+    public func isUnlocked(_ stock: FilmStock) -> Bool {
+        ownsPack(stock.packID)
     }
 
     @discardableResult

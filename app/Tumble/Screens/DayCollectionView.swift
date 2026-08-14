@@ -5,6 +5,7 @@ import TumbleKit
 /// loading so heavy days and long archives stay reachable.
 struct DayCollectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var app
     let day: PhotoDay
 
     @State private var selected: Photo?
@@ -12,7 +13,6 @@ struct DayCollectionView: View {
     @State private var saveMessage: String?
     @State private var showPostcardSheet = false
     @AppStorage(PostcardFrameStyle.storageKey) private var frameStyleRaw = PostcardFrameStyle.none.rawValue
-    @AppStorage(TumbleMemoryFilterPreset.storageKey) private var memoryFilterPresetRaw = TumbleMemoryFilterPreset.defaultPreset.rawValue
 
     private var developed: [Photo] {
         day.photos.filter(\.isDeveloped)
@@ -20,10 +20,6 @@ struct DayCollectionView: View {
 
     private var frameStyle: PostcardFrameStyle {
         PostcardFrameStyle(rawValue: frameStyleRaw) ?? .none
-    }
-
-    private var memoryFilterPreset: TumbleMemoryFilterPreset {
-        TumbleMemoryFilterPreset(rawValue: memoryFilterPresetRaw) ?? .defaultPreset
     }
 
     private let columns = [
@@ -64,12 +60,14 @@ struct DayCollectionView: View {
         }
         .fullScreenCover(item: $selected) { photo in
             PrintStage(photo: photo, developed: developed)
+                .environment(app)
         }
         .sheet(isPresented: $showPostcardSheet) {
             PostcardSaveSheet(photo: nil, previewPhoto: developed.first, onSave: {
                 Task { await saveDay() }
             }, saveEnabled: !developed.isEmpty)
             .presentationDetents([.large])
+            .environment(app)
         }
     }
 
@@ -167,8 +165,8 @@ struct DayCollectionView: View {
             if style != .none {
                 return count == 1 ? "Saved 1 postcard to Photos." : "Saved \(count) postcards to Photos."
             }
-            let label = memoryFilterPreset.exportLabel
-            return count == 1 ? "Saved 1 \(label) photo to Photos." : "Saved \(count) \(label) photos to Photos."
+            // Each print carries its own look now, so the batch message stays neutral.
+            return count == 1 ? "Saved 1 photo to Photos." : "Saved \(count) photos to Photos."
         case .noDevelopedPhotos:
             return "Develop prints before saving them."
         case .denied:
