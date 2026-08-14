@@ -125,6 +125,12 @@ struct HomeScreen: View {
             PostcardSaveSheet(photo: photos.first(where: \.isDeveloped), onSave: {})
                 .presentationDetents([.large])
         }
+        // Debug: open a film pack's store card, for App Review screenshots.
+        // `-packPaywall nineties` and friends; see DebugLaunch.
+        .fullScreenCover(item: .constant(DebugLaunch.packPaywall)) { pack in
+            PackPaywallView(pack: pack)
+                .environment(app)
+        }
         .task { await app.startStore() }
         .task { await keepRollFresh() }
         .onChange(of: photos.count) { _, n in app.capturedCount = n }

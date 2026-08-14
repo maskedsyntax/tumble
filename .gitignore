@@ -76,3 +76,6 @@ video/out/
 
 # Local filter test fixtures
 test-images/
+
+# Regenerate with ./scripts/capture-iap-screenshots.sh
+iap-review-screenshots/*.png

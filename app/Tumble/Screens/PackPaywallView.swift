@@ -23,6 +23,17 @@ struct PackPaywallView: View {
     private var bundle: Product? {
         app.purchases.ownsEveryPack ? nil : app.purchases.bundleProduct
     }
+    /// StoreKit's localised price, or the capture placeholder when there are no
+    /// products to ask (see `DebugLaunch`). Nil means there is nothing to show.
+    private var priceLabel: String? {
+        product?.displayPrice ?? DebugLaunch.placeholderPrice(for: pack.productID)
+    }
+    private var bundlePriceLabel: String? {
+        bundle?.displayPrice ?? DebugLaunch.placeholderPrice(for: FilmStockCatalog.bundleProductID)
+    }
+    private var showsBundleOffer: Bool {
+        !app.purchases.ownsEveryPack && bundlePriceLabel != nil
+    }
     private var bundleStockCount: Int {
         FilmStockCatalog.packs.filter { !$0.isFree }.reduce(0) { $0 + FilmStockCatalog.stocks(in: $1.id).count }
     }
@@ -89,7 +100,7 @@ struct PackPaywallView: View {
             Button { Task { await buy() } } label: {
                 ZStack {
                     if busy { ProgressView().tint(Palette.ink) }
-                    Text(busy ? "" : "Own it · \(product?.displayPrice ?? "…")")
+                    Text(busy ? "" : "Own it · \(priceLabel ?? "…")")
                         .font(Typography.sans(15, weight: .bold))
                         .foregroundStyle(Palette.ink)
                 }
@@ -99,8 +110,8 @@ struct PackPaywallView: View {
                 .shadow(color: Palette.gold.opacity(0.28), radius: 14, y: 6)
             }
             .buttonStyle(.plain)
-            .disabled(busy || product == nil)
-            .opacity(product == nil ? 0.5 : 1)
+            .disabled(busy || priceLabel == nil)
+            .opacity(priceLabel == nil ? 0.5 : 1)
             .padding(.top, 4)
         }
     }
@@ -108,10 +119,10 @@ struct PackPaywallView: View {
     /// The upsell: every pack for less than the sum of its parts. Shown under
     /// the single-pack button so it reads as an upgrade, not a competing offer.
     @ViewBuilder private var bundleOffer: some View {
-        if let bundle {
+        if showsBundleOffer, let bundlePriceLabel {
             Button { Task { await buy(bundle) } } label: {
                 VStack(spacing: 3) {
-                    Text("Or take every pack · \(bundle.displayPrice)")
+                    Text("Or take every pack · \(bundlePriceLabel)")
                         .font(Typography.sans(14, weight: .bold))
                         .foregroundStyle(Palette.cream)
                     Text("\(bundleStockCount) looks, one payment")
