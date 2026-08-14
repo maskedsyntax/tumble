@@ -18,6 +18,15 @@ struct PackPaywallView: View {
     private var product: Product? { app.purchases.product(for: pack) }
     private var owned: Bool { app.purchases.ownsPack(pack.id) }
 
+    /// The all-packs bundle, offered under the single pack - but only while
+    /// there is still something left to bundle.
+    private var bundle: Product? {
+        app.purchases.ownsEveryPack ? nil : app.purchases.bundleProduct
+    }
+    private var bundleStockCount: Int {
+        FilmStockCatalog.packs.filter { !$0.isFree }.reduce(0) { $0 + FilmStockCatalog.stocks(in: $1.id).count }
+    }
+
     private let columns = [GridItem(.adaptive(minimum: 96, maximum: 140), spacing: 12)]
 
     var body: some View {
@@ -35,6 +44,7 @@ struct PackPaywallView: View {
                     }
 
                     action
+                    bundleOffer
                     restore
                 }
                 .padding(.horizontal, 22)
@@ -95,6 +105,31 @@ struct PackPaywallView: View {
         }
     }
 
+    /// The upsell: every pack for less than the sum of its parts. Shown under
+    /// the single-pack button so it reads as an upgrade, not a competing offer.
+    @ViewBuilder private var bundleOffer: some View {
+        if let bundle {
+            Button { Task { await buy(bundle) } } label: {
+                VStack(spacing: 3) {
+                    Text("Or take every pack · \(bundle.displayPrice)")
+                        .font(Typography.sans(14, weight: .bold))
+                        .foregroundStyle(Palette.cream)
+                    Text("\(bundleStockCount) looks, one payment")
+                        .font(Typography.sans(12))
+                        .foregroundStyle(Palette.cream.opacity(0.65))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(Palette.gold.opacity(0.45), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(busy)
+        }
+    }
+
     private var restore: some View {
         Button { Task { await app.purchases.restore() } } label: {
             Text("Restore purchases")
@@ -106,8 +141,8 @@ struct PackPaywallView: View {
         .buttonStyle(.plain)
     }
 
-    private func buy() async {
-        guard let product else { return }
+    private func buy(_ product: Product? = nil) async {
+        guard let product = product ?? self.product else { return }
         busy = true
         defer { busy = false }
         if await app.purchases.purchase(product), owned {

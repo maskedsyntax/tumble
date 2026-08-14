@@ -177,6 +177,23 @@ public enum FilmStockCatalog {
         public static let warmArchive = "warmArchive"
     }
 
+    /// Buys every paid pack at once, for less than the sum of its parts. Not a
+    /// pack itself - it owns no stocks, it just unlocks the ones that exist -
+    /// so it lives here rather than in `packs`.
+    public static let bundleProductID = "com.tumble.pack.all"
+
+    /// Every product that can unlock the pack, cheapest path first. Ownership of
+    /// any one of these is enough.
+    public static func unlockProductIDs(for packID: String) -> [String] {
+        guard let productID = pack(for: packID)?.productID else { return [] }
+        return [productID, bundleProductID]
+    }
+
+    /// Every paid product the store should load: the packs plus the bundle.
+    public static var allProductIDs: [String] {
+        packs.compactMap(\.productID) + [bundleProductID]
+    }
+
     public static let packs: [FilmPack] = [
         FilmPack(
             id: PackID.core,

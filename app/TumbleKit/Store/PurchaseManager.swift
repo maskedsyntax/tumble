@@ -22,7 +22,7 @@ public final class PurchaseManager {
     /// resolve their ownership through `ownsPack`, not `entitlement`.
     @ObservationIgnored private let tierProductIDs = ["com.tumble.plus", "com.tumble.unlimited"]
     @ObservationIgnored private lazy var productIDs: [String] =
-        tierProductIDs + FilmStockCatalog.packs.compactMap(\.productID)
+        tierProductIDs + FilmStockCatalog.allProductIDs
     @ObservationIgnored private var updatesTask: Task<Void, Never>?
 
     public init() {}
@@ -54,11 +54,23 @@ public final class PurchaseManager {
     }
 
     /// Whether the shooter can use a pack. The free pack is always unlocked;
-    /// paid packs unlock on purchase.
+    /// paid packs unlock either on their own purchase or through the all-packs
+    /// bundle.
     public func ownsPack(_ packID: String) -> Bool {
         guard let pack = FilmStockCatalog.pack(for: packID) else { return false }
-        guard let productID = pack.productID else { return true }
-        return ownedProductIDs.contains(productID)
+        guard pack.productID != nil else { return true }
+        return FilmStockCatalog.unlockProductIDs(for: packID).contains(where: ownedProductIDs.contains)
+    }
+
+    /// Whether every paid pack is unlocked - the bundle's job, but also true
+    /// once the packs have been bought one by one.
+    public var ownsEveryPack: Bool {
+        FilmStockCatalog.packs.allSatisfy { ownsPack($0.id) }
+    }
+
+    /// The StoreKit product for the all-packs bundle, if loaded.
+    public var bundleProduct: Product? {
+        products.first { $0.id == FilmStockCatalog.bundleProductID }
     }
 
     /// Whether a stock is available to apply, i.e. its pack is owned.

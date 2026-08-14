@@ -25,6 +25,36 @@ struct FilmStockCatalogTests {
         }
     }
 
+    // MARK: Bundle
+
+    @Test func bundleIsNamespacedAndNotAPack() {
+        #expect(FilmStockCatalog.bundleProductID.hasPrefix("com.tumble.pack."))
+        // The bundle unlocks packs, it is never itself one.
+        #expect(!FilmStockCatalog.packs.compactMap(\.productID).contains(FilmStockCatalog.bundleProductID))
+    }
+
+    @Test func everyPaidPackUnlocksViaItsOwnProductOrTheBundle() {
+        for pack in FilmStockCatalog.packs where !pack.isFree {
+            let ids = FilmStockCatalog.unlockProductIDs(for: pack.id)
+            #expect(ids.contains(pack.productID!))
+            #expect(ids.contains(FilmStockCatalog.bundleProductID))
+        }
+    }
+
+    @Test func freePackNeedsNoUnlockProduct() {
+        #expect(FilmStockCatalog.unlockProductIDs(for: FilmStockCatalog.PackID.core).isEmpty)
+        #expect(FilmStockCatalog.unlockProductIDs(for: "nonsense").isEmpty)
+    }
+
+    @Test func allProductIDsCoversEveryPaidPackPlusTheBundle() {
+        let ids = FilmStockCatalog.allProductIDs
+        #expect(Set(ids).count == ids.count)
+        #expect(ids.contains(FilmStockCatalog.bundleProductID))
+        for pack in FilmStockCatalog.packs where !pack.isFree {
+            #expect(ids.contains(pack.productID!))
+        }
+    }
+
     @Test func exactlyOnePackIsFree() {
         let free = FilmStockCatalog.packs.filter(\.isFree)
         #expect(free.count == 1)

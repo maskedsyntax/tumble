@@ -11,8 +11,9 @@ import { Stamp } from "./FilmEdge";
  * same idea as the app, but the real grade runs through Core Image on device.
  * They're honest impressions, not pixel-exact renders.
  *
- * PRICING: film packs aren't priced on the site yet. Fill `price` on each paid
- * pack below when the App Store prices are set — search "PRICE TBD".
+ * PRICING: packs are $1.99 each, or $4.99 for all three — one-time, never a
+ * subscription. Keep these in step with `app/Tumble.storekit` and App Store
+ * Connect; Apple converts to local currency automatically.
  */
 
 const SAMPLE = "/frames/frame-1.jpg";
@@ -27,7 +28,7 @@ type Pack = {
   blurb: string;
   /** true = bundled free with the app. */
   free: boolean;
-  /** Paid packs only. PRICE TBD: set a string like "$2.99" to show it; null hides the amount. */
+  /** Paid packs only; null on the free pack. */
   price: string | null;
   looks: Look[];
 };
@@ -53,7 +54,7 @@ const PACKS: Pack[] = [
     name: "Ninety-Six",
     blurb: "Drugstore disposables, flash and all.",
     free: false,
-    price: null, // PRICE TBD
+    price: "$1.99",
     looks: [
       { name: "Disposable", filter: "saturate(1.2) contrast(1.12) sepia(0.16) brightness(1.02)" },
       { name: "Flash Night", filter: "contrast(1.32) saturate(1.1) brightness(0.98)", overlay: "flash" },
@@ -67,7 +68,7 @@ const PACKS: Pack[] = [
     name: "Darkroom",
     blurb: "Black and white, printed by hand.",
     free: false,
-    price: null, // PRICE TBD
+    price: "$1.99",
     looks: [
       { name: "Silver", filter: "grayscale(1) contrast(1.12)" },
       { name: "Charcoal", filter: "grayscale(1) contrast(1.5) brightness(0.94)" },
@@ -81,7 +82,7 @@ const PACKS: Pack[] = [
     name: "Long Summer",
     blurb: "Leaks, flares and blown-out afternoons.",
     free: false,
-    price: null, // PRICE TBD
+    price: "$1.99",
     looks: [
       { name: "Light Leak", filter: "saturate(1.1) sepia(0.14) brightness(1.03)", overlay: "leakCorner" },
       { name: "Golden Hour", filter: "sepia(0.3) saturate(1.16) brightness(1.03)" },
@@ -220,8 +221,13 @@ export default function FilmPacks() {
         ))}
       </div>
 
-      <p className="mt-8 text-center text-xs text-cream/45">
-        Film packs are in the works · one-time unlocks · restore anytime
+      <p className="mt-8 text-center text-sm text-cream/70">
+        <span className="font-semibold text-gold">$1.99</span> a pack, or{" "}
+        <span className="font-semibold text-gold">$4.99</span> for all three &mdash;
+        fifteen looks, one payment.
+      </p>
+      <p className="mt-2 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-cream/45">
+        In the works · one-time unlocks · restore anytime
       </p>
     </section>
   );
