@@ -124,6 +124,9 @@ struct HomeScreen: View {
         .sheet(isPresented: .constant(ProcessInfo.processInfo.arguments.contains("-postcardSheet"))) {
             PostcardSaveSheet(photo: photos.first(where: \.isDeveloped), onSave: {})
                 .presentationDetents([.large])
+                // The look shelf reads AppModel for pack ownership, and a sheet
+                // does not inherit it.
+                .environment(app)
         }
         // Debug: open a film pack's store card, for App Review screenshots.
         // `-packPaywall nineties` and friends; see DebugLaunch.

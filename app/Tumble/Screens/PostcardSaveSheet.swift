@@ -26,6 +26,7 @@ struct PostcardSaveSheet: View {
 
     @State private var note = ""
     @State private var image: UIImage?
+    @FocusState private var noteFocused: Bool
     /// Bumped whenever the look changes, to re-render the preview.
     @State private var lookRefresh = 0
 
@@ -52,32 +53,59 @@ struct PostcardSaveSheet: View {
         ZStack {
             GraincoreBackground()
 
+            // Header and Save stay put; everything between them scrolls. As a
+            // plain VStack this screen was ~750pt of content in ~810pt of
+            // sheet, so raising the keyboard squashed the note field to a
+            // sliver and pushed the frame thumbnails over their own labels.
             VStack(spacing: 0) {
                 header
+                    .padding(.horizontal, 20)
                     .padding(.top, 10)
 
-                preview
-                    .padding(.top, 14)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        preview
+                            .padding(.top, 12)
 
-                if photo != nil {
-                    noteEditor
-                        .padding(.top, 14)
+                        // The look comes first: it is the choice that changes
+                        // the photo, and the reason to open this screen at all.
+                        lookPicker
+                            .padding(.top, 18)
+
+                        if photo != nil {
+                            noteEditor
+                                .padding(.top, 18)
+                        }
+
+                        framePicker
+                            .padding(.top, 18)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
                 }
-
-                lookPicker
-                    .padding(.top, 14)
-
-                framePicker
-                    .padding(.top, 14)
+                .scrollDismissesKeyboard(.interactively)
+                .scrollBounceBehavior(.basedOnSize)
 
                 footer
-                    .padding(.top, 14)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 18)
             }
-            .padding(.horizontal, 20)
+        }
+        .toolbar {
+            // Without this the keyboard has no way out: the note is a
+            // multi-line field, so Return inserts a newline rather than
+            // dismissing.
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { noteFocused = false }
+                    .font(Typography.sans(15, weight: .semibold))
+                    .foregroundStyle(Palette.gold)
+            }
         }
         .onAppear {
             note = photo?.caption ?? ""
+            if DebugLaunch.focusesNote { noteFocused = true }
         }
         .task(id: "\(previewSource?.id.uuidString ?? "none")|\(previewSource?.filterID ?? "")|\(lookRefresh)") {
             guard let source = previewSource else { return }
@@ -157,7 +185,9 @@ struct PostcardSaveSheet: View {
             TextField("Add a note…", text: $note, axis: .vertical)
                 .font(Typography.script(21))
                 .foregroundStyle(Palette.cream)
-                .lineLimit(2)
+                .focused($noteFocused)
+                .lineLimit(2...4)
+                .frame(minHeight: 46, alignment: .topLeading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(Palette.charcoalDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -205,8 +235,11 @@ struct PostcardSaveSheet: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     VStack(spacing: 6) {
+                        // A fixed box per column. The thumbnail is sized from
+                        // the frame's own aspect so the tallest style still
+                        // lands inside it and never covers the label below.
                         thumbnail(for: style)
-                            .frame(height: 68)
+                            .frame(width: 60, height: 62)
                         Text(style.shortName)
                             .font(Typography.sans(9.5, weight: frameStyle == style ? .bold : .medium))
                             .foregroundStyle(frameStyle == style ? Palette.gold : Palette.cream.opacity(0.6))
@@ -235,7 +268,7 @@ struct PostcardSaveSheet: View {
                 note: note.isEmpty ? nil : note,
                 capturedAt: source.capturedAt,
                 seed: source.id.stableSeed,
-                width: 64 / style.aspect
+                width: 58 / style.aspect
             )
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .overlay(

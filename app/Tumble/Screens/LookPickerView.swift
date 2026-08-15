@@ -136,7 +136,10 @@ private struct LookThumbnail: View {
                 )
         )
         .saturation(locked ? 0.85 : 1)
-        .task(id: "\(photoID)|\(stock.id)") {
+        // The photo data arrives a beat after the first render, so the id has
+        // to change when it lands - keyed on photo and stock alone, the task
+        // ran once against a nil `rawData` and every tile stayed empty.
+        .task(id: "\(photoID)|\(stock.id)|\(rawData?.count ?? 0)") {
             guard let rawData else { return }
             image = FilmPreviewRenderer.shared.preview(
                 photoID: photoID,

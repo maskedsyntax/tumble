@@ -23,6 +23,16 @@ enum DebugLaunch {
         return FilmStockCatalog.pack(for: id)
     }
 
+    /// `-focusNote` opens the postcard note with the keyboard already up, so
+    /// the squeezed-keyboard layout can be checked from the command line.
+    static var focusesNote: Bool {
+        #if DEBUG
+        return arguments.contains("-focusNote")
+        #else
+        return false
+        #endif
+    }
+
     /// True while the app is being driven to a screen for a capture.
     static var isCapturing: Bool { packPaywall != nil }
 
