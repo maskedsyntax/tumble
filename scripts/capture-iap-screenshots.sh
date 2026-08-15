@@ -26,6 +26,20 @@ PACKS=(
   "summer:com.tumble.pack.summer"
 )
 
+# App Store Connect only accepts a fixed set of screenshot dimensions, and a
+# simulator's native size is not necessarily one of them (iPhone 17 shoots
+# 1206x2622). Everything is normalised to the 6.5-inch size, which is what the
+# marketing screenshot set already uses: scale to width, then trim the few
+# leftover rows off the bottom rather than squash the aspect ratio.
+readonly TARGET_W=1242
+readonly TARGET_H=2688
+
+resize() {
+  local file="$1"
+  sips --resampleWidth "$TARGET_W" "$file" >/dev/null
+  sips -c "$TARGET_H" "$TARGET_W" "$file" >/dev/null
+}
+
 device="$(xcrun simctl list devices booted | grep -Eo '[0-9A-Fa-f-]{36}' | head -1 || true)"
 if [ -z "$device" ]; then
   device="$(xcrun simctl list devices available | grep 'iPhone 17 (' | grep -Eo '[0-9A-Fa-f-]{36}' | head -1)"
@@ -51,6 +65,7 @@ for entry in "${PACKS[@]}"; do
   xcrun simctl launch "$device" "$APP_ID" -seed -skipOnboard -packPaywall "$pack" >/dev/null
   sleep 6   # let the sample scene render through all five stocks
   xcrun simctl io "$device" screenshot --type=png "$OUT_DIR/$product.png" >/dev/null
+  resize "$OUT_DIR/$product.png"
 done
 
 # The bundle is sold from the same card, under the single-pack button, so its
@@ -60,6 +75,7 @@ xcrun simctl terminate "$device" "$APP_ID" 2>/dev/null || true
 xcrun simctl launch "$device" "$APP_ID" -seed -skipOnboard -packPaywall darkroom >/dev/null
 sleep 6
 xcrun simctl io "$device" screenshot --type=png "$OUT_DIR/com.tumble.pack.all.png" >/dev/null
+resize "$OUT_DIR/com.tumble.pack.all.png"
 
 xcrun simctl terminate "$device" "$APP_ID" 2>/dev/null || true
 log "Wrote $(ls -1 "$OUT_DIR"/*.png | wc -l | tr -d ' ') screenshots to $OUT_DIR"
