@@ -8,6 +8,7 @@ import TumbleKit
 struct PostcardSaveSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var app
 
     /// The print being saved. When nil (batch save) the note editor hides and
     /// `previewPhoto` stands in for the frame previews.
@@ -21,12 +22,13 @@ struct PostcardSaveSheet: View {
 
     @AppStorage(PostcardFrameStyle.storageKey) private var frameStyleRaw = PostcardFrameStyle.none.rawValue
 
-    /// Called when a locked stock is tapped in the look picker, with its pack.
-    var onLockedPack: (FilmPack) -> Void = { _ in }
-
     @State private var note = ""
     @State private var image: UIImage?
     @FocusState private var noteFocused: Bool
+    /// The pack to sell, set by tapping a locked look. Presented from here
+    /// rather than from whoever presented this sheet: a view can only show one
+    /// sheet at a time, so a paywall anchored on the parent never appeared.
+    @State private var lockedPack: FilmPack?
     /// Bumped whenever the look changes, to re-render the preview.
     @State private var lookRefresh = 0
 
@@ -91,6 +93,11 @@ struct PostcardSaveSheet: View {
                     .padding(.top, 12)
                     .padding(.bottom, 18)
             }
+        }
+        .sheet(item: $lockedPack) { pack in
+            PackPaywallView(pack: pack)
+                .environment(app)
+                .presentationDetents([.medium, .large])
         }
         .toolbar {
             // Without this the keyboard has no way out: the note is a
@@ -219,7 +226,7 @@ struct PostcardSaveSheet: View {
                 LookPickerView(
                     photo: photo,
                     onChange: { lookRefresh += 1 },
-                    onLocked: onLockedPack
+                    onLocked: { lockedPack = $0 }
                 )
             }
         }

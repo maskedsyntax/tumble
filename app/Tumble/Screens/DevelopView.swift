@@ -25,7 +25,6 @@ struct DevelopView: View {
     @State private var isSaving = false
     @State private var saveMessage: String?
     @State private var showPostcardSheet = false
-    @State private var lockedPack: FilmPack?
 
     private var usesShake: Bool { shake.isAvailable && !reduceMotion }
     private var developed: Bool { progress >= 1 }
@@ -51,14 +50,9 @@ struct DevelopView: View {
         .sheet(isPresented: $showPostcardSheet, onDismiss: refreshPreviewImage) {
             PostcardSaveSheet(photo: photo, onSave: {
                 Task { await savePrint() }
-            }, saveEnabled: developed, onLockedPack: { lockedPack = $0 })
+            }, saveEnabled: developed)
             .presentationDetents([.large])
             .environment(app)
-        }
-        .sheet(item: $lockedPack) { pack in
-            PackPaywallView(pack: pack)
-                .environment(app)
-                .presentationDetents([.medium, .large])
         }
     }
 

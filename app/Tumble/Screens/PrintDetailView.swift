@@ -15,7 +15,6 @@ struct PrintDetailView: View {
     @State private var saveMessage: String?
     @State private var confirmRemove = false
     @State private var showPostcardSheet = false
-    @State private var lockedPack: FilmPack?
 
     init(developed: [Photo], start: Photo) {
         self.developed = developed
@@ -43,14 +42,9 @@ struct PrintDetailView: View {
         .sheet(isPresented: $showPostcardSheet) {
             PostcardSaveSheet(photo: current, onSave: {
                 Task { await saveCurrent() }
-            }, onLockedPack: { lockedPack = $0 })
+            })
             .presentationDetents([.large])
             .environment(app)
-        }
-        .sheet(item: $lockedPack) { pack in
-            PackPaywallView(pack: pack)
-                .environment(app)
-                .presentationDetents([.medium, .large])
         }
         .gesture(
             // Toss back into the drawer with a downward flick.
