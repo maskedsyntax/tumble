@@ -79,3 +79,6 @@ test-images/
 
 # Regenerate with ./scripts/capture-iap-screenshots.sh
 iap-review-screenshots/*.png
+
+# Regenerate with ./mockups-appstore-v3/render.sh
+mockups-appstore-v3/*.png
