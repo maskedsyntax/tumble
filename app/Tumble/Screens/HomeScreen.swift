@@ -19,6 +19,10 @@ struct HomeScreen: View {
     @State private var drawerResetToken = 0
     @State private var showDrawerTips = false
     @State private var showArchive = false
+    /// Debug launch routes. Seeded from the launch arguments once, then owned
+    /// by the view so the screens they present can close themselves.
+    @State private var debugPostcardSheet = ProcessInfo.processInfo.arguments.contains("-postcardSheet")
+    @State private var debugPackPaywall: FilmPack? = DebugLaunch.packPaywall
     @AppStorage("tumble.seenDrawerTips") private var seenDrawerTips = false
 
     /// Prompt to own more when the daily roll is running low.
@@ -121,7 +125,9 @@ struct HomeScreen: View {
         }
         .sheet(isPresented: $showPaywall) { PaywallView().environment(app) }
         // Debug: open the postcard studio over the first developed print.
-        .sheet(isPresented: .constant(ProcessInfo.processInfo.arguments.contains("-postcardSheet"))) {
+        // State, not `.constant` - a constant binding cannot be set back to
+        // false, so the sheet's own close button did nothing.
+        .sheet(isPresented: $debugPostcardSheet) {
             PostcardSaveSheet(photo: photos.first(where: \.isDeveloped), onSave: {})
                 .presentationDetents([.large])
                 // The look shelf reads AppModel for pack ownership, and a sheet
@@ -130,7 +136,7 @@ struct HomeScreen: View {
         }
         // Debug: open a film pack's store card, for App Review screenshots.
         // `-packPaywall nineties` and friends; see DebugLaunch.
-        .fullScreenCover(item: .constant(DebugLaunch.packPaywall)) { pack in
+        .fullScreenCover(item: $debugPackPaywall) { pack in
             PackPaywallView(pack: pack)
                 .environment(app)
         }
