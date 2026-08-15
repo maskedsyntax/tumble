@@ -779,7 +779,7 @@ func pageRoll() {
         headlineSize: 100
     )
 
-    let board = r(margin, 780, W - margin * 2, 470)
+    let board = r(margin, 820, W - margin * 2, 470)
     C.cream.withAlphaComponent(0.06).setFill()
     rounded(board, 28).fill()
 
@@ -807,39 +807,59 @@ func pageRoll() {
     }
 
     text("Five taken. Seven still waiting.",
-         r(margin, 1300, W - margin * 2, 60),
+         r(margin, 1344, W - margin * 2, 60),
          font: font("Georgia-Italic", 34), color: C.cream.withAlphaComponent(0.66), align: .center)
 
-    // The promise, which is the reason to tap Get.
-    let panel = r(margin, 1440, W - margin * 2, 700)
+    // The promise, which is the last thing read before the Get button. Laid
+    // out as a menu - name left, price right - so the eye can run down the
+    // price column alone and see that none of them repeat.
+    let tiers: [(String, String, String)] = [
+        ("The daily roll", "Twelve shots, every morning", "Free"),
+        ("Plus", "72 shots a day", "$5.99"),
+        ("Unlimited", "No daily limit at all", "$11.99"),
+        ("Film packs", "Five looks each", "$1.99"),
+    ]
+
+    let rowHeight: CGFloat = 132
+    let panelTop: CGFloat = 1476
+    let panelHeight = 128 + rowHeight * CGFloat(tiers.count) + 104
+    let panel = r(margin, panelTop, W - margin * 2, panelHeight)
+
     C.cream.withAlphaComponent(0.05).setFill()
     rounded(panel, 28).fill()
-    C.gold.withAlphaComponent(0.30).setStroke()
+    C.gold.withAlphaComponent(0.32).setStroke()
     let outline = rounded(panel, 28)
     outline.lineWidth = 2
     outline.stroke()
 
     text("PAY ONCE. NEVER AGAIN.",
-         CGRect(x: panel.minX, y: panel.maxY - 96, width: panel.width, height: 46),
+         r(margin, panelTop + 46, panel.width, 46),
          font: mono(27), color: C.gold, tracking: 3.2, align: .center)
 
-    let rows2: [(String, String)] = [
-        ("Free", "12 shots a day, forever"),
-        ("Plus · $5.99", "72 shots a day, one-time"),
-        ("Unlimited · $11.99", "No daily limit, one-time"),
-        ("Film packs · $1.99", "Five looks each, one-time"),
-    ]
-    for (i, entry) in rows2.enumerated() {
-        let y = panel.maxY - 190 - CGFloat(i) * 118
-        text(entry.0, CGRect(x: panel.minX + 54, y: y, width: panel.width - 108, height: 50),
-             font: sansBold(34), color: C.cream)
-        text(entry.1, CGRect(x: panel.minX + 54, y: y - 44, width: panel.width - 108, height: 44),
-             font: sans(27), color: C.cream.withAlphaComponent(0.58))
-        if i < rows2.count - 1 {
-            C.cream.withAlphaComponent(0.10).setFill()
-            NSBezierPath(rect: CGRect(x: panel.minX + 54, y: y - 62, width: panel.width - 108, height: 1.5)).fill()
+    let pad: CGFloat = 56
+    for (i, row) in tiers.enumerated() {
+        let top = panelTop + 128 + CGFloat(i) * rowHeight
+
+        if i > 0 {
+            C.cream.withAlphaComponent(0.09).setFill()
+            NSBezierPath(rect: r(margin + pad, top - 1, panel.width - pad * 2, 1.5)).fill()
         }
+
+        text(row.0, r(margin + pad, top + 26, panel.width - pad * 2 - 260, 50),
+             font: sansBold(35), color: C.cream)
+        text(row.1, r(margin + pad, top + 74, panel.width - pad * 2 - 260, 44),
+             font: sans(27), color: C.cream.withAlphaComponent(0.55))
+
+        // The price column: gold, right-aligned, one weight heavier than the
+        // label so it is the thing that scans.
+        text(row.2, r(margin + pad, top + 34, panel.width - pad * 2, 60),
+             font: display(38), color: row.2 == "Free" ? C.cream : C.gold,
+             tracking: -0.5, align: .right)
     }
+
+    text("No subscriptions. No renewals. Ever.",
+         r(margin, panelTop + panelHeight - 78, panel.width, 54),
+         font: font("Georgia-Italic", 31), color: C.cream.withAlphaComponent(0.62), align: .center)
 
     footnote("NO ADS · NO FEED · NO ANALYTICS")
 }
