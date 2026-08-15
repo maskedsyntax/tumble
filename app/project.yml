@@ -12,7 +12,13 @@ settings:
     # Persist the signing team across `xcodegen generate` so device builds
     # don't reset to "None". This is the "Aftaab Siddiqui" team.
     DEVELOPMENT_TEAM: GVGJLY2H53
-    MARKETING_VERSION: "1.2"
+    # Version 1.2 is released and its train is closed - App Store Connect
+    # rejects any further build carrying it (ITMS-90186 / ITMS-90062). The
+    # look-first release changes what the app is, so it takes a whole number.
+    #
+    # CURRENT_PROJECT_VERSION only matters for uploads from a Mac: Xcode Cloud
+    # sets CFBundleVersion from its own build number and ignores this.
+    MARKETING_VERSION: "2.0"
     CURRENT_PROJECT_VERSION: "5"
     TARGETED_DEVICE_FAMILY: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
