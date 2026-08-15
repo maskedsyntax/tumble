@@ -1,7 +1,17 @@
 # Tumble App Store screenshots — v3, the look-first set
 
-Six portrait screenshots at **1242 x 2688**, opaque 24-bit RGB PNG. Upload in
-the numbered order.
+Six portrait screenshots, opaque 24-bit RGB PNG, in two sizes. Upload in the
+numbered order.
+
+- **`*.png` at the folder root — 1320 x 2868 (6.9-inch).** The size App Store
+  Connect asks for first; it scales this set down for every smaller device, so
+  normally this is the only set you upload.
+- **`6.5-inch/` — 1242 x 2688.** Kept for the older slot, and what the previous
+  submissions used.
+
+The layout is authored once in 6.5-inch points and drawn through a scale, so
+text and shapes are rendered at the output resolution rather than resampled up
+from a smaller image.
 
 ## Upload order, and why it is this order
 
@@ -50,6 +60,6 @@ AI-generated imagery, no simulator placeholder scenes.
 ./mockups-appstore-v3/render.sh
 ```
 
-Compiles `main.swift` together with the app's film-stock catalog and writes the
-six PNGs here. The PNGs are not committed — one command regenerates them, and a
+Compiles `main.swift` together with the app's film-stock catalog and writes
+both sizes. The PNGs are not committed — one command regenerates them, and a
 stale screenshot is worse than none.

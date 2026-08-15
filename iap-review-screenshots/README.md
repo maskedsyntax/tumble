@@ -19,11 +19,13 @@ locked look — with that pack's five stocks rendered over one shared sample
 scene. The bundle is sold from the same card, under the single-pack button, so
 its screenshot is the same card with the "take every pack" offer visible.
 
-All four are **1242 x 2688** (the 6.5-inch size). App Store Connect accepts
-only a fixed set of screenshot dimensions, and a simulator's native size is not
-one of them - iPhone 17 shoots 1206 x 2622, which is rejected with "the
-dimensions of one or more screenshots are wrong". The capture script normalises
-every file, so re-run it rather than uploading a raw simulator capture.
+All four are **1320 x 2868** (the 6.9-inch size), captured natively on a Pro Max
+simulator so nothing is resampled. App Store Connect accepts only a fixed set of
+screenshot dimensions and a simulator's native size is not necessarily one of
+them - iPhone 17 shoots 1206 x 2622, which is rejected with "the dimensions of
+one or more screenshots are wrong". The capture script prefers a Pro Max device
+and normalises anything else, so re-run it rather than uploading a raw capture
+from another simulator.
 
 ## Regenerating
 

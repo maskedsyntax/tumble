@@ -19,8 +19,27 @@ import Foundation
 
 // MARK: - Canvas
 
+/// The layout is authored in 6.5-inch points and drawn through a scale, so the
+/// same composition exports at any of App Store Connect's accepted sizes with
+/// live text and shapes rendered at the output resolution rather than resampled.
 let W: CGFloat = 1242
 let H: CGFloat = 2688
+
+struct Canvas {
+    let name: String
+    let width: CGFloat
+    let height: CGFloat
+    /// Where the files land: the primary size at the folder root, others beside
+    /// it in their own directory.
+    let subdirectory: String?
+}
+
+let canvases: [Canvas] = [
+    // 6.9-inch is what App Store Connect asks for first; it scales this set
+    // down for every smaller device.
+    Canvas(name: "6.9-inch", width: 1320, height: 2868, subdirectory: nil),
+    Canvas(name: "6.5-inch", width: 1242, height: 2688, subdirectory: "6.5-inch"),
+]
 
 let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 let outDir = repoRoot.appendingPathComponent("mockups-appstore-v3")
@@ -447,21 +466,34 @@ func printCard(_ image: NSImage?, at rect: CGRect, caption: String? = nil, rotat
 // MARK: - Pages
 
 func page(_ number: Int, _ name: String, _ body: () -> Void) {
+    for canvas in canvases { render(number, name, canvas, body) }
+}
+
+func render(_ number: Int, _ name: String, _ canvas: Canvas, _ body: () -> Void) {
     // Drawn into an explicit 1x, opaque bitmap: `NSImage.lockFocus` would take
     // the backing scale of whatever display is attached and hand back a 2x
     // image, which is not a size App Store Connect accepts.
     guard let rep = NSBitmapImageRep(
         bitmapDataPlanes: nil,
-        pixelsWide: Int(W), pixelsHigh: Int(H),
+        pixelsWide: Int(canvas.width), pixelsHigh: Int(canvas.height),
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-    ), let canvas = NSGraphicsContext(bitmapImageRep: rep) else {
+    ), let context = NSGraphicsContext(bitmapImageRep: rep) else {
         fatalError("could not allocate the canvas")
     }
 
     NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = canvas
-    canvas.imageInterpolation = .high
+    NSGraphicsContext.current = context
+    context.imageInterpolation = .high
+
+    // Cover the whole output, then centre: the two accepted aspect ratios differ
+    // by less than half a percent, so the overflow trimmed here is ~3px a side.
+    let scale = max(canvas.width / W, canvas.height / H)
+    let transform = NSAffineTransform()
+    transform.translateX(by: (canvas.width - W * scale) / 2, yBy: (canvas.height - H * scale) / 2)
+    transform.scale(by: scale)
+    transform.concat()
+
     background()
     body()
     grainOverlay()
@@ -472,20 +504,25 @@ func page(_ number: Int, _ name: String, _ body: () -> Void) {
     // Connect rejects a screenshot that still carries one.
     guard let drawn = rep.cgImage,
           let rgb = CGContext(
-              data: nil, width: Int(W), height: Int(H),
+              data: nil, width: Int(canvas.width), height: Int(canvas.height),
               bitsPerComponent: 8, bytesPerRow: 0,
               space: CGColorSpaceCreateDeviceRGB(),
               bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.noneSkipLast.rawValue
           )
     else { fatalError("could not flatten the canvas") }
-    rgb.draw(drawn, in: CGRect(x: 0, y: 0, width: W, height: H))
+    rgb.draw(drawn, in: CGRect(x: 0, y: 0, width: canvas.width, height: canvas.height))
     guard let flattened = rgb.makeImage(),
           let png = NSBitmapImageRep(cgImage: flattened).representation(using: .png, properties: [:])
     else { fatalError("encode failed") }
 
-    let file = outDir.appendingPathComponent(String(format: "%02d-%@.png", number, name))
+    var directory = outDir
+    if let subdirectory = canvas.subdirectory {
+        directory = outDir.appendingPathComponent(subdirectory)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+    let file = directory.appendingPathComponent(String(format: "%02d-%@.png", number, name))
     try? png.write(to: file)
-    FileHandle.standardOutput.write("  wrote \(file.lastPathComponent)\n".data(using: .utf8)!)
+    FileHandle.standardOutput.write("  wrote \(canvas.name)/\(file.lastPathComponent)\n".data(using: .utf8)!)
 }
 
 /// A print mid-develop: the image rising out of blank stock.

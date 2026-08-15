@@ -27,22 +27,27 @@ PACKS=(
 )
 
 # App Store Connect only accepts a fixed set of screenshot dimensions, and a
-# simulator's native size is not necessarily one of them (iPhone 17 shoots
-# 1206x2622). Everything is normalised to the 6.5-inch size, which is what the
-# marketing screenshot set already uses: scale to width, then trim the few
-# leftover rows off the bottom rather than squash the aspect ratio.
-readonly TARGET_W=1242
-readonly TARGET_H=2688
+# simulator's native size is not necessarily one of them - iPhone 17 shoots
+# 1206x2622, which is rejected. The 6.9-inch Pro Max models capture 1320x2868
+# natively, so preferring one of those means no resampling at all; the resize
+# below is a safety net for when only another device is available.
+readonly TARGET_W=1320
+readonly TARGET_H=2868
 
 resize() {
   local file="$1"
+  local w
+  w="$(sips -g pixelWidth "$file" | awk '/pixelWidth/ {print $2}')"
+  local h
+  h="$(sips -g pixelHeight "$file" | awk '/pixelHeight/ {print $2}')"
+  [ "$w" = "$TARGET_W" ] && [ "$h" = "$TARGET_H" ] && return 0
   sips --resampleWidth "$TARGET_W" "$file" >/dev/null
   sips -c "$TARGET_H" "$TARGET_W" "$file" >/dev/null
 }
 
 device="$(xcrun simctl list devices booted | grep -Eo '[0-9A-Fa-f-]{36}' | head -1 || true)"
 if [ -z "$device" ]; then
-  device="$(xcrun simctl list devices available | grep 'iPhone 17 (' | grep -Eo '[0-9A-Fa-f-]{36}' | head -1)"
+  device="$(xcrun simctl list devices available | grep -E 'iPhone .*Pro Max' | grep -Eo '[0-9A-Fa-f-]{36}' | head -1)"
   log "Booting simulator $device"
   xcrun simctl boot "$device"
 fi
