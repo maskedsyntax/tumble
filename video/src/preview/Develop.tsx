@@ -90,7 +90,7 @@ export const Develop: React.FC = () => {
 						position: 'absolute',
 						left: 0,
 						right: 0,
-						bottom: 0,
+						bottom: 90,
 						textAlign: 'center',
 						opacity: hint,
 						fontFamily: sans,

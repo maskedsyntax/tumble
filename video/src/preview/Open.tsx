@@ -64,7 +64,10 @@ export const Open: React.FC = () => {
 				}}
 			/>
 
-			<AbsoluteFill style={{padding: '120px 88px 130px', justifyContent: 'space-between'}}>
+			{/* Bottom padding is deep on purpose: a preview plays inside a player
+			    whose controls sit along the lower edge, and type that close to
+			    the edge reads as falling out of frame. */}
+			<AbsoluteFill style={{padding: '120px 88px 300px', justifyContent: 'space-between'}}>
 				<div style={{display: 'flex', gap: 22, opacity: label}}>
 					<Tag>YOUR CAMERA</Tag>
 					<Tag gold>TUMBLE</Tag>

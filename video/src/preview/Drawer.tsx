@@ -56,7 +56,7 @@ export const Drawer: React.FC = () => {
 						position: 'absolute',
 						left: 0,
 						right: 0,
-						bottom: 0,
+						bottom: 90,
 						textAlign: 'center',
 						opacity: interpolate(frame, [64, 80], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
 						fontFamily: sans,
