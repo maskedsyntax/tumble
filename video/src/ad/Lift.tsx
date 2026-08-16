@@ -18,7 +18,9 @@ export const Lift: React.FC = () => {
 
 	const size = interpolate(rise, [0, 1], [start.size, 660]);
 	const x = interpolate(rise, [0, 1], [start.x, (1080 - 660) / 2]);
-	const y = interpolate(rise, [0, 1], [start.y, 1920 * 0.30]);
+	// 0.235 rather than 0.30: at 0.30 the print's bottom edge landed 13px inside
+	// the headline's cap height, so the type read as stuck to the picture.
+	const y = interpolate(rise, [0, 1], [start.y, 1920 * 0.235]);
 	const tilt = interpolate(rise, [0, 1], [0, -3.5]);
 
 	// The stock grows under the photo as it lands, so it turns into a print
@@ -60,7 +62,7 @@ export const Lift: React.FC = () => {
 				/>
 			</div>
 
-			<AbsoluteFill style={{padding: '0 96px', justifyContent: 'flex-end', paddingBottom: 300}}>
+			<AbsoluteFill style={{padding: '0 96px', justifyContent: 'flex-end', paddingBottom: 260}}>
 				<div
 					style={{
 						opacity: question,
