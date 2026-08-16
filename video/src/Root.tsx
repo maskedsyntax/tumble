@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Composition, Sequence} from 'remotion';
 import {FPS} from './theme';
-import {MusicBed} from './components/Music';
+import {AD_TRACK, MusicBed} from './components/Music';
 import {Hook} from './scenes/Hook';
 import {Roll} from './scenes/Roll';
 import {Shake} from './scenes/Shake';
@@ -96,12 +96,15 @@ const totalOf = (scenes: SceneSpec[]) => {
 	return last.from + last.duration;
 };
 
-const Film: React.FC<{scenes: SceneSpec[]; musicOffset: number}> = ({
-	scenes,
-	musicOffset,
-}) => (
+const Film: React.FC<{
+	scenes: SceneSpec[];
+	musicOffset: number;
+	track?: string;
+	rise?: number;
+	fall?: number;
+}> = ({scenes, musicOffset, track, rise, fall}) => (
 	<AbsoluteFill style={{backgroundColor: '#1B2733'}}>
-		<MusicBed offsetSeconds={musicOffset} />
+		<MusicBed offsetSeconds={musicOffset} track={track} rise={rise} fall={fall} />
 		{layout(scenes).map(({Comp, from, duration}, i) => (
 			<Sequence key={i} from={from} durationInFrames={duration}>
 				<Comp />
@@ -122,8 +125,13 @@ const ShortFilm: React.FC = () => <Film scenes={SHORT} musicOffset={124.91} />;
 // "wait for it." rather than under the pricing line.
 const PreviewFilm: React.FC = () => <Film scenes={PREVIEW} musicOffset={124.6} />;
 
-// Ad: 24.9s, anchored the same way - the track's decay lands on "wait for it."
-const AdFilm: React.FC = () => <Film scenes={AD} musicOffset={128.4} />;
+// The ad runs on its own bed, cut to length by scripts/build-ad-audio.sh so the
+// track's hardest entry (144.000s in the source) lands on frame 250 - the cut
+// into "what if you only got twelve a day?". Playing from 0 with almost no
+// ramps here, because that file already carries its own fades.
+const AdFilm: React.FC = () => (
+	<Film scenes={AD} musicOffset={0} track={AD_TRACK} rise={2} fall={2} />
+);
 
 export const RemotionRoot: React.FC = () => {
 	return (

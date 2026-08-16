@@ -22,26 +22,37 @@ export const TRACK = 'warm-tape-drift.m4a';
 /// clamping it.
 const BASE = 0.95;
 
+/// "Glass Circuit" (Suno, paid plan), cut to length for the ad by
+/// `scripts/build-ad-audio.sh` - the edit is baked into the file so the track's
+/// hardest transient sits on the ad's turn rather than wherever it fell.
+export const AD_TRACK = 'glass-circuit-ad.wav';
+
 export const MusicBed: React.FC<{
 	/** Seconds into the track that the film's frame 0 should play. */
 	offsetSeconds: number;
-}> = ({offsetSeconds}) => {
+	/** Defaults to the long cue; a pre-cut bed passes its own file. */
+	track?: string;
+	/** Frames of fade at each end. A pre-cut bed carries its own, so it asks
+	 *  for almost none here. */
+	rise?: number;
+	fall?: number;
+}> = ({offsetSeconds, track = TRACK, rise: riseFrames = 26, fall: fallFrames = 22}) => {
 	const {fps, durationInFrames} = useVideoConfig();
 
 	return (
 		<Audio
-			src={staticFile(TRACK)}
+			src={staticFile(track)}
 			trimBefore={Math.round(offsetSeconds * fps)}
 			volume={(frame) => {
 				// Soft entry so the film does not start on a hard transient, and a
 				// short assist at the tail to reach true silence on the last frame.
-				const rise = interpolate(frame, [0, 26], [0, 1], {
+				const rise = interpolate(frame, [0, Math.max(1, riseFrames)], [0, 1], {
 					extrapolateLeft: 'clamp',
 					extrapolateRight: 'clamp',
 				});
 				const fall = interpolate(
 					frame,
-					[durationInFrames - 22, durationInFrames - 1],
+					[durationInFrames - Math.max(1, fallFrames), durationInFrames - 1],
 					[1, 0],
 					{extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
 				);

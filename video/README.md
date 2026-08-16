@@ -34,6 +34,32 @@ so it opens on something they already feel rather than on a feature.
 | `Keepsake` | Prints pile up and age, one carrying handwriting | *A drawer you will open in ten years.* What they gain, made physical. |
 | `Ask` | Roll fills behind the button | Free to start, pay once, no account, no cloud. |
 
+### Its music is cut to it
+
+`scripts/build-ad-audio.sh` cuts the bed from "Glass Circuit" (2:42) to the
+ad's exact 25.07s. The cut point is chosen, not arbitrary: the track's hardest
+entry — a ~15 dB jump inside one 20 ms frame at 144.0s — is placed on the ad's
+turn, the cut from *you will never scroll far enough to find it* into *what if
+you only got twelve a day?*
+
+Everything else falls out of that anchor, because the track runs at ~73.2 BPM
+(0.820s a beat):
+
+| Ad | Track | What you hear |
+|---|---|---|
+| 0–8.3s | 135.7–144.0 | Sparse and unresolved, under the buried camera roll |
+| **8.33s** | **144.0** | **The entry**, on the cut to Tumble |
+| 10.80s | 146.5 | Beat 3 after the entry — the shake starts on it |
+| 14.4–20s | 150.1–155.7 | Full band under the drawer of prints |
+| 20–25.1s | 155.7–160.8 | Resolves, then decays under the ask |
+
+Two details that matter if you re-cut it. The bed is **PCM, not AAC**, and
+normalised with a **linear** two-pass `loudnorm` — single-pass loudnorm is
+dynamic and reshapes the envelope, and AAC priming shifts playback by a frame
+or two. And `START` is tuned against the transient's position in the *rendered
+mp4*, not in the source file, because that is where sync has to be true. It
+lands within 2 ms of the cut.
+
 Deliberately **not** a countdown claiming the viewer has shots left: they have
 not installed anything, and a fake counter is a lie the first launch exposes.
 The urgency is the idea, not a timer.
