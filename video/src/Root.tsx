@@ -16,6 +16,11 @@ import {Develop} from './preview/Develop';
 import {Postcards} from './preview/Postcards';
 import {Drawer as PreviewDrawer} from './preview/Drawer';
 import {Close} from './preview/Close';
+import {Buried} from './ad/Buried';
+import {Lift} from './ad/Lift';
+import {Twelve} from './ad/Twelve';
+import {Keepsake} from './ad/Keepsake';
+import {Ask} from './ad/Ask';
 
 // Scenes overlap by `OVERLAP` frames so each one dissolves into the next.
 const OVERLAP = 10;
@@ -58,6 +63,18 @@ const PREVIEW: SceneSpec[] = [
 	{Comp: Postcards, seconds: 4.4},
 	{Comp: PreviewDrawer, seconds: 4.2},
 	{Comp: Close, seconds: 5.0},
+];
+
+/// The paid social ad. Not a feature tour: it opens on something the viewer
+/// already feels - a camera roll they never revisit - and only offers Tumble
+/// once that loss is on the table. The last card counts today's roll down,
+/// because the thing they are missing has a clock on it.
+const AD: SceneSpec[] = [
+	{Comp: Buried, seconds: 4.6},
+	{Comp: Lift, seconds: 4.4},
+	{Comp: Twelve, seconds: 6.4},
+	{Comp: Keepsake, seconds: 5.6},
+	{Comp: Ask, seconds: 5.4},
 ];
 
 const layout = (scenes: SceneSpec[]) =>
@@ -105,6 +122,9 @@ const ShortFilm: React.FC = () => <Film scenes={SHORT} musicOffset={124.91} />;
 // "wait for it." rather than under the pricing line.
 const PreviewFilm: React.FC = () => <Film scenes={PREVIEW} musicOffset={124.6} />;
 
+// Ad: 24.9s, anchored the same way - the track's decay lands on "wait for it."
+const AdFilm: React.FC = () => <Film scenes={AD} musicOffset={128.4} />;
+
 export const RemotionRoot: React.FC = () => {
 	return (
 		<>
@@ -113,6 +133,15 @@ export const RemotionRoot: React.FC = () => {
 				id="TumbleFilm"
 				component={FullFilm}
 				durationInFrames={totalOf(FULL)}
+				fps={FPS}
+				width={1080}
+				height={1920}
+			/>
+			{/* Paid social: Reels, TikTok, Shorts. */}
+			<Composition
+				id="TumbleAd"
+				component={AdFilm}
+				durationInFrames={totalOf(AD)}
 				fps={FPS}
 				width={1080}
 				height={1920}

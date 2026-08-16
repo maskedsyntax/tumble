@@ -5,6 +5,7 @@ geometry and photography.
 
 | Composition | Length | Use |
 |---|---|---|
+| `TumbleAd` | 25.1 s | **Paid social** — Reels, TikTok, Shorts |
 | `TumblePreview` | 28.4 s | **App Store Connect app preview for 2.0** (30 s cap) |
 | `TumbleFilm` | 38.9 s | Site hero, YouTube, Reels / TikTok / Shorts |
 | `TumbleFilmShort` | 26.8 s | The 1.2 preview, kept until 2.0 ships |
@@ -14,9 +15,32 @@ All 1080 × 1920, 30 fps, H.264.
 ```sh
 npm start                                   # Remotion Studio
 npx remotion render TumblePreview out/tumble-preview-2.0.mp4
+npx remotion render TumbleAd out/tumble-ad-nostalgia.mp4
 npx remotion render TumbleFilm out/tumble-film.mp4
 npm run typecheck
 ```
+
+## The ad
+
+`src/ad/` — a different job from the preview. The preview sells the app to
+someone already reading its store page; the ad has to stop a stranger mid-scroll,
+so it opens on something they already feel rather than on a feature.
+
+| Beat | On screen | Doing |
+|---|---|---|
+| `Buried` | A camera roll scrolling past too fast to see, draining of colour as it stops | *14,000 photos this year. When did you last look at one?* The loss, stated before any product exists. |
+| `Lift` | One photo rises out of the wall and becomes a print | *Somewhere in there is a photo you loved. You will never scroll far enough to find it.* |
+| `Twelve` | Twelve slots fill; a print develops in the hand | *What if you only got twelve a day?* — the offer as a question they answer themselves. |
+| `Keepsake` | Prints pile up and age, one carrying handwriting | *A drawer you will open in ten years.* What they gain, made physical. |
+| `Ask` | Roll fills behind the button | Free to start, pay once, no account, no cloud. |
+
+Deliberately **not** a countdown claiming the viewer has shots left: they have
+not installed anything, and a fake counter is a lie the first launch exposes.
+The urgency is the idea, not a timer.
+
+The wall is real photography, ungraded — `scripts/render-video-looks.sh` writes
+`public/roll/` alongside `public/looks/`, so the flat phone photo and the film
+print in the same ad come from the same source frame.
 
 ## The 2.0 preview
 

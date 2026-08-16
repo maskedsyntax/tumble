@@ -56,13 +56,13 @@ let supporting: [String: String] = [
     "snow": "sunbleached",
 ]
 
-func squareCrop(_ image: CIImage) -> CIImage {
+func squareCrop(_ image: CIImage, side target: CGFloat = side) -> CIImage {
     let e = image.extent
     let s = min(e.width, e.height)
     let crop = image.cropped(to: CGRect(x: e.midX - s / 2, y: e.midY - s / 2, width: s, height: s))
     let scaled = crop
         .transformed(by: CGAffineTransform(translationX: -crop.extent.origin.x, y: -crop.extent.origin.y))
-        .transformed(by: CGAffineTransform(scaleX: side / s, y: side / s))
+        .transformed(by: CGAffineTransform(scaleX: target / s, y: target / s))
     return scaled
 }
 
@@ -71,6 +71,23 @@ func write(_ image: CIImage, to url: URL) {
     let rep = NSBitmapImageRep(cgImage: cg)
     guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.92]) else { return }
     try? data.write(to: url)
+}
+
+// The ad plays a buried camera roll against a drawer of prints, so it needs the
+// ungraded originals too - the flat phone photo is half of that argument.
+let rollDir = repo.appendingPathComponent("video/public/roll")
+try? FileManager.default.createDirectory(at: rollDir, withIntermediateDirectories: true)
+
+let archiveDir = repo.appendingPathComponent("mockups-appstore/assets/archive")
+if let names = try? FileManager.default.contentsOfDirectory(atPath: archiveDir.path).sorted() {
+    var rollCount = 0
+    for name in names where name.lowercased().hasSuffix(".jpg") {
+        guard let raw = CIImage(contentsOf: archiveDir.appendingPathComponent(name)) else { continue }
+        let square = squareCrop(raw, side: 520)
+        write(square, to: rollDir.appendingPathComponent(name))
+        rollCount += 1
+    }
+    FileHandle.standardOutput.write("Wrote \(rollCount) ungraded squares to video/public/roll\n".data(using: .utf8)!)
 }
 
 var written = 0
