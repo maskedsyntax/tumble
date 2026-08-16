@@ -10,6 +10,12 @@ import {Filters} from './scenes/Filters';
 import {FramesScene} from './scenes/FramesScene';
 import {Private} from './scenes/Private';
 import {CTA} from './scenes/CTA';
+import {Open} from './preview/Open';
+import {Looks} from './preview/Looks';
+import {Develop} from './preview/Develop';
+import {Postcards} from './preview/Postcards';
+import {Drawer as PreviewDrawer} from './preview/Drawer';
+import {Close} from './preview/Close';
 
 // Scenes overlap by `OVERLAP` frames so each one dissolves into the next.
 const OVERLAP = 10;
@@ -38,6 +44,20 @@ const SHORT: SceneSpec[] = [
 	{Comp: Drawer, seconds: 4.6},
 	{Comp: FramesScene, seconds: 4.4},
 	{Comp: CTA, seconds: 5.8},
+];
+
+/// The 2.0 preview: look first. The old cut opened on the twelve-shot roll,
+/// which asks a stranger to care about a constraint before they have seen
+/// anything they want - so this one opens on the grade sweeping across a
+/// photograph, spends its longest beat on the stocks, and keeps the roll and
+/// the price for the ask at the end.
+const PREVIEW: SceneSpec[] = [
+	{Comp: Open, seconds: 4.0},
+	{Comp: Looks, seconds: 6.8},
+	{Comp: Develop, seconds: 5.6},
+	{Comp: Postcards, seconds: 4.4},
+	{Comp: PreviewDrawer, seconds: 4.2},
+	{Comp: Close, seconds: 5.0},
 ];
 
 const layout = (scenes: SceneSpec[]) =>
@@ -81,6 +101,10 @@ const FullFilm: React.FC = () => <Film scenes={FULL} musicOffset={112.77} />;
 // full bar on the pricing cards and its decay on "Wait for it."
 const ShortFilm: React.FC = () => <Film scenes={SHORT} musicOffset={124.91} />;
 
+// 2.0 preview: 28.7s, so 124.6s puts the track's decay (148.0-153.3s) under
+// "wait for it." rather than under the pricing line.
+const PreviewFilm: React.FC = () => <Film scenes={PREVIEW} musicOffset={124.6} />;
+
 export const RemotionRoot: React.FC = () => {
 	return (
 		<>
@@ -93,7 +117,16 @@ export const RemotionRoot: React.FC = () => {
 				width={1080}
 				height={1920}
 			/>
-			{/* Under 30s, for App Store Connect app previews. */}
+			{/* The 2.0 App Store preview - look first, under 30s. */}
+			<Composition
+				id="TumblePreview"
+				component={PreviewFilm}
+				durationInFrames={totalOf(PREVIEW)}
+				fps={FPS}
+				width={1080}
+				height={1920}
+			/>
+			{/* The 1.2 cut, kept while 2.0 is unreleased. */}
 			<Composition
 				id="TumbleFilmShort"
 				component={ShortFilm}

@@ -1,21 +1,51 @@
 # Tumble promo film (Remotion)
 
-Two vertical cuts of the same eight scenes, rendered in code from the app's own
-palette, type ramp, print geometry and photography.
+Vertical cuts rendered in code from the app's own palette, type ramp, print
+geometry and photography.
 
 | Composition | Length | Use |
 |---|---|---|
+| `TumblePreview` | 28.4 s | **App Store Connect app preview for 2.0** (30 s cap) |
 | `TumbleFilm` | 38.9 s | Site hero, YouTube, Reels / TikTok / Shorts |
-| `TumbleFilmShort` | 26.8 s | App Store Connect app preview (30 s cap) |
+| `TumbleFilmShort` | 26.8 s | The 1.2 preview, kept until 2.0 ships |
 
-Both are 1080 × 1920, 30 fps, H.264.
+All 1080 × 1920, 30 fps, H.264.
 
 ```sh
 npm start                                   # Remotion Studio
+npx remotion render TumblePreview out/tumble-preview-2.0.mp4
 npx remotion render TumbleFilm out/tumble-film.mp4
-npx remotion render TumbleFilmShort out/tumble-preview-appstore.mp4
 npm run typecheck
 ```
+
+## The 2.0 preview
+
+`src/preview/` — six beats, cut look-first, because the App Store shows the
+opening seconds and the 1.2 cut spent them on the twelve-shot roll: a
+constraint, asked of someone who has not yet seen anything they want.
+
+| Beat | Hook | Why it is there |
+|---|---|---|
+| `Open` | *Not a filter. A film stock.* | The grade sweeps across a real photograph. One frame that answers "why install this". |
+| `Looks` | *One shot. Every film.* | The longest beat, because the stocks are the product. Twelve looks cycle on one photo, then the shelf they came from. |
+| `Develop` | *Shake it. Watch it come up.* | The ritual nobody else has, at its real pace. |
+| `Postcards` | *Made to be sent.* | The keepsake, mounted four ways. |
+| `Drawer` | *A pile of prints.* | The Drawer as the heap it imitates. |
+| `Close` | *Twelve shots a day.* | Constraint, then the offer: pay once, no account, no cloud. |
+
+The looks are not CSS approximations. `scripts/render-video-looks.sh` renders
+one photograph through the app's real catalog and the real grade pipeline
+(`scripts/film-grade.swift`, ported from `TumblePhotoFilter`) into
+`public/looks/`. Re-run it after tuning any grade, or the film drifts from the
+app.
+
+> **Before uploading**: Apple expects an app preview to be captured from the
+> app running on a device. This film is a composed piece using the app's own
+> surfaces rather than screen capture, which is how the 1.2 cut was built too —
+> but that cut was never submitted, so the treatment is untested with App
+> Review. If it comes back rejected, the fix is a screen recording of the same
+> six beats, and this cut still earns its keep on the site and social.
+
 
 ## Why it looks like the app
 

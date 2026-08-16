@@ -3,5 +3,5 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-swiftc -O mockups-appstore-v3/main.swift app/TumbleKit/Filter/FilmStock.swift -o /tmp/tumble-render-v3
+swiftc -O mockups-appstore-v3/main.swift scripts/film-grade.swift app/TumbleKit/Filter/FilmStock.swift -o /tmp/tumble-render-v3
 /tmp/tumble-render-v3
