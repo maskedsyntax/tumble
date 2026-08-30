@@ -11,8 +11,15 @@ set -e
 echo "▸ Installing XcodeGen"
 brew install --quiet xcodegen
 
-echo "▸ Installing PostHog CLI for release symbol uploads"
-npm install --global @posthog/cli@0.16.0
+if [ -n "${POSTHOG_CLI_API_KEY:-}" ]; then
+  echo "▸ Installing PostHog CLI 0.16.0 for release symbol uploads"
+  export POSTHOG_CLI_UNMANAGED_INSTALL="$CI_PRIMARY_REPOSITORY_PATH/app/.ci-bin"
+  curl --proto '=https' --tlsv1.2 -LsSf \
+    'https://github.com/PostHog/posthog/releases/download/posthog-cli%2Fv0.16.0/posthog-cli-installer.sh' \
+    | sh
+else
+  echo "▸ POSTHOG_CLI_API_KEY is not configured; skipping PostHog CLI installation"
+fi
 
 echo "▸ Generating Tumble.xcodeproj from project.yml"
 cd "$CI_PRIMARY_REPOSITORY_PATH/app"

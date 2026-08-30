@@ -88,4 +88,5 @@ video/public/looks/
 
 # Local analytics credentials and PostHog wizard state
 app/.env
+app/.ci-bin/
 .posthog-wizard-cache/

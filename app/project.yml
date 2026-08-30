@@ -105,6 +105,7 @@ targets:
           export POSTHOG_CLI_HOST="${POSTHOG_CLI_HOST:-https://us.posthog.com}"
           export POSTHOG_CLI_PROJECT_ID="${POSTHOG_CLI_PROJECT_ID:-585380}"
           export POSTHOG_SKIP_ON_CONFLICT=1
+          export PATH="$SRCROOT/.ci-bin:$PATH"
           "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh"
     info:
       path: Tumble/Info.plist
