@@ -2,6 +2,19 @@ import Foundation
 import StoreKit
 import Observation
 
+public enum PurchaseOutcome: String, Sendable, CaseIterable {
+    case completed
+    case cancelled
+    case pending
+    case unverified
+    case error
+}
+
+public enum RestoreOutcome: String, Sendable, CaseIterable {
+    case completed
+    case error
+}
+
 /// StoreKit 2, one-time purchases only. Loads the Plus and Unlimited products,
 /// tracks owned entitlements, and resolves the highest tier - which then drives
 /// the daily Roll. No subscriptions, ever.
@@ -79,26 +92,37 @@ public final class PurchaseManager {
     }
 
     @discardableResult
-    public func purchase(_ product: Product) async -> Bool {
-        guard let result = try? await product.purchase() else { return false }
-        switch result {
-        case .success(let verification):
-            guard case .verified(let transaction) = verification else { return false }
-            await transaction.finish()
-            await refreshEntitlements()
-            return true
-        case .userCancelled, .pending:
-            return false
-        @unknown default:
-            return false
+    public func purchase(_ product: Product) async -> PurchaseOutcome {
+        do {
+            let result = try await product.purchase()
+            switch result {
+            case .success(let verification):
+                guard case .verified(let transaction) = verification else { return .unverified }
+                await transaction.finish()
+                await refreshEntitlements()
+                return .completed
+            case .userCancelled:
+                return .cancelled
+            case .pending:
+                return .pending
+            @unknown default:
+                return .error
+            }
+        } catch {
+            return .error
         }
     }
 
     /// Restore prior purchases (App Store sync). One-time buys are recoverable
     /// on any of the shooter's devices.
-    public func restore() async {
-        try? await AppStore.sync()
-        await refreshEntitlements()
+    public func restore() async -> RestoreOutcome {
+        do {
+            try await AppStore.sync()
+            await refreshEntitlements()
+            return .completed
+        } catch {
+            return .error
+        }
     }
 
     public func refreshEntitlements() async {

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// The look shelf: choose the film stock a single print is developed with.
@@ -67,6 +68,7 @@ struct LookPickerView: View {
             } else {
                 photo.filmStock = stock
                 try? context.save()
+                TumbleAnalytics.shared.capture(.filmStockSelected(filmStockID: stock.id, packID: pack.id))
                 onChange()
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }

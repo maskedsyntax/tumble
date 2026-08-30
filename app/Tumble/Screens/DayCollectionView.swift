@@ -1,4 +1,5 @@
 import SwiftUI
+import TumbleAnalytics
 import TumbleKit
 
 /// A single local-day collection. It keeps the print feeling, but uses lazy
@@ -69,6 +70,7 @@ struct DayCollectionView: View {
             .presentationDetents([.large])
             .environment(app)
         }
+        .onAppear { TumbleAnalytics.shared.screen(.collection) }
     }
 
     private var header: some View {
@@ -154,8 +156,28 @@ struct DayCollectionView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             saveMessage = message(for: result, style: frameStyle)
         }
-        if case .saved = result {
+        if case .saved(let count) = result {
+            TumbleAnalytics.shared.capture(.photoSaved(
+                format: frameStyle == .none ? "photo" : "postcard",
+                frameStyle: frameStyle.rawValue,
+                photoCount: count
+            ))
             ReviewPrompter.shared.recordSavedToPhotos()
+        } else {
+            TumbleAnalytics.shared.capture(.photoSaveFailed(
+                reason: analyticsFailureReason(result),
+                format: frameStyle == .none ? "photo" : "postcard",
+                photoCount: developed.count
+            ))
+        }
+    }
+
+    private func analyticsFailureReason(_ result: PhotoLibrarySaveResult) -> String {
+        switch result {
+        case .saved: "none"
+        case .noDevelopedPhotos: "not_developed"
+        case .denied: "permission_denied"
+        case .failed: "library_error"
         }
     }
 

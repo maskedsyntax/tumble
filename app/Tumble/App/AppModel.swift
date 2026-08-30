@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// App-wide state: the daily Roll and the capture pipeline. Purchases are wired
@@ -21,6 +22,7 @@ final class AppModel {
 
     init(roll: RollManager = RollManager()) {
         self.roll = roll
+        TumbleAnalytics.shared.updateEntitlement(roll.entitlement)
     }
 
     /// Load StoreKit state and point the Roll at the owned tier.
@@ -32,6 +34,7 @@ final class AppModel {
     /// Push the resolved entitlement into the Roll (call after a purchase/restore).
     func syncEntitlement() {
         roll.entitlement = purchases.entitlement
+        TumbleAnalytics.shared.updateEntitlement(purchases.entitlement)
     }
 
     /// Coming to the foreground: pick up a midnight rollover, and **end** the

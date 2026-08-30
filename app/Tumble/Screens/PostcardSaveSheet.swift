@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// The postcard studio: pick a frame, scribble a note, choose the memory
@@ -46,6 +47,10 @@ struct PostcardSaveSheet: View {
         } else {
             frameStyleRaw = style.rawValue
         }
+        TumbleAnalytics.shared.capture(.postcardFrameSelected(
+            frameStyle: style.rawValue,
+            scope: photo == nil ? "batch" : "single"
+        ))
     }
 
     /// The print the previews render from.
@@ -95,7 +100,7 @@ struct PostcardSaveSheet: View {
             }
         }
         .sheet(item: $lockedPack) { pack in
-            PackPaywallView(pack: pack)
+            PackPaywallView(pack: pack, source: "postcard_studio")
                 .environment(app)
                 .presentationDetents([.medium, .large])
         }
@@ -111,6 +116,7 @@ struct PostcardSaveSheet: View {
             }
         }
         .onAppear {
+            TumbleAnalytics.shared.screen(.postcardStudio)
             note = photo?.caption ?? ""
             if DebugLaunch.focusesNote { noteFocused = true }
         }

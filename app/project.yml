@@ -5,6 +5,11 @@ options:
     iOS: "18.0"
   createIntermediateGroups: true
 
+packages:
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios.git
+    exactVersion: 3.70.1
+
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -41,6 +46,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.kit
         SWIFT_EMIT_LOC_STRINGS: NO
 
+  # ---- Shared analytics boundary -----------------------------------------
+  TumbleAnalytics:
+    type: framework
+    platform: iOS
+    sources:
+      - TumbleAnalytics
+    dependencies:
+      - target: TumbleKit
+      - package: PostHog
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.analytics
+        SWIFT_EMIT_LOC_STRINGS: NO
+
   # ---- Main app -----------------------------------------------------------
   Tumble:
     type: application
@@ -49,6 +68,7 @@ targets:
       - Tumble
     dependencies:
       - target: TumbleKit
+      - target: TumbleAnalytics
       - target: TumbleControls
       - target: TumbleCapture
       - target: TumbleIsland
@@ -68,11 +88,31 @@ targets:
         INFOPLIST_KEY_NSMotionUsageDescription: "Tumble reads motion so you can shake a shot to develop it."
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tumble saves developed prints to your photo library when you ask."
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        POSTHOG_PROJECT_TOKEN: ${POSTHOG_PROJECT_TOKEN}
+        POSTHOG_HOST: ${POSTHOG_HOST}
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      - name: Upload dSYMs to PostHog
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)
+        script: |
+          if [ "$CONFIGURATION" != "Release" ]; then exit 0; fi
+          if [ -z "$POSTHOG_CLI_API_KEY" ]; then
+            echo "warning: POSTHOG_CLI_API_KEY is missing; skipping PostHog dSYM upload"
+            exit 0
+          fi
+          export POSTHOG_CLI_HOST="${POSTHOG_CLI_HOST:-https://us.posthog.com}"
+          export POSTHOG_CLI_PROJECT_ID="${POSTHOG_CLI_PROJECT_ID:-585380}"
+          export POSTHOG_SKIP_ON_CONFLICT=1
+          "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh"
     info:
       path: Tumble/Info.plist
       properties:
         # No non-exempt encryption — skips the export-compliance prompt on every upload.
         ITSAppUsesNonExemptEncryption: false
+        POSTHOG_PROJECT_TOKEN: $(POSTHOG_PROJECT_TOKEN)
+        POSTHOG_HOST: $(POSTHOG_HOST)
         CFBundleURLTypes:
           - CFBundleURLName: com.tumble.app
             CFBundleURLSchemes:
@@ -110,6 +150,7 @@ targets:
       - TumbleCapture
     dependencies:
       - target: TumbleKit
+      - target: TumbleAnalytics
     entitlements:
       path: TumbleCapture/TumbleCapture.entitlements
       properties:
@@ -121,11 +162,15 @@ targets:
         CFBundleDisplayName: Tumble Capture
         EXAppExtensionAttributes:
           EXExtensionPointIdentifier: com.apple.securecapture
+        POSTHOG_PROJECT_TOKEN: $(POSTHOG_PROJECT_TOKEN)
+        POSTHOG_HOST: $(POSTHOG_HOST)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.capture
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
+        POSTHOG_PROJECT_TOKEN: ${POSTHOG_PROJECT_TOKEN}
+        POSTHOG_HOST: ${POSTHOG_HOST}
 
   # ---- Dynamic Island / Live Activity surface -----------------------------
   TumbleIsland:
@@ -163,15 +208,29 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.kit.tests
 
+  TumbleAnalyticsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - TumbleAnalyticsTests
+    dependencies:
+      - target: TumbleAnalytics
+      - target: TumbleKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.analytics.tests
+
 schemes:
   Tumble:
     build:
       targets:
         Tumble: all
         TumbleKitTests: [test]
+        TumbleAnalyticsTests: [test]
     run:
       storeKitConfiguration: Tumble.storekit
     test:
       targets:
         - TumbleKitTests
+        - TumbleAnalyticsTests
       gatherCoverageData: true

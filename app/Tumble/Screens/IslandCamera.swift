@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// The camera as a window you pull *out of* the Dynamic Island.
@@ -110,7 +111,10 @@ struct IslandCamera: View {
                 progress = 1
             }
         }
-        .onDisappear { camera.stop() }
+        .onDisappear {
+            camera.stop()
+            TumbleAnalytics.shared.resumeReplay()
+        }
     }
 
     /// Invisible catcher over the physical island (and a comfortable margin
@@ -464,6 +468,8 @@ struct IslandCamera: View {
     private func open() {
         startCameraIfNeeded()
         opened = true
+        TumbleAnalytics.shared.screen(.camera)
+        TumbleAnalytics.shared.pauseReplay()
         withAnimation(.spring(response: 0.42, dampingFraction: 0.84)) { progress = 1 }
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
@@ -471,6 +477,8 @@ struct IslandCamera: View {
     private func close() {
         guard !isCapturing else { return }
         opened = false
+        TumbleAnalytics.shared.resumeReplay()
+        TumbleAnalytics.shared.screen(.drawer)
         withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { progress = 0 }
         // Stop the session once it has fully retracted.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
@@ -529,6 +537,10 @@ struct IslandCamera: View {
         guard let image = pendingCaptureImage else { return }
         pendingCaptureImage = nil
         if app.store(rawImage: image, in: context) {
+            TumbleAnalytics.shared.capture(.photoCaptured(
+                source: PhotoSource.app.rawValue,
+                remainingAfter: app.roll.remaining
+            ))
             onCaptured()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }

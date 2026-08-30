@@ -5,7 +5,7 @@ import {Body, Closer, Headline, Kicker} from '../components/Type';
 import {palette, sans} from '../theme';
 
 // Each of these is a real property of the shipped app, not a positioning line.
-const ABSENT = ['No account', 'No cloud', 'No feed', 'No ads', 'No analytics SDK'];
+const ABSENT = ['No account', 'No photo cloud', 'No feed', 'No ads', 'No ad tracking'];
 
 /// Scene 7 — the objection handler. Every camera app asks for something; this
 /// one is a list of things it never asks for, struck through one by one.

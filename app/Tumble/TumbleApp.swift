@@ -1,9 +1,14 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 @main
 struct TumbleApp: App {
+    init() {
+        TumbleAnalytics.shared.configure(.mainApp)
+    }
+
     @State private var app = AppModel()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("tumble.hasOnboarded") private var hasOnboarded = false

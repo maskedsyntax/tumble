@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// The app's home. The whole screen is the **Drawer** - your pile of prints -
@@ -13,6 +14,7 @@ struct HomeScreen: View {
     @State private var selected: Photo?
     @State private var selectedDay: PhotoDay?
     @State private var showPaywall = false
+    @State private var paywallSource = "about"
     @State private var nudgeDismissed = false
     @State private var nudgeDrag = CGSize.zero
     @State private var drawerCanReset = false
@@ -83,7 +85,7 @@ struct HomeScreen: View {
                     screenWidth: geo.size.width,
                     topInset: geo.safeAreaInsets.top,
                     hasIsland: geo.safeAreaInsets.top >= 51,
-                    onNeedMore: { showPaywall = true },
+                    onNeedMore: { showRollPaywall(source: "capture_limit") },
                     autoOpen: ProcessInfo.processInfo.arguments.contains("-island")
                 )
                 .environment(app)
@@ -123,7 +125,7 @@ struct HomeScreen: View {
             ArchiveView(days: archiveDays)
                 .environment(app)
         }
-        .sheet(isPresented: $showPaywall) { PaywallView().environment(app) }
+        .sheet(isPresented: $showPaywall) { PaywallView(source: paywallSource).environment(app) }
         // Debug: open the postcard studio over the first developed print.
         // State, not `.constant` - a constant binding cannot be set back to
         // false, so the sheet's own close button did nothing.
@@ -149,6 +151,7 @@ struct HomeScreen: View {
             nudgeDrag = .zero
         }
         .onAppear {
+            TumbleAnalytics.shared.screen(.drawer)
             app.roll.refresh()
             DebugSeed.run(in: context)
             app.capturedCount = photos.count
@@ -162,7 +165,7 @@ struct HomeScreen: View {
             } else if ProcessInfo.processInfo.arguments.contains("-detail") {
                 selected = photos.first { $0.isDeveloped }
             }
-            if ProcessInfo.processInfo.arguments.contains("-paywall") { showPaywall = true }
+            if ProcessInfo.processInfo.arguments.contains("-paywall") { showRollPaywall(source: "about") }
             if ProcessInfo.processInfo.arguments.contains("-lowroll") {
                 for _ in 0..<10 { app.roll.consumeShot() }
             }
@@ -203,7 +206,7 @@ struct HomeScreen: View {
                     .transition(.scale(scale: 0.82).combined(with: .opacity))
                 }
 
-                Button { showPaywall = true } label: {
+                Button { showRollPaywall(source: "about") } label: {
                     Image(systemName: "info.circle")
                         .font(.system(size: 17, weight: .regular))
                         .foregroundStyle(Palette.cream)
@@ -267,7 +270,7 @@ struct HomeScreen: View {
                     .foregroundStyle(Palette.cream.opacity(0.65))
             }
             Spacer(minLength: 8)
-            Button { showPaywall = true } label: {
+            Button { showRollPaywall(source: isEmpty ? "empty_roll" : "low_roll") } label: {
                 Text("Pay once")
                     .font(Typography.sans(13, weight: .bold))
                     .foregroundStyle(Palette.ink)
@@ -324,6 +327,11 @@ struct HomeScreen: View {
             nudgeDrag = .zero
             nudgeDismissed = true
         }
+    }
+
+    private func showRollPaywall(source: String) {
+        paywallSource = source
+        showPaywall = true
     }
 
     // MARK: Just-in-time Drawer tip
@@ -426,6 +434,7 @@ private struct ArchiveView: View {
             DayCollectionView(day: day)
                 .environment(app)
         }
+        .onAppear { TumbleAnalytics.shared.screen(.archive) }
     }
 }
 

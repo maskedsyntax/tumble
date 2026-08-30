@@ -45,7 +45,7 @@ Hey,
 
 Most camera apps make it easier to take more photos. Tumble is trying something smaller and stranger: a camera that makes each photo feel slightly more intentional.
 
-Free users get twelve shots a day. Fresh prints start blank. You shake to develop them. Everything stays on device, with no account, no cloud, and no subscription.
+Free users get twelve shots a day. Fresh prints start blank. You shake to develop them. Photos stay on device, with no account, no photo cloud, and no subscription.
 
 The limit is the point. It turns the camera back into a small ritual instead of another infinite surface.
 

@@ -15,17 +15,20 @@ This is the native iOS app that the marketing site (`../web`) is a waitlist for.
 
 ```sh
 cd app
-xcodegen generate        # writes Tumble.xcodeproj from project.yml
+cp .env.example .env     # add the PostHog project token
+./scripts/generate-project.sh
 open Tumble.xcodeproj
 ```
 
 The `.xcodeproj` is generated and git-ignored; edit `project.yml` to change
-targets/settings, then regenerate.
+targets/settings, then regenerate with the script. The script exports local
+`.env` values before XcodeGen resolves the analytics build settings. PostHog's
+project token is a client-side ingestion token, never a personal API key.
 
 ## Build & test from the CLI
 
 ```sh
-xcodegen generate
+./scripts/generate-project.sh
 xcodebuild -scheme Tumble -destination 'generic/platform=iOS Simulator' build
 xcodebuild -scheme Tumble -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
@@ -43,7 +46,8 @@ xcodebuild -scheme Tumble -destination 'platform=iOS Simulator,name=iPhone 17 Pr
 All product rules live in `TumbleKit` so the lock-screen extension enforces the
 same Roll and writes to the same Drawer via a shared **App Group**
 (`group.com.tumble`). Photos are SwiftData rows; the image bytes are files in the
-shared container. No networking beyond StoreKit.
+shared container. Photos and postcard notes remain local; StoreKit and optional
+anonymous PostHog analytics are the app's networked services.
 
 ### Signature pieces
 

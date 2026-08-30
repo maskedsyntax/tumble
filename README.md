@@ -49,7 +49,7 @@ Not a camera roll and not a grid. Your home is a scattered pile of prints. Over 
 ### Private by design
 **On-device. No subscriptions.**
 
-No account to create. No cloud to sync to. No analytics SDK. Photos stay on your phone. Free to start, with optional one-time unlocks if you want a bigger roll.
+No account to create. No photo cloud to sync to. Photos and postcard notes stay on your phone. Tumble uses optional anonymous product analytics and masked diagnostics, switchable from Plans & About. Free to start, with optional one-time unlocks if you want a bigger roll.
 
 ---
 

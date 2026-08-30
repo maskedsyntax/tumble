@@ -2,6 +2,7 @@ import AVFoundation
 import StoreKit
 import SwiftData
 import SwiftUI
+import TumbleAnalytics
 import TumbleKit
 
 /// First-run onboarding built around *doing*, not watching. The shooter takes a
@@ -47,15 +48,29 @@ struct OnboardingScreen: View {
             await app.startStore()
             applyDebugStep()
         }
+        .onChange(of: step, initial: true) { _, newStep in
+            let screen: AnalyticsScreen = switch newStep {
+            case .welcome: .onboardingWelcome
+            case .capture: .onboardingCapture
+            case .develop: .onboardingDevelop
+            case .payoff: .onboardingPayoff
+            case .premium: .onboardingPremium
+            }
+            TumbleAnalytics.shared.screen(screen)
+        }
     }
 
     @ViewBuilder private func content(compact: Bool) -> some View {
         switch step {
         case .welcome:
-            WelcomeStep(compact: compact) { advance(.capture) }
+            WelcomeStep(compact: compact) {
+                TumbleAnalytics.shared.capture(.onboardingStarted)
+                advance(.capture)
+            }
         case .capture:
             CaptureStep(compact: compact) { image in
                 capturedImage = image
+                TumbleAnalytics.shared.capture(.onboardingStepCompleted(step: "first_capture"))
                 advance(.develop)
             }
         case .develop:
@@ -105,8 +120,14 @@ struct OnboardingScreen: View {
         guard let product = app.purchases.product(for: tier), busy == nil else { return }
         busy = tier.productID
         defer { busy = nil }
-        if await app.purchases.purchase(product) {
+        TumbleAnalytics.shared.capture(.purchaseStarted(productID: product.id, productType: "tier", source: "onboarding"))
+        let outcome = await app.purchases.purchase(product)
+        TumbleAnalytics.shared.capture(.purchaseFinished(
+            productID: product.id, productType: "tier", source: "onboarding", outcome: outcome.rawValue
+        ))
+        if outcome == .completed {
             app.syncEntitlement()
+            TumbleAnalytics.shared.capture(.onboardingCompleted(path: "purchase", tier: tier.rawValue))
             onDone()
         }
     }
@@ -115,9 +136,15 @@ struct OnboardingScreen: View {
         guard busy == nil else { return }
         busy = "restore"
         defer { busy = nil }
-        await app.purchases.restore()
+        let outcome = await app.purchases.restore()
         app.syncEntitlement()
-        if app.purchases.entitlement > .free { onDone() }
+        TumbleAnalytics.shared.capture(.restoreFinished(
+            source: "onboarding", outcome: outcome.rawValue, entitlement: app.purchases.entitlement.rawValue
+        ))
+        if app.purchases.entitlement > .free {
+            TumbleAnalytics.shared.capture(.onboardingCompleted(path: "restore", tier: app.purchases.entitlement.rawValue))
+            onDone()
+        }
     }
 
     private func applyDebugStep() {
@@ -257,7 +284,14 @@ private struct CaptureStep: View {
         }
         .padding(.horizontal, 28)
         .task {
-            _ = await AVCaptureDevice.requestAccess(for: .video)
+            if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                TumbleAnalytics.shared.capture(.permissionResponded(
+                    permission: "camera",
+                    outcome: granted ? "granted" : "denied",
+                    context: "onboarding_capture"
+                ))
+            }
             camera.start()
         }
         .onDisappear { camera.stop() }
@@ -380,6 +414,7 @@ private struct DevelopStep: View {
     private func finish() {
         holding = false
         shake.stop()
+        TumbleAnalytics.shared.capture(.onboardingStepCompleted(step: "first_develop"))
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 }
@@ -434,7 +469,14 @@ private struct PayoffStep: View {
                 Spacer(minLength: 6)
                 Button {
                     askedNotif = true
-                    Task { await RollNotificationScheduler.requestAndSchedule() }
+                    Task {
+                        let granted = await RollNotificationScheduler.requestAndSchedule()
+                        TumbleAnalytics.shared.capture(.permissionResponded(
+                            permission: "notification",
+                            outcome: granted ? "granted" : "denied",
+                            context: "onboarding"
+                        ))
+                    }
                 } label: {
                     Text("Yes")
                         .font(Typography.sans(13, weight: .bold)).foregroundStyle(Palette.ink)
@@ -586,7 +628,10 @@ private struct PremiumOnboardingPage: View {
             }
 
             HStack(spacing: 12) {
-                Button(action: onStartFree) {
+                Button {
+                    TumbleAnalytics.shared.capture(.onboardingCompleted(path: "free", tier: Entitlement.free.rawValue))
+                    onStartFree()
+                } label: {
                     HStack(spacing: 7) {
                         Text("Start with 12 free shots")
                         Image(systemName: "arrow.right")

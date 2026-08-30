@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// A developed print pulled out of the Drawer, full-screen. Riffle left/right
@@ -55,6 +56,7 @@ struct PrintDetailView: View {
                     else { withAnimation(.spring) { dragY = 0 } }
                 }
         )
+        .onAppear { TumbleAnalytics.shared.screen(.printDetail) }
     }
 
     private var current: Photo? {
@@ -176,7 +178,18 @@ struct PrintDetailView: View {
             saveMessage = message(for: result, style: frameStyle)
         }
         if case .saved = result {
+            TumbleAnalytics.shared.capture(.photoSaved(
+                format: frameStyle == .none ? "photo" : "postcard",
+                frameStyle: frameStyle.rawValue,
+                photoCount: 1
+            ))
             ReviewPrompter.shared.recordSavedToPhotos()
+        } else {
+            TumbleAnalytics.shared.capture(.photoSaveFailed(
+                reason: analyticsFailureReason(result),
+                format: frameStyle == .none ? "photo" : "postcard",
+                photoCount: 1
+            ))
         }
     }
 
@@ -198,8 +211,18 @@ struct PrintDetailView: View {
         PhotoStore.deleteImages(for: current)
         context.delete(current)
         try? context.save()
+        TumbleAnalytics.shared.capture(.photoRemoved(state: "developed"))
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
+    }
+
+    private func analyticsFailureReason(_ result: PhotoLibrarySaveResult) -> String {
+        switch result {
+        case .saved: "none"
+        case .noDevelopedPhotos: "not_developed"
+        case .denied: "permission_denied"
+        case .failed: "library_error"
+        }
     }
 }
 

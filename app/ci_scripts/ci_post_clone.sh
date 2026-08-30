@@ -11,9 +11,12 @@ set -e
 echo "▸ Installing XcodeGen"
 brew install --quiet xcodegen
 
+echo "▸ Installing PostHog CLI for release symbol uploads"
+npm install --global @posthog/cli@0.16.0
+
 echo "▸ Generating Tumble.xcodeproj from project.yml"
 cd "$CI_PRIMARY_REPOSITORY_PATH/app"
-xcodegen generate
+./scripts/generate-project.sh
 
 echo "▸ Generated:"
 ls -d Tumble.xcodeproj

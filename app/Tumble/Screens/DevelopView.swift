@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import TumbleAnalytics
 import TumbleKit
 
 /// The develop table. A blank, face-down print you bring to life by shaking -
@@ -45,7 +46,10 @@ struct DevelopView: View {
             saveStatus
             topControls
         }
-        .task(id: photo.id) { await setup() }
+        .task(id: photo.id) {
+            TumbleAnalytics.shared.screen(.develop)
+            await setup()
+        }
         .onDisappear { persistPartialProgress(); shake.stop() }
         .sheet(isPresented: $showPostcardSheet, onDismiss: refreshPreviewImage) {
             PostcardSaveSheet(photo: photo, onSave: {
@@ -278,6 +282,11 @@ struct DevelopView: View {
         }
         renderDevelopedMemoryPhoto()
         try? context.save()
+        TumbleAnalytics.shared.capture(.photoDeveloped(
+            source: photo.source,
+            method: usesShake ? "shake" : "hold",
+            filmStockID: photo.filmStock.id
+        ))
         ReviewPrompter.shared.recordDevelopedPrint()
 
         // Let the reveal land, then bring up frame and filter options.
@@ -325,6 +334,7 @@ struct DevelopView: View {
         PhotoStore.deleteImages(for: photo)
         context.delete(photo)
         try? context.save()
+        TumbleAnalytics.shared.capture(.photoRemoved(state: developed ? "developed" : "undeveloped"))
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }
@@ -340,7 +350,27 @@ struct DevelopView: View {
             saveMessage = message(for: result, style: frameStyle)
         }
         if case .saved = result {
+            TumbleAnalytics.shared.capture(.photoSaved(
+                format: frameStyle == .none ? "photo" : "postcard",
+                frameStyle: frameStyle.rawValue,
+                photoCount: 1
+            ))
             ReviewPrompter.shared.recordSavedToPhotos()
+        } else {
+            TumbleAnalytics.shared.capture(.photoSaveFailed(
+                reason: analyticsFailureReason(result),
+                format: frameStyle == .none ? "photo" : "postcard",
+                photoCount: 1
+            ))
+        }
+    }
+
+    private func analyticsFailureReason(_ result: PhotoLibrarySaveResult) -> String {
+        switch result {
+        case .saved: "none"
+        case .noDevelopedPhotos: "not_developed"
+        case .denied: "permission_denied"
+        case .failed: "library_error"
         }
     }
 

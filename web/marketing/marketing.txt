@@ -17,7 +17,7 @@ The twist: your photos don't show up instantly. You shake your phone to
 land in a scattered pile called the Drawer instead of a grid, and they age
 over time, picking up grain, vignette, a little patina.
 
-Everything's on-device. No account, no cloud, no analytics SDK. Free to
+Photos stay on-device. No account, no photo cloud, no ad tracking. Free to
 start, with optional one-time unlocks for a bigger roll.
 
 Nostalgic film looks (think faded instant, warm archive tones) are already
@@ -120,7 +120,7 @@ CAROUSEL POST IDEAS (static photo posts)
    - "You'll actually look at these."
 
 4. Privacy claims, one per slide:
-   - "No account." / "No cloud." / "No analytics SDK." / "Everything stays
+   - "No account." / "No photo cloud." / "No ad tracking." / "Photos stay
      on your phone."
 
 5. Filter showcase (once faded-instant/warm-archive/soft-memory ship):

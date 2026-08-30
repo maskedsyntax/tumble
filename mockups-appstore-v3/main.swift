@@ -1177,7 +1177,7 @@ func v4Private() {
         v4Pill(badge, x: margin + CGFloat(i) * (badgeW + gap), y: 2240, width: badgeW,
                fill: C.cream.withAlphaComponent(0.11), color: C.cream)
     }
-    text("Everything stays on device.", r(margin, 2388, W - margin * 2, 70),
+    text("Your photos stay on device.", r(margin, 2388, W - margin * 2, 70),
          font: font("Georgia-Italic", 34), color: C.cream.withAlphaComponent(0.70), align: .center)
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import LockedCameraCapture
+import TumbleAnalytics
 import TumbleKit
 
 /// The capture UI shown on the Lock Screen. Reuses the shared viewfinder,
@@ -25,11 +26,20 @@ struct CaptureRoot: View {
             }
             Color.white.opacity(flash ? 0.85 : 0).ignoresSafeArea()
         }
+        .task {
+            TumbleAnalytics.shared.configure(.captureExtension)
+            TumbleAnalytics.shared.updateEntitlement(roll.entitlement)
+        }
     }
 
     private func capture(_ image: UIImage, into container: ModelContainer) {
         withAnimation(.easeOut(duration: 0.08)) { flash = true }
         withAnimation(.easeIn(duration: 0.25).delay(0.08)) { flash = false }
-        CaptureService.store(rawImage: image, source: .lockscreen, roll: roll, in: container.mainContext)
+        if CaptureService.store(rawImage: image, source: .lockscreen, roll: roll, in: container.mainContext) != nil {
+            TumbleAnalytics.shared.capture(.photoCaptured(
+                source: PhotoSource.lockscreen.rawValue,
+                remainingAfter: roll.remaining
+            ))
+        }
     }
 }

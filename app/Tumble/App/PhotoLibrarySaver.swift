@@ -1,5 +1,6 @@
 import Photos
 import SwiftUI
+import TumbleAnalytics
 import TumbleKit
 
 enum PhotoLibrarySaveResult: Equatable {
@@ -67,6 +68,7 @@ enum PhotoLibrarySaver {
         return renderer.uiImage?.jpegData(compressionQuality: 0.92)
     }
 
+    @MainActor
     private static func save(_ imagesData: [Data]) async -> PhotoLibrarySaveResult {
         guard await canAddToLibrary() else {
             return .denied
@@ -84,6 +86,7 @@ enum PhotoLibrarySaver {
         }
     }
 
+    @MainActor
     private static func canAddToLibrary() async -> Bool {
         switch PHPhotoLibrary.authorizationStatus(for: .addOnly) {
         case .authorized, .limited:
@@ -94,6 +97,19 @@ enum PhotoLibrarySaver {
                     continuation.resume(returning: status)
                 }
             }
+            let outcome: String = switch status {
+            case .authorized: "granted"
+            case .limited: "limited"
+            case .denied: "denied"
+            case .restricted: "restricted"
+            case .notDetermined: "not_determined"
+            @unknown default: "unknown"
+            }
+            TumbleAnalytics.shared.capture(.permissionResponded(
+                permission: "photo_library_add",
+                outcome: outcome,
+                context: "save_photo"
+            ))
             return status == .authorized || status == .limited
         case .denied, .restricted:
             return false

@@ -88,8 +88,9 @@ what makes you actually look before you press the shutter. Want more? Plus and
 Unlimited are one-time unlocks.
 
 PRIVATE BY DEFAULT
-Everything stays on your device. No account, no cloud, no analytics SDK, no
-feed. Your Drawer is yours.
+Your photos and postcard notes stay on your device. No account, no photo cloud,
+no advertising tracking, no feed. Anonymous analytics and masked diagnostics
+can be disabled in the app. Your Drawer is yours.
 
 PAY ONCE
 No subscriptions. No renewals. Ever.

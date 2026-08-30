@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import TumbleAnalytics
 import TumbleKit
 
 /// "Pay once. Never again." - the app's single Store & About screen. Shows the
@@ -7,10 +8,12 @@ import TumbleKit
 /// promise. Reached from the header, the low-roll nudge, and the empty roll.
 /// Language stays "own more", not "upgrade".
 struct PaywallView: View {
+    let source: String
     @Environment(\.dismiss) private var dismiss
     @Environment(AppModel.self) private var app
     @State private var busy: String?
     @State private var appeared = false
+    @State private var analyticsEnabled = TumbleAnalytics.shared.isEnabled
 
     private var owned: Entitlement { app.purchases.entitlement }
     private var version: String {
@@ -49,6 +52,10 @@ struct PaywallView: View {
         }
         .task {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
+            TumbleAnalytics.shared.screen(.rollPaywall)
+            TumbleAnalytics.shared.capture(.paywallViewed(
+                type: "roll", source: source, packID: nil, remainingShots: app.roll.remaining
+            ))
         }
     }
 
@@ -83,7 +90,7 @@ struct PaywallView: View {
 
     private var footer: some View {
         VStack(spacing: 16) {
-            Button { Task { await app.purchases.restore(); app.syncEntitlement() } } label: {
+            Button { Task { await restorePurchases() } } label: {
                 Text("Restore purchases")
                     .font(Typography.sans(14, weight: .semibold))
                     .foregroundStyle(Palette.cream.opacity(0.85))
@@ -98,6 +105,23 @@ struct PaywallView: View {
                 promiseItem("icloud.slash", "No cloud")
             }
             .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle("Anonymous analytics", isOn: $analyticsEnabled)
+                    .tint(Palette.gold)
+                    .font(Typography.sans(13, weight: .semibold))
+                    .onChange(of: analyticsEnabled) { _, enabled in
+                        TumbleAnalytics.shared.setEnabled(enabled)
+                    }
+                Text("Shares masked screen replays, app interactions, and crash diagnostics. Photos and postcard text are never sent.")
+                    .font(Typography.sans(11))
+                    .foregroundStyle(Palette.cream.opacity(0.55))
+                Link("Privacy policy", destination: URL(string: "https://gettumbleapp.com/privacy")!)
+                    .font(Typography.sans(11, weight: .semibold))
+                    .foregroundStyle(Palette.gold)
+            }
+            .padding(12)
+            .background(Palette.charcoalDeep.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
 
             Text("One-time purchases · no subscriptions · restore anytime")
                 .font(Typography.sans(11))
@@ -126,10 +150,25 @@ struct PaywallView: View {
         guard let product = app.purchases.product(for: tier) else { return }
         busy = tier.productID
         defer { busy = nil }
-        if await app.purchases.purchase(product) {
+        TumbleAnalytics.shared.capture(.purchaseStarted(
+            productID: product.id, productType: "tier", source: source
+        ))
+        let outcome = await app.purchases.purchase(product)
+        TumbleAnalytics.shared.capture(.purchaseFinished(
+            productID: product.id, productType: "tier", source: source, outcome: outcome.rawValue
+        ))
+        if outcome == .completed {
             app.syncEntitlement()
             dismiss()
         }
+    }
+
+    private func restorePurchases() async {
+        let outcome = await app.purchases.restore()
+        app.syncEntitlement()
+        TumbleAnalytics.shared.capture(.restoreFinished(
+            source: source, outcome: outcome.rawValue, entitlement: app.purchases.entitlement.rawValue
+        ))
     }
 
     private var closeButton: some View {

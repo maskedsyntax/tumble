@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import TumbleAnalytics
 import TumbleKit
 
 /// The film-pack store card. Reached by tapping a locked look: it shows the
@@ -8,6 +9,7 @@ import TumbleKit
 /// content, never a subscription.
 struct PackPaywallView: View {
     let pack: FilmPack
+    var source = "locked_look"
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -69,6 +71,10 @@ struct PackPaywallView: View {
             // One shared sample scene, rendered through each stock, so the tiles
             // differ only by the look.
             sampleData = FilmScene.goldenHour.image(size: 640).jpegData(compressionQuality: 0.9)
+            TumbleAnalytics.shared.screen(.filmPackPaywall)
+            TumbleAnalytics.shared.capture(.paywallViewed(
+                type: "film_pack", source: source, packID: pack.id, remainingShots: nil
+            ))
         }
     }
 
@@ -142,7 +148,7 @@ struct PackPaywallView: View {
     }
 
     private var restore: some View {
-        Button { Task { await app.purchases.restore() } } label: {
+        Button { Task { await restorePurchases() } } label: {
             Text("Restore purchases")
                 .font(Typography.sans(13, weight: .semibold))
                 .foregroundStyle(Palette.cream.opacity(0.75))
@@ -156,9 +162,25 @@ struct PackPaywallView: View {
         guard let product = product ?? self.product else { return }
         busy = true
         defer { busy = false }
-        if await app.purchases.purchase(product), owned {
+        let productType = product.id == FilmStockCatalog.bundleProductID ? "film_bundle" : "film_pack"
+        TumbleAnalytics.shared.capture(.purchaseStarted(
+            productID: product.id, productType: productType, source: source
+        ))
+        let outcome = await app.purchases.purchase(product)
+        TumbleAnalytics.shared.capture(.purchaseFinished(
+            productID: product.id, productType: productType, source: source, outcome: outcome.rawValue
+        ))
+        if outcome == .completed, owned {
             dismiss()
         }
+    }
+
+    private func restorePurchases() async {
+        let outcome = await app.purchases.restore()
+        app.syncEntitlement()
+        TumbleAnalytics.shared.capture(.restoreFinished(
+            source: source, outcome: outcome.rawValue, entitlement: app.purchases.entitlement.rawValue
+        ))
     }
 
     private var closeButton: some View {
