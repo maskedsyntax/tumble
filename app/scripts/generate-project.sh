@@ -18,3 +18,9 @@ fi
 export POSTHOG_PROJECT_TOKEN POSTHOG_HOST
 
 xcodegen generate --spec project.yml
+
+# Xcode Cloud has automatic package resolution disabled. Keep the canonical
+# lockfile outside the ignored project, then materialize it after generation.
+RESOLVED_DIR="Tumble.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
+mkdir -p "$RESOLVED_DIR"
+cp Package.resolved "$RESOLVED_DIR/Package.resolved"
