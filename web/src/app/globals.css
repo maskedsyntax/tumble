@@ -149,11 +149,29 @@ body::after {
   animation: stock-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* A blank print landing in the Drawer — used on the 404. */
+@keyframes print-settle {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-2.5deg) translateY(0);
+  }
+}
+
+.animate-print-settle {
+  transform: rotate(-2.5deg);
+  animation: print-settle 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ---- Reduced motion ----------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .release-pulse,
-  .animate-stock-in {
+  .animate-stock-in,
+  .animate-print-settle {
     animation: none !important;
   }
 }
