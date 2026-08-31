@@ -1144,7 +1144,7 @@ func v4Postcards() {
 // 07 — the category's clearest whitespace: private by architecture.
 func v4Private() {
     v4Background(V4.teal)
-    _ = v4Title("On your phone.\nNowhere else.", size: 116)
+    _ = v4Title("Your photos.\nOn your phone.", size: 116)
 
     let device = r(154, 520, 934, 1550)
     NSColor.black.withAlphaComponent(0.40).setFill()
@@ -1177,7 +1177,7 @@ func v4Private() {
         v4Pill(badge, x: margin + CGFloat(i) * (badgeW + gap), y: 2240, width: badgeW,
                fill: C.cream.withAlphaComponent(0.11), color: C.cream)
     }
-    text("Your photos stay on device.", r(margin, 2388, W - margin * 2, 70),
+    text("Anonymous analytics. Never your photos.", r(margin, 2388, W - margin * 2, 70),
          font: font("Georgia-Italic", 34), color: C.cream.withAlphaComponent(0.70), align: .center)
 }
 

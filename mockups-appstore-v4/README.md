@@ -15,7 +15,7 @@ writes a 6.5-inch fallback set to `6.5-inch/`.
 | 4 | Twelve shots. Make them count. | Turn the daily limit into a physical roll of film. |
 | 5 | Your days, kept. Never posted. | Place the private archive inside an open drawer. |
 | 6 | Four ways to send the moment. | Show every real postcard treatment. |
-| 7 | On your phone. Nowhere else. | Give privacy its own proof screen. |
+| 7 | Your photos. On your phone. | Explain local photo storage without obscuring anonymous analytics. |
 
 The v4 set shares the proven rendering engine in `mockups-appstore-v3/main.swift`
 and still compiles against the shipping film-stock catalog and grade pipeline.
