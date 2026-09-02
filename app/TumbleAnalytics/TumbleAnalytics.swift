@@ -117,17 +117,22 @@ public final class TumbleAnalytics {
     private var entitlement = Entitlement.free.rawValue
     private var currentScreen: AnalyticsScreen?
     private var buildChannel = "unknown"
+    private var requestedRuntime: AnalyticsRuntime = .mainApp
+    private weak var requestedBundle: Bundle?
 
     private init() {}
 
     public var isEnabled: Bool {
         let defaults = AppGroup.defaults
-        guard defaults.object(forKey: Self.consentKey) != nil else { return true }
+        guard defaults.object(forKey: Self.consentKey) != nil else { return false }
         return defaults.bool(forKey: Self.consentKey)
     }
 
     public func configure(_ runtime: AnalyticsRuntime, bundle: Bundle = .main) {
+        requestedRuntime = runtime
+        requestedBundle = bundle
         guard !configured else { return }
+        guard isEnabled else { return }
 
         let environment = ProcessInfo.processInfo.environment
         guard let token = configuredValue("POSTHOG_PROJECT_TOKEN", environment: environment, bundle: bundle),
@@ -213,8 +218,16 @@ public final class TumbleAnalytics {
 
     public func setEnabled(_ enabled: Bool) {
         AppGroup.defaults.set(enabled, forKey: Self.consentKey)
-        guard configured else { return }
-        enabled ? PostHogSDK.shared.optIn() : PostHogSDK.shared.optOut()
+        if enabled {
+            if configured {
+                PostHogSDK.shared.optIn()
+            } else {
+                configure(requestedRuntime, bundle: requestedBundle ?? .main)
+            }
+        } else if configured {
+            PostHogSDK.shared.optOut()
+            PostHogSDK.shared.reset()
+        }
     }
 
     public func pauseReplay() {

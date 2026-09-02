@@ -78,18 +78,18 @@
       "type": "NonConsumable"
     },
     {
-      "displayPrice": "4.99",
+      "displayPrice": "14.99",
       "familyShareable": false,
       "internalID": "A1B2C3D4-1006-0002-0003-000000000000",
       "localizations": [
         {
-          "description": "All 15 looks. Every pack, one payment.",
-          "displayName": "All Film Packs",
+          "description": "All 15 premium films. One payment, yours forever.",
+          "displayName": "Tumble Complete",
           "locale": "en_US"
         }
       ],
       "productID": "com.tumble.pack.all",
-      "referenceName": "All Film Packs",
+      "referenceName": "Tumble Complete",
       "type": "NonConsumable"
     }
   ],

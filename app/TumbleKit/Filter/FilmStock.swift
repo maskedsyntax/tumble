@@ -180,7 +180,8 @@ public enum FilmStockCatalog {
     /// Buys every paid pack at once, for less than the sum of its parts. Not a
     /// pack itself - it owns no stocks, it just unlocks the ones that exist -
     /// so it lives here rather than in `packs`.
-    public static let bundleProductID = "com.tumble.pack.all"
+    private static let sharedManifest = SharedFilmManifest.load()
+    public static let bundleProductID = sharedManifest?.completeProductID ?? "com.tumble.pack.all"
 
     /// Every product that can unlock the pack, cheapest path first. Ownership of
     /// any one of these is enough.
@@ -194,7 +195,7 @@ public enum FilmStockCatalog {
         packs.compactMap(\.productID) + [bundleProductID]
     }
 
-    public static let packs: [FilmPack] = [
+    private static let fallbackPacks: [FilmPack] = [
         FilmPack(
             id: PackID.core,
             name: "The Roll",
@@ -223,7 +224,10 @@ public enum FilmStockCatalog {
         ),
     ]
 
-    public static let all: [FilmStock] = coreStocks + ninetiesStocks + darkroomStocks + summerStocks
+    /// Both apps load this versioned resource. The in-code values remain only
+    /// as an upgrade-safe fallback if a damaged bundle is ever installed.
+    public static let packs: [FilmPack] = sharedManifest?.packs ?? fallbackPacks
+    public static let all: [FilmStock] = sharedManifest?.stocks ?? (coreStocks + ninetiesStocks + darkroomStocks + summerStocks)
 
     // MARK: - Core, free
 
@@ -644,5 +648,68 @@ public enum FilmStockCatalog {
             return migrated
         }
         return defaultStock
+    }
+}
+
+private final class FilmManifestBundleToken {}
+
+private struct SharedFilmManifest {
+    let completeProductID: String
+    let packs: [FilmPack]
+    let stocks: [FilmStock]
+
+    static func load() -> Self? {
+        let bundle = Bundle(for: FilmManifestBundleToken.self)
+        guard let url = bundle.url(forResource: "film-stocks", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["version"] as? NSNumber)?.intValue == 1,
+              let complete = root["completeProductID"] as? String,
+              let packValues = root["packs"] as? [[String: Any]],
+              let stockValues = root["stocks"] as? [[String: Any]] else { return nil }
+
+        let packs = packValues.compactMap { value -> FilmPack? in
+            guard let id = value["id"] as? String,
+                  let name = value["name"] as? String,
+                  let blurb = value["blurb"] as? String else { return nil }
+            return FilmPack(id: id, name: name, blurb: blurb, productID: value["legacyProductID"] as? String)
+        }
+        let stocks = stockValues.compactMap { value -> FilmStock? in
+            guard let id = value["id"] as? String,
+                  let name = value["name"] as? String,
+                  let blurb = value["blurb"] as? String,
+                  let packID = value["packID"] as? String,
+                  let grade = value["grade"] as? [String: Any] else { return nil }
+            return FilmStock(id: id, name: name, blurb: blurb, packID: packID, grade: parseGrade(grade))
+        }
+        guard packs.count == 4, stocks.count == 21, Set(stocks.map(\.id)).count == stocks.count else { return nil }
+        return Self(completeProductID: complete, packs: packs, stocks: stocks)
+    }
+
+    private static func parseGrade(_ value: [String: Any]) -> FilmGrade {
+        func number(_ key: String, _ fallback: Double) -> Double {
+            (value[key] as? NSNumber)?.doubleValue ?? fallback
+        }
+        func tint(_ key: String) -> FilmTint {
+            guard let data = value[key] as? [String: Any] else { return .neutral }
+            return FilmTint(
+                red: (data["red"] as? NSNumber)?.doubleValue ?? 0,
+                green: (data["green"] as? NSNumber)?.doubleValue ?? 0,
+                blue: (data["blue"] as? NSNumber)?.doubleValue ?? 0
+            )
+        }
+        return FilmGrade(
+            saturation: number("saturation", 1), contrast: number("contrast", 1),
+            brightness: number("brightness", 0), blackLift: number("blackLift", 0),
+            warmth: number("warmth", 0), halation: number("halation", 0),
+            grain: number("grain", 0), vignette: number("vignette", 0),
+            monochrome: number("monochrome", 0), monoTint: tint("monoTint"),
+            fade: number("fade", 0), bloom: number("bloom", 0),
+            shadowTint: tint("shadowTint"), shadowStrength: number("shadowStrength", 0),
+            highlightTint: tint("highlightTint"), highlightStrength: number("highlightStrength", 0),
+            leak: LightLeakStyle(rawValue: value["leak"] as? String ?? "none") ?? .none,
+            leakStrength: number("leakStrength", 0),
+            stampsDate: (value["stampsDate"] as? NSNumber)?.boolValue ?? false
+        )
     }
 }

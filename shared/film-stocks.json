@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "completeProductID": "com.tumble.pack.all",
+  "packs": [
+    { "id": "core", "name": "The Roll", "blurb": "The everyday stocks, free with the app." },
+    { "id": "nineties", "name": "Ninety-Six", "blurb": "Drugstore disposables, flash and all.", "legacyProductID": "com.tumble.pack.nineties" },
+    { "id": "darkroom", "name": "Darkroom", "blurb": "Black and white, printed by hand.", "legacyProductID": "com.tumble.pack.darkroom2" },
+    { "id": "summer", "name": "Long Summer", "blurb": "Leaks, flares and blown-out afternoons.", "legacyProductID": "com.tumble.pack.summer" }
+  ],
+  "stocks": [
+    { "id": "original", "name": "Original", "blurb": "Straight off the sensor.", "packID": "core", "grade": {} },
+    {
+      "id": "fadedInstant", "name": "Faded Instant", "blurb": "Milky blacks, muted colour.", "packID": "core",
+      "grade": { "saturation": 0.62, "contrast": 0.80, "brightness": 0.030, "blackLift": 0.110, "warmth": 0.30, "halation": 0.16, "grain": 0.24, "vignette": 0.16 }
+    },
+    {
+      "id": "warmArchive", "name": "Warm Archive", "blurb": "A photo that sat in a shoebox.", "packID": "core",
+      "grade": { "saturation": 1.05, "contrast": 1.00, "brightness": -0.005, "blackLift": 0.030, "warmth": 1.40, "halation": 0.12, "grain": 0.20, "vignette": 0.22 }
+    },
+    {
+      "id": "overcast", "name": "Overcast", "blurb": "Flat grey light, gently cool.", "packID": "core",
+      "grade": { "saturation": 0.86, "contrast": 0.92, "brightness": 0.010, "blackLift": 0.070, "warmth": -0.45, "grain": 0.16, "vignette": 0.10, "fade": 0.14, "shadowTint": { "red": -0.010, "green": 0.004, "blue": 0.030 }, "shadowStrength": 0.7 }
+    },
+    {
+      "id": "sunbleached", "name": "Sunbleached", "blurb": "Left too long on the dashboard.", "packID": "core",
+      "grade": { "saturation": 0.74, "contrast": 0.88, "brightness": 0.045, "blackLift": 0.130, "warmth": 0.85, "halation": 0.20, "grain": 0.22, "vignette": 0.08, "fade": 0.26, "highlightTint": { "red": 0.030, "green": 0.018, "blue": -0.010 }, "highlightStrength": 0.8 }
+    },
+    {
+      "id": "everyday", "name": "Everyday", "blurb": "Clean colour, a little grain.", "packID": "core",
+      "grade": { "saturation": 1.08, "contrast": 1.04, "blackLift": 0.020, "warmth": 0.25, "halation": 0.06, "grain": 0.12, "vignette": 0.10 }
+    },
+    {
+      "id": "disposable", "name": "Disposable", "blurb": "Twenty-seven exposures, drugstore print.", "packID": "nineties",
+      "grade": { "saturation": 1.18, "contrast": 1.12, "brightness": 0.010, "blackLift": 0.050, "warmth": 0.70, "halation": 0.18, "grain": 0.34, "vignette": 0.26 }
+    },
+    {
+      "id": "flashNight", "name": "Flash Night", "blurb": "Hard flash, black behind it.", "packID": "nineties",
+      "grade": { "saturation": 1.12, "contrast": 1.30, "brightness": 0.030, "blackLift": -0.020, "warmth": 0.20, "halation": 0.32, "grain": 0.30, "vignette": 0.42, "bloom": 0.18 }
+    },
+    {
+      "id": "dateStamp", "name": "Date Stamp", "blurb": "The orange numbers in the corner.", "packID": "nineties",
+      "grade": { "saturation": 1.14, "contrast": 1.10, "blackLift": 0.045, "warmth": 0.60, "halation": 0.16, "grain": 0.30, "vignette": 0.24, "stampsDate": true }
+    },
+    {
+      "id": "poolParty", "name": "Pool Party", "blurb": "Chlorine blue, blown highlights.", "packID": "nineties",
+      "grade": { "saturation": 1.24, "contrast": 1.06, "brightness": 0.040, "blackLift": 0.060, "warmth": -0.55, "halation": 0.22, "grain": 0.20, "vignette": 0.12, "fade": 0.16, "highlightTint": { "red": -0.020, "green": 0.010, "blue": 0.040 }, "highlightStrength": 0.9 }
+    },
+    {
+      "id": "camcorder", "name": "Camcorder", "blurb": "Tape hiss, but for a photo.", "packID": "nineties",
+      "grade": { "saturation": 0.94, "contrast": 1.16, "brightness": 0.020, "blackLift": 0.090, "warmth": -0.20, "grain": 0.46, "vignette": 0.30, "bloom": 0.24, "shadowTint": { "red": 0.006, "green": 0.020, "blue": 0.010 }, "shadowStrength": 0.8 }
+    },
+    {
+      "id": "silver", "name": "Silver", "blurb": "Neutral black and white.", "packID": "darkroom",
+      "grade": { "contrast": 1.10, "blackLift": 0.030, "grain": 0.26, "vignette": 0.18, "monochrome": 1.0 }
+    },
+    {
+      "id": "charcoal", "name": "Charcoal", "blurb": "Hard contrast, deep blacks.", "packID": "darkroom",
+      "grade": { "contrast": 1.42, "brightness": -0.020, "blackLift": -0.030, "grain": 0.34, "vignette": 0.34, "monochrome": 1.0 }
+    },
+    {
+      "id": "sepiaPrint", "name": "Sepia Print", "blurb": "Toned brown in the tray.", "packID": "darkroom",
+      "grade": { "contrast": 1.04, "blackLift": 0.060, "grain": 0.24, "vignette": 0.24, "monochrome": 1.0, "monoTint": { "red": 0.055, "green": 0.022, "blue": -0.030 }, "fade": 0.12 }
+    },
+    {
+      "id": "platinum", "name": "Platinum", "blurb": "Long, soft, silvery scale.", "packID": "darkroom",
+      "grade": { "contrast": 0.86, "brightness": 0.025, "blackLift": 0.120, "grain": 0.18, "vignette": 0.12, "monochrome": 1.0, "monoTint": { "red": 0.008, "green": 0.010, "blue": 0.020 }, "fade": 0.22 }
+    },
+    {
+      "id": "newsprint", "name": "Newsprint", "blurb": "Coarse, grey, printed cheap.", "packID": "darkroom",
+      "grade": { "contrast": 1.24, "brightness": 0.015, "blackLift": 0.080, "grain": 0.58, "vignette": 0.16, "monochrome": 0.94, "monoTint": { "red": 0.014, "green": 0.012, "blue": 0.004 }, "fade": 0.10 }
+    },
+    {
+      "id": "lightLeak", "name": "Light Leak", "blurb": "The back door came open.", "packID": "summer",
+      "grade": { "saturation": 1.10, "contrast": 1.02, "blackLift": 0.070, "warmth": 0.75, "halation": 0.20, "grain": 0.24, "vignette": 0.14, "leak": "cornerWarm", "leakStrength": 0.85 }
+    },
+    {
+      "id": "goldenHour", "name": "Golden Hour", "blurb": "The last twenty minutes of light.", "packID": "summer",
+      "grade": { "saturation": 1.16, "contrast": 1.00, "brightness": 0.020, "blackLift": 0.055, "warmth": 1.25, "halation": 0.28, "grain": 0.16, "vignette": 0.18, "bloom": 0.14, "highlightTint": { "red": 0.040, "green": 0.020, "blue": -0.020 }, "highlightStrength": 1.0 }
+    },
+    {
+      "id": "fogged", "name": "Fogged", "blurb": "Red light got to the roll.", "packID": "summer",
+      "grade": { "saturation": 0.98, "contrast": 0.94, "brightness": 0.020, "blackLift": 0.140, "warmth": 0.55, "grain": 0.28, "vignette": 0.10, "fade": 0.24, "leak": "edgeRed", "leakStrength": 0.7 }
+    },
+    {
+      "id": "crossProcess", "name": "Cross Process", "blurb": "Wrong chemistry, right result.", "packID": "summer",
+      "grade": { "saturation": 1.42, "contrast": 1.28, "blackLift": 0.040, "warmth": -0.40, "halation": 0.14, "grain": 0.22, "vignette": 0.26, "shadowTint": { "red": -0.020, "green": 0.020, "blue": 0.050 }, "shadowStrength": 1.0, "highlightTint": { "red": 0.040, "green": 0.030, "blue": -0.030 }, "highlightStrength": 0.9 }
+    },
+    {
+      "id": "hazyFlare", "name": "Hazy", "blurb": "Shot straight into the sun.", "packID": "summer",
+      "grade": { "saturation": 0.92, "contrast": 0.84, "brightness": 0.050, "blackLift": 0.170, "warmth": 0.65, "halation": 0.26, "grain": 0.18, "fade": 0.34, "bloom": 0.30, "leak": "topFlare", "leakStrength": 0.55 }
+    }
+  ]
+}

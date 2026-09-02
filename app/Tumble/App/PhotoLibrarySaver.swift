@@ -13,6 +13,11 @@ enum PhotoLibrarySaveResult: Equatable {
 /// Writes developed prints to the user's Photos library only when they ask.
 enum PhotoLibrarySaver {
     @MainActor
+    static func saveImageData(_ data: Data) async -> PhotoLibrarySaveResult {
+        await save([data])
+    }
+
+    @MainActor
     static func saveDeveloped(_ photo: Photo, style: PostcardFrameStyle) async -> PhotoLibrarySaveResult {
         guard photo.isDeveloped, let data = imageData(for: photo, style: style) else {
             return .noDevelopedPhotos
@@ -74,16 +79,10 @@ enum PhotoLibrarySaver {
             return .denied
         }
 
-        return await withCheckedContinuation { continuation in
-            PHPhotoLibrary.shared().performChanges {
-                for data in imagesData {
-                    let request = PHAssetCreationRequest.forAsset()
-                    request.addResource(with: .photo, data: data, options: nil)
-                }
-            } completionHandler: { success, _ in
-                continuation.resume(returning: success ? .saved(imagesData.count) : .failed)
-            }
-        }
+        // PHPhotoLibrary executes its changes block on its own serial queue. Keep
+        // that block outside MainActor isolation: Swift 6 otherwise traps at
+        // runtime when Photos invokes a MainActor-inherited closure off-main.
+        return await PhotoLibraryWriter.save(imagesData)
     }
 
     @MainActor
@@ -115,6 +114,24 @@ enum PhotoLibrarySaver {
             return false
         @unknown default:
             return false
+        }
+    }
+}
+
+/// The Photos change block must remain nonisolated because Photos owns the queue
+/// on which it runs. This boundary is intentionally separate from the UI-facing,
+/// MainActor-isolated permission and rendering work above.
+private enum PhotoLibraryWriter {
+    nonisolated static func save(_ imagesData: [Data]) async -> PhotoLibrarySaveResult {
+        await withCheckedContinuation { continuation in
+            PHPhotoLibrary.shared().performChanges {
+                for data in imagesData {
+                    let request = PHAssetCreationRequest.forAsset()
+                    request.addResource(with: .photo, data: data, options: nil)
+                }
+            } completionHandler: { success, _ in
+                continuation.resume(returning: success ? .saved(imagesData.count) : .failed)
+            }
         }
     }
 }

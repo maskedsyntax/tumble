@@ -39,7 +39,8 @@ public enum TumbleMemoryFilterPreset: String, CaseIterable, Identifiable, Sendab
     }
 }
 
-@MainActor public enum TumblePhotoFilter {
+public enum TumblePhotoFilter {
+    public static let maximumExportLongEdge: CGFloat = 4096
     private static let context = CIContext(options: [
         .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) as Any,
         .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB) as Any,
@@ -104,6 +105,55 @@ public enum TumbleMemoryFilterPreset: String, CaseIterable, Identifiable, Sendab
         return UIImage(cgImage: cgImage)
     }
 
+    /// The Tumble 3 editing contract. Orientation is read from the encoded
+    /// source, then rotation/crop are applied before the film is blended over
+    /// the original. The same method drives Studio previews and final exports.
+    public static func renderEditedPhotoData(
+        from imageData: Data,
+        recipe: EditRecipe,
+        capturedAt: Date,
+        maxDimension: CGFloat = maximumExportLongEdge,
+        compressionQuality: CGFloat = 0.92
+    ) -> Data? {
+        guard let input = CIImage(data: imageData, options: [.applyOrientationProperty: true]) else { return nil }
+        let prepared = prepare(input, recipe: recipe)
+        let graded = applyGrade(recipe.stock.grade, to: prepared, capturedAt: capturedAt)
+        let blended = dissolve(original: prepared, graded: graded, amount: recipe.intensity)
+        return encode(downscaled(blended, maxDimension: maxDimension), quality: compressionQuality)
+    }
+
+    public static func renderEditedPreview(
+        from imageData: Data,
+        recipe: EditRecipe,
+        capturedAt: Date,
+        maxDimension: CGFloat = 1024
+    ) -> UIImage? {
+        guard let data = renderEditedPhotoData(
+            from: imageData,
+            recipe: recipe,
+            capturedAt: capturedAt,
+            maxDimension: maxDimension,
+            compressionQuality: 0.86
+        ) else { return nil }
+        return UIImage(data: data)
+    }
+
+    public static func renderLivePreview(
+        from image: UIImage,
+        stock: FilmStock,
+        intensity: Double = 1,
+        capturedAt: Date = Date(),
+        maxDimension: CGFloat = 960
+    ) -> UIImage? {
+        guard let data = image.jpegData(compressionQuality: 0.72) else { return nil }
+        return renderEditedPreview(
+            from: data,
+            recipe: EditRecipe(stockID: stock.id, intensity: intensity),
+            capturedAt: capturedAt,
+            maxDimension: maxDimension
+        )
+    }
+
     private static func downscaled(_ image: CIImage, maxDimension: CGFloat) -> CIImage {
         let longEdge = max(image.extent.width, image.extent.height)
         guard longEdge > maxDimension, longEdge > 0 else { return image }
@@ -112,6 +162,53 @@ public enum TumbleMemoryFilterPreset: String, CaseIterable, Identifiable, Sendab
             kCIInputScaleKey: scale,
             kCIInputAspectRatioKey: 1.0,
         ])
+    }
+
+    private static func prepare(_ input: CIImage, recipe: EditRecipe) -> CIImage {
+        let rotated: CIImage = switch recipe.quarterTurns {
+        case 1: input.oriented(.right)
+        case 2: input.oriented(.down)
+        case 3: input.oriented(.left)
+        default: input
+        }
+        let image = normalized(rotated)
+        let extent = image.extent
+        let cropRect: CGRect
+        if recipe.cropPreset == .freeform {
+            let crop = recipe.crop.clamped
+            cropRect = CGRect(
+                x: extent.minX + extent.width * crop.x,
+                y: extent.minY + extent.height * crop.y,
+                width: extent.width * crop.width,
+                height: extent.height * crop.height
+            )
+        } else if let aspect = recipe.cropPreset.aspectRatio {
+            let sourceAspect = extent.width / extent.height
+            if sourceAspect > aspect {
+                let width = extent.height * aspect
+                cropRect = CGRect(x: extent.midX - width / 2, y: extent.minY, width: width, height: extent.height)
+            } else {
+                let height = extent.width / aspect
+                cropRect = CGRect(x: extent.minX, y: extent.midY - height / 2, width: extent.width, height: height)
+            }
+        } else {
+            cropRect = extent
+        }
+        return normalized(image.cropped(to: cropRect.integral))
+    }
+
+    private static func dissolve(original: CIImage, graded: CIImage, amount: Double) -> CIImage {
+        let fraction = min(1, max(0, amount))
+        guard fraction > 0 else { return original }
+        guard fraction < 1 else { return graded }
+        return CIFilter(
+            name: "CIDissolveTransition",
+            parameters: [
+                kCIInputImageKey: original,
+                kCIInputTargetImageKey: graded,
+                kCIInputTimeKey: fraction,
+            ]
+        )?.outputImage?.cropped(to: original.extent) ?? graded
     }
 
     // MARK: - Legacy preset API (delegates through the catalog)

@@ -17,14 +17,10 @@ settings:
     # Persist the signing team across `xcodegen generate` so device builds
     # don't reset to "None". This is the "Aftaab Siddiqui" team.
     DEVELOPMENT_TEAM: GVGJLY2H53
-    # Version 2.0.1 is released and its train is closed - App Store Connect
-    # rejects any further build carrying it (ITMS-90186 / ITMS-90062). The
-    # analytics update therefore ships on the 2.0.2 patch train.
-    #
     # CURRENT_PROJECT_VERSION only matters for uploads from a Mac: Xcode Cloud
     # sets CFBundleVersion from its own build number and ignores this.
-    MARKETING_VERSION: "2.0.2"
-    CURRENT_PROJECT_VERSION: "5"
+    MARKETING_VERSION: "3.0.0"
+    CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
@@ -41,6 +37,8 @@ targets:
     platform: iOS
     sources:
       - TumbleKit
+      - path: ../shared/film-stocks.json
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.kit
@@ -69,9 +67,6 @@ targets:
     dependencies:
       - target: TumbleKit
       - target: TumbleAnalytics
-      - target: TumbleControls
-      - target: TumbleCapture
-      - target: TumbleIsland
     entitlements:
       path: Tumble/Tumble.entitlements
       properties:
@@ -84,10 +79,8 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
-        INFOPLIST_KEY_NSMotionUsageDescription: "Tumble reads motion so you can shake a shot to develop it."
-        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tumble saves developed prints to your photo library when you ask."
-        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera when you choose to take a photo."
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tumble adds your finished edit to Photos only when you tap Save."
         POSTHOG_PROJECT_TOKEN: ${POSTHOG_PROJECT_TOKEN}
         POSTHOG_HOST: ${POSTHOG_HOST}
         ENABLE_USER_SCRIPT_SANDBOXING: NO
@@ -118,84 +111,6 @@ targets:
           - CFBundleURLName: com.tumble.app
             CFBundleURLSchemes:
               - tumble
-
-  # ---- Lock Screen / Control Center control -------------------------------
-  TumbleControls:
-    type: app-extension
-    platform: iOS
-    sources:
-      - TumbleControls
-    dependencies:
-      - target: TumbleKit
-    entitlements:
-      path: TumbleControls/TumbleControls.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.tumble
-    info:
-      path: TumbleControls/Info.plist
-      properties:
-        CFBundleDisplayName: Tumble Controls
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.controls
-        TARGETED_DEVICE_FAMILY: "1"
-
-  # ---- Lock-screen camera capture extension -------------------------------
-  TumbleCapture:
-    type: extensionkit-extension
-    platform: iOS
-    sources:
-      - TumbleCapture
-    dependencies:
-      - target: TumbleKit
-      - target: TumbleAnalytics
-    entitlements:
-      path: TumbleCapture/TumbleCapture.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.tumble
-    info:
-      path: TumbleCapture/Info.plist
-      properties:
-        CFBundleDisplayName: Tumble Capture
-        EXAppExtensionAttributes:
-          EXExtensionPointIdentifier: com.apple.securecapture
-        POSTHOG_PROJECT_TOKEN: $(POSTHOG_PROJECT_TOKEN)
-        POSTHOG_HOST: $(POSTHOG_HOST)
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.capture
-        TARGETED_DEVICE_FAMILY: "1"
-        INFOPLIST_KEY_NSCameraUsageDescription: "Tumble uses the camera to take your twelve shots a day."
-        POSTHOG_PROJECT_TOKEN: ${POSTHOG_PROJECT_TOKEN}
-        POSTHOG_HOST: ${POSTHOG_HOST}
-
-  # ---- Dynamic Island / Live Activity surface -----------------------------
-  TumbleIsland:
-    type: app-extension
-    platform: iOS
-    sources:
-      - TumbleIsland
-    dependencies:
-      - target: TumbleKit
-    entitlements:
-      path: TumbleIsland/TumbleIsland.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.tumble
-    info:
-      path: TumbleIsland/Info.plist
-      properties:
-        CFBundleDisplayName: Tumble Island
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.island
-        TARGETED_DEVICE_FAMILY: "1"
 
   # ---- Tests --------------------------------------------------------------
   TumbleKitTests:

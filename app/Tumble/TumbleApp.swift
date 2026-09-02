@@ -10,8 +10,8 @@ struct TumbleApp: App {
     }
 
     @State private var app = AppModel()
-    @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("tumble.hasOnboarded") private var hasOnboarded = false
+    @AppStorage("tumble.hasOnboarded") private var legacyOnboarded = false
+    @AppStorage("tumble.v3.hasIntroduced") private var hasIntroducedV3 = false
 
     private let container: ModelContainer = {
         do { return try PhotoStore.makeContainer() }
@@ -25,26 +25,23 @@ struct TumbleApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasOnboarded || skipOnboarding {
-                    HomeScreen()
+                if hasIntroducedV3 || skipOnboarding {
+                    CameraWorkspace()
+                } else if legacyOnboarded {
+                    TumbleChangedView {
+                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedV3 = true }
+                    }
                 } else {
-                    OnboardingScreen {
-                        withAnimation(.easeInOut(duration: 0.35)) { hasOnboarded = true }
+                    TumbleThreeOnboarding {
+                        legacyOnboarded = true
+                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedV3 = true }
                     }
                     .transition(.opacity)
                 }
             }
             .environment(app)
             .preferredColorScheme(.dark)
-            .statusBarHidden()
         }
         .modelContainer(container)
-        .onChange(of: scenePhase) { _, phase in
-            switch phase {
-            case .active: app.enterForeground()   // free the island for dragging
-            case .background: app.enterBackground() // show the status Live Activity
-            default: break
-            }
-        }
     }
 }

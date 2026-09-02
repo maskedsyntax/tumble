@@ -11,6 +11,7 @@ final class AppModel {
     let roll: RollManager
     let purchases = PurchaseManager()
     let cameraActivity = TumbleCameraActivityCoordinator()
+    let drafts = EditDraftStore()
 
     /// The just-captured print, surfaced so the UI can animate it tossing into
     /// the Drawer.

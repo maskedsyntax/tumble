@@ -61,6 +61,21 @@ struct FilmStockCatalogTests {
         #expect(free.first?.id == FilmStockCatalog.PackID.core)
     }
 
+    @Test func tumbleThreeCatalogHasSixFreeAndFifteenPremiumStocks() {
+        let free = FilmStockCatalog.all.filter { $0.packID == FilmStockCatalog.PackID.core }
+        #expect(FilmStockCatalog.all.count == 21)
+        #expect(free.count == 6)
+        #expect(FilmStockCatalog.all.count - free.count == 15)
+    }
+
+    @Test func accessStatesPreserveFreePackAndCompleteUnlock() {
+        let free = AccessState.free(legacyPackIDs: [])
+        #expect(free.unlocks(FilmStockCatalog.resolve("fadedInstant")))
+        #expect(!free.unlocks(FilmStockCatalog.resolve("silver")))
+        #expect(AccessState.complete.unlocks(FilmStockCatalog.resolve("silver")))
+        #expect(AccessState.free(legacyPackIDs: ["darkroom"]).unlocks(FilmStockCatalog.resolve("silver")))
+    }
+
     @Test func groupedByPackCoversEveryStockInPackOrder() {
         let grouped = FilmStockCatalog.groupedByPack
         #expect(grouped.map(\.pack.id) == FilmStockCatalog.packs.map(\.id))

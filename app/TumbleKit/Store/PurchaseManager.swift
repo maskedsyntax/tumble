@@ -30,6 +30,22 @@ public final class PurchaseManager {
         Entitlement.highest(fromProductIDs: ownedProductIDs)
     }
 
+    /// Tumble 3 retires roll quotas. Either retired paid tier and the complete
+    /// film product permanently grant the new Complete access state. Legacy
+    /// individual pack purchases continue to unlock only their own pack.
+    public var accessState: AccessState {
+        let retiredTierIDs = Set(tierProductIDs)
+        if ownedProductIDs.contains(FilmStockCatalog.bundleProductID) ||
+            !ownedProductIDs.isDisjoint(with: retiredTierIDs) {
+            return .complete
+        }
+        let legacyPacks: Set<String> = Set(FilmStockCatalog.packs.compactMap { pack -> String? in
+            guard let productID = pack.productID, ownedProductIDs.contains(productID) else { return nil }
+            return pack.id
+        })
+        return .free(legacyPackIDs: legacyPacks)
+    }
+
     /// Tier products (daily Roll) plus the one-time film-pack unlocks. Packs are
     /// separate buys - they never change the Roll tier - so they load here but
     /// resolve their ownership through `ownsPack`, not `entitlement`.
@@ -88,7 +104,7 @@ public final class PurchaseManager {
 
     /// Whether a stock is available to apply, i.e. its pack is owned.
     public func isUnlocked(_ stock: FilmStock) -> Bool {
-        ownsPack(stock.packID)
+        accessState.unlocks(stock)
     }
 
     @discardableResult

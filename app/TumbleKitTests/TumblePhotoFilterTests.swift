@@ -103,4 +103,27 @@ struct TumblePhotoFilterTests {
         #expect(first != nil)
         #expect(second === first)
     }
+
+    @Test @MainActor func editIntensityEndpointsMatchOriginalAndFilm() {
+        let source = sampleData(CGSize(width: 320, height: 220))
+        let originalRecipe = EditRecipe(stockID: "crossProcess", intensity: 0)
+        let filmRecipe = EditRecipe(stockID: "crossProcess", intensity: 1)
+        let original = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: originalRecipe, capturedAt: .now)
+        let film = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: filmRecipe, capturedAt: .now)
+        #expect(original != nil)
+        #expect(film != nil)
+        #expect(original != film)
+    }
+
+    @Test @MainActor func cropRotationAndExportCapUseSharedOrder() {
+        let source = sampleData(CGSize(width: 1800, height: 1200))
+        let recipe = EditRecipe(stockID: "everyday", cropPreset: .portrait, quarterTurns: 1)
+        let data = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: recipe, capturedAt: .now, maxDimension: 512)
+        let image = data.flatMap(UIImage.init(data:))
+        #expect(image != nil)
+        if let image {
+            #expect(max(image.size.width, image.size.height) <= 512)
+            #expect(abs(image.size.width / image.size.height - 0.8) < 0.03)
+        }
+    }
 }

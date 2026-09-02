@@ -1,5 +1,11 @@
 import AVFoundation
+import CoreImage
+import QuartzCore
 import UIKit
+
+private struct SendablePixelBuffer: @unchecked Sendable {
+    let value: CVPixelBuffer
+}
 
 public enum CameraSide: String, Sendable {
     case back
@@ -11,15 +17,21 @@ public enum CameraFlashMode: String, Sendable {
     case on
 }
 
-/// Thin wrapper over an `AVCaptureSession`. On a device it drives the back
-/// camera and captures a still; on the Simulator (no camera) it hands back a
-/// synthetic `FilmScene` so the whole flow stays exercisable. Shared by the app
-/// and the lock-screen capture extension.
+public enum CameraCaptureResult: @unchecked Sendable {
+    case success(UIImage)
+    case unavailable(String)
+    case failure(String, Error?)
+}
+
+/// Thin wrapper over an `AVCaptureSession`. Production always returns an
+/// explicit success, unavailable, or failure result. A synthetic scene is
+/// available only in a DEBUG simulator build so the Studio remains testable.
 @MainActor
 public final class CameraController: NSObject, ObservableObject {
     public let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
-    private var captureHandler: ((UIImage) -> Void)?
+    private let videoOutput = AVCaptureVideoDataOutput()
+    private var captureHandler: ((CameraCaptureResult) -> Void)?
     private var currentInput: AVCaptureDeviceInput?
     private var currentDevice: AVCaptureDevice?
 
@@ -32,9 +44,14 @@ public final class CameraController: NSObject, ObservableObject {
     @Published public private(set) var canSwitchCameras = false
     @Published public private(set) var supportsFlash = false
     @Published public private(set) var flashMode: CameraFlashMode = .off
+    @Published public private(set) var filteredPreview: UIImage?
+    @Published public var previewStock: FilmStock = FilmStockCatalog.defaultStock
+    @Published public var previewIntensity: Double = 1
 
     private let sessionQueue = DispatchQueue(label: "com.tumble.camera.session")
     private var configured = false
+    private var previewRenderInFlight = false
+    nonisolated(unsafe) private var lastPreviewTimestamp: CFTimeInterval = 0
 
     public func start() {
         configureIfNeeded()
@@ -58,9 +75,7 @@ public final class CameraController: NSObject, ObservableObject {
         configured = true
         canSwitchCameras = device(for: .back) != nil && device(for: .front) != nil
 
-        guard
-            session.canAddOutput(photoOutput)
-        else {
+        guard session.canAddOutput(photoOutput), session.canAddOutput(videoOutput) else {
             isSimulated = true
             return
         }
@@ -68,6 +83,12 @@ public final class CameraController: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
         session.addOutput(photoOutput)
+        videoOutput.alwaysDiscardsLateVideoFrames = true
+        videoOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ]
+        videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
+        session.addOutput(videoOutput)
         guard configureInput(for: .back) else {
             session.commitConfiguration()
             isSimulated = true
@@ -136,10 +157,18 @@ public final class CameraController: NSObject, ObservableObject {
         )
     }
 
-    /// Capture a still. Delivers a `UIImage` on the main actor.
-    public func capture(_ completion: @escaping (UIImage) -> Void) {
+    /// Capture a still with an explicit production-safe outcome.
+    public func captureResult(_ completion: @escaping (CameraCaptureResult) -> Void) {
         if isSimulated {
-            completion(FilmScene.random().image())
+#if DEBUG
+#if targetEnvironment(simulator)
+            completion(.success(FilmScene.random().image()))
+#else
+            completion(.unavailable("The camera is unavailable."))
+#endif
+#else
+            completion(.unavailable("The camera is unavailable."))
+#endif
             return
         }
         captureHandler = completion
@@ -148,6 +177,31 @@ public final class CameraController: NSObject, ObservableObject {
             settings.flashMode = flashMode == .on ? .on : .off
         }
         photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+
+    /// Compatibility for legacy screens while they remain available from the
+    /// read-only Drawer. New code must use `captureResult`.
+    public func capture(_ completion: @escaping (UIImage) -> Void) {
+        captureResult { result in
+            if case .success(let image) = result { completion(image) }
+        }
+    }
+
+    private func renderPreview(_ pixelBuffer: CVPixelBuffer) async {
+        guard !previewRenderInFlight else { return }
+        previewRenderInFlight = true
+        defer { previewRenderInFlight = false }
+        let input = UIImage(ciImage: CIImage(cvPixelBuffer: pixelBuffer))
+        let stock = previewStock
+        let intensity = previewIntensity
+        filteredPreview = await Task.detached(priority: .userInitiated) {
+            TumblePhotoFilter.renderLivePreview(
+                from: input,
+                stock: stock,
+                intensity: intensity,
+                maxDimension: 960
+            )
+        }.value
     }
 }
 
@@ -159,8 +213,29 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
     ) {
         let image = photo.fileDataRepresentation().flatMap(UIImage.init(data:))
         Task { @MainActor in
-            if let image { self.captureHandler?(image) }
+            if let error {
+                self.captureHandler?(.failure("The camera could not take that photo.", error))
+            } else if let image {
+                self.captureHandler?(.success(image))
+            } else {
+                self.captureHandler?(.failure("The captured photo could not be decoded.", nil))
+            }
             self.captureHandler = nil
         }
+    }
+}
+
+extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    public nonisolated func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        let now = CACurrentMediaTime()
+        guard now - lastPreviewTimestamp >= 0.10,
+              let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        lastPreviewTimestamp = now
+        let buffer = SendablePixelBuffer(value: pixelBuffer)
+        Task { @MainActor [weak self, buffer] in await self?.renderPreview(buffer.value) }
     }
 }

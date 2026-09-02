@@ -4,7 +4,7 @@ import styles from "../legal.module.css";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "How Tumble handles app photos, purchases, waitlist emails, and support requests.",
+  description: "How Tumble handles Android and iOS app photos, analytics, purchases, and support requests.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -15,52 +15,70 @@ export default function PrivacyPage() {
         &larr; Back to Tumble
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold text-cream">Privacy</h1>
-      <p className="mt-2 text-sm text-cream/50">Last updated August 30, 2026.</p>
+      <p className="mt-2 text-sm text-cream/50">Last updated September 2, 2026.</p>
 
       <div className="mt-8 space-y-8 leading-relaxed text-cream/80">
         <section>
           <h2 className="font-display text-2xl font-semibold text-cream">
-            Tumble on your phone
+            Photos and local storage
           </h2>
           <p className="mt-3">
-            Tumble is built to keep your photos on your device. The app stores
-            your prints, daily roll state, and entitlement state locally so the
-            main app and quick-capture entry points can work together without a
-            cloud account.
+            Tumble processes photos on your device and does not require an
+            account. An unfinished edit is kept as one recoverable private
+            draft. The draft source and recipe are removed after a successful
+            save or when you choose Discard.
           </p>
           <p className="mt-3">
-            That includes the shared app group used by Lock Screen capture,
-            Control Center, and Dynamic Island status.
+            Android draft files are excluded from cloud backup and device
+            transfer. On iOS, photos created by older Tumble versions remain in
+            the private Legacy Drawer until you export or delete them. Tumble
+            does not upload draft or Legacy Drawer photos.
           </p>
           <p className="mt-3">
-            Tumble does not require an account or provide photo cloud sync. Your
-            photos, photo filenames, and postcard text are not sent to our
-            analytics provider.
+            Tapping Save or Share creates an image without source or location
+            metadata. Images saved to the system photo library may sync through
+            your own iCloud Photos, Google Photos, or other device settings;
+            those services are controlled by you and are not Tumble cloud sync.
           </p>
         </section>
 
         <section>
           <h2 className="font-display text-2xl font-semibold text-cream">
-            Anonymous analytics and diagnostics
+            Camera and photo-library access
           </h2>
           <p className="mt-3">
-            Tumble uses PostHog to understand anonymous product interactions,
-            screen visits, purchase outcomes, and crashes. PostHog assigns a
-            random installation identifier; Tumble does not attach a name,
-            email address, account, advertising identifier, photo, or postcard
-            text to it.
+            Tumble asks for camera permission only when you choose to use the
+            camera. Import uses the iOS or Android system photo picker, so the
+            app does not request broad access to your photo library. Camera and
+            import remain separate choices if camera access is denied.
           </p>
           <p className="mt-3">
-            A small sample of sessions may be replayed to help us find confusing
-            or broken experiences. Replay masks all text and images, excludes
-            the live camera, and does not collect console logs or network
-            request contents. Replays are retained for no more than 30 days.
+            Saving explicitly writes the finished JPEG to your photo library.
+            A failed save leaves the private draft available so you can retry.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-2xl font-semibold text-cream">
+            Optional analytics and diagnostics
+          </h2>
+          <p className="mt-3">
+            Analytics is off by default on iOS and Android. After your first
+            successful save, Tumble offers an optional choice to share anonymous
+            product events, crash diagnostics, and masked session replay through
+            PostHog. Nothing is sent to PostHog before you consent.
           </p>
           <p className="mt-3">
-            Analytics is enabled by default. You can stop future collection at
-            any time from Plans &amp; About by switching off Anonymous analytics.
-            We do not use this data for advertising or tracking across other
-            companies&rsquo; apps and websites.
+            Tumble never includes photo pixels, filenames, private draft IDs,
+            crop contents, handwritten notes, or photo-library metadata in
+            analytics events. Replay masks images and text; camera and Studio
+            content is excluded or paused wherever masking cannot be verified.
+          </p>
+          <p className="mt-3">
+            You can change this choice in Settings. Turning analytics off stops
+            capture, clears queued events, and resets the anonymous analytics
+            identity. Tumble does not use analytics for advertising or tracking
+            across other companies&rsquo; apps and websites.
           </p>
         </section>
 
@@ -69,10 +87,11 @@ export default function PrivacyPage() {
             Purchases
           </h2>
           <p className="mt-3">
-            Plus and Unlimited are one-time in-app purchases, handled by Apple
-            through StoreKit. Tumble uses the store&rsquo;s transaction
-            information to unlock the highest roll tier you own and to restore
-            purchases.
+            Tumble Complete is a one-time purchase handled by Apple StoreKit or
+            Google Play Billing. The app uses store transaction information to
+            unlock premium films and restore purchases. Purchases do not transfer
+            between iOS and Android because Tumble has no cross-platform account.
+            Retired iOS products remain restorable for legacy ownership.
           </p>
         </section>
 
