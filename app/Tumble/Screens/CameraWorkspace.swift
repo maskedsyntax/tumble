@@ -140,6 +140,10 @@ struct CameraWorkspace: View {
             .contentShape(RoundedRectangle(cornerRadius: 28))
             .onTapGesture { requestCameraIfNeeded() }
         }
+        // The product is portrait-only; keeping the viewfinder explicitly at
+        // the camera's 3:4 ratio avoids an accidental landscape workspace on
+        // devices whose available-height proposal changes during startup.
+        .aspectRatio(3.0 / 4.0, contentMode: .fit)
         .frame(maxHeight: .infinity)
     }
 
@@ -159,27 +163,54 @@ struct CameraWorkspace: View {
     }
 
     private var filmSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 9) {
-                ForEach(FilmStockCatalog.all) { stock in
-                    let unlocked = app.purchases.isUnlocked(stock)
-                    Button {
-                        guard unlocked else { showComplete = true; return }
-                        selectedStockID = stock.id
-                    } label: {
-                        HStack(spacing: 5) {
-                            Text(stock.name)
-                            if !unlocked { Image(systemName: "lock.fill").font(.caption2) }
+        ScrollViewReader { scrollProxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 24) {
+                    ForEach(FilmStockCatalog.all) { stock in
+                        let unlocked = app.purchases.isUnlocked(stock)
+                        let selected = selectedStockID == stock.id
+                        Button {
+                            guard unlocked else { showComplete = true; return }
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                selectedStockID = stock.id
+                            }
+                            UISelectionFeedbackGenerator().selectionChanged()
+                        } label: {
+                            VStack(spacing: 7) {
+                                HStack(spacing: 5) {
+                                    Text(stock.name)
+                                        .lineLimit(1)
+                                    if !unlocked {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 8, weight: .bold))
+                                    }
+                                }
+                                .font(Typography.sans(12, weight: selected ? .bold : .semibold))
+                                .foregroundStyle(selected ? Palette.gold : Palette.cream.opacity(0.64))
+
+                                Circle()
+                                    .fill(selected ? Palette.gold : Color.clear)
+                                    .frame(width: 4, height: 4)
+                            }
+                            .padding(.vertical, 5)
+                            .contentShape(Rectangle())
                         }
-                        .font(Typography.sans(12, weight: .semibold))
-                        .foregroundStyle(selectedStockID == stock.id ? Palette.ink : Palette.cream)
-                        .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(selectedStockID == stock.id ? Palette.gold : .black.opacity(0.24), in: Capsule())
+                        .buttonStyle(.plain)
+                        .id(stock.id)
                     }
-                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 18)
+            }
+            .onAppear {
+                scrollProxy.scrollTo(selectedStockID, anchor: .center)
+            }
+            .onChange(of: selectedStockID) { _, id in
+                withAnimation(.easeOut(duration: 0.22)) {
+                    scrollProxy.scrollTo(id, anchor: .center)
                 }
             }
         }
+        .frame(height: 42)
     }
 
     private var cameraControls: some View {

@@ -14,6 +14,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,13 +34,13 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
@@ -209,10 +210,42 @@ private fun CameraScreen(
                     }, Modifier.padding(top = 12.dp)) { Text(if (denied) "Open Settings" else "Enable camera") }
                 }
             }
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth().height(42.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 catalog.stocks.forEach { stock ->
                     val unlocked = access.unlocks(stock)
-                    FilterChip(selectedId == stock.id, { if (unlocked) selectedId = stock.id else onLockedFilm() }, label = { Text(if (unlocked) stock.name else "🔒 ${stock.name}") })
+                    val isSelected = selectedId == stock.id
+                    Column(
+                        Modifier.clickable { if (unlocked) selectedId = stock.id else onLockedFilm() }.padding(vertical = 5.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(7.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(
+                                stock.name,
+                                style = TumbleType.sans(12, if (isSelected) FontWeight.Bold else FontWeight.SemiBold),
+                                color = if (isSelected) Palette.gold else Palette.cream.copy(alpha = .64f),
+                                maxLines = 1,
+                            )
+                            if (!unlocked) {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = "Locked",
+                                    tint = if (isSelected) Palette.gold else Palette.cream.copy(alpha = .64f),
+                                    modifier = Modifier.size(9.dp),
+                                )
+                            }
+                        }
+                        Box(
+                            Modifier.size(4.dp).background(
+                                if (isSelected) Palette.gold else androidx.compose.ui.graphics.Color.Transparent,
+                                CircleShape,
+                            )
+                        )
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth().height(82.dp), verticalAlignment = Alignment.CenterVertically) {

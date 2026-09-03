@@ -20,6 +20,7 @@ struct StudioView: View {
     @State private var shareImage: UIImage?
     @State private var busy = false
     @State private var message: String?
+    @State private var selectedTool: StudioTool = .film
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
         self.draft = draft
@@ -32,14 +33,19 @@ struct StudioView: View {
             GraincoreBackground()
             VStack(spacing: 0) {
                 topBar
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 16) {
+                GeometryReader { proxy in
+                    let previewHeight = compactToolNeedsRoom
+                        ? min(260, max(218, proxy.size.height * 0.37))
+                        : min(330, max(238, proxy.size.height * 0.48))
+                    VStack(spacing: 12) {
                         previewSurface
-                        filmControls
-                        finishingControls
+                            .frame(height: previewHeight)
+                        toolSwitcher
+                        toolPanel
+                            .frame(maxHeight: .infinity, alignment: .top)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 18)
+                    .padding(.bottom, 10)
                 }
             }
         }
@@ -112,23 +118,28 @@ struct StudioView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .padding(8)
                         } else {
+                            let availableWidth = max(1, proxy.size.width - 20)
+                            let availableHeight = max(1, proxy.size.height - 18)
+                            let fittedWidth = min(
+                                availableWidth,
+                                availableHeight / recipe.frameStyle.aspect
+                            )
                             PostcardFrameView(
                                 style: recipe.frameStyle,
                                 image: image,
                                 note: recipe.note.isEmpty ? nil : recipe.note,
                                 capturedAt: draft.capturedAt,
                                 seed: draft.id.stableSeed,
-                                width: max(1, proxy.size.width - 20)
+                                width: fittedWidth
                             )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(width: fittedWidth, height: fittedWidth * recipe.frameStyle.aspect)
                         }
                     } else {
                         ProgressView().tint(Palette.gold)
                     }
                 }
             }
-            .aspectRatio(previewAspect, contentMode: .fit)
-            .frame(maxHeight: 430)
+            .clipped()
 
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -158,6 +169,38 @@ struct StudioView: View {
                 .stroke(Palette.cream.opacity(0.08), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
+    }
+
+    private var toolSwitcher: some View {
+        HStack(spacing: 5) {
+            ForEach(StudioTool.allCases) { tool in
+                Button {
+                    withAnimation(.easeOut(duration: 0.18)) { selectedTool = tool }
+                } label: {
+                    Label(tool.title, systemImage: tool.icon)
+                        .font(Typography.sans(11, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 38)
+                        .background(selectedTool == tool ? Palette.gold : Color.clear, in: Capsule())
+                        .foregroundStyle(selectedTool == tool ? Palette.ink : Palette.cream.opacity(0.68))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Palette.blueDeep.opacity(0.90), in: Capsule())
+        .overlay(Capsule().stroke(Palette.cream.opacity(0.08)))
+    }
+
+    @ViewBuilder private var toolPanel: some View {
+        switch selectedTool {
+        case .film:
+            filmControls
+        case .crop:
+            cropControls
+        case .frame:
+            frameControls
+        }
     }
 
     private var filmControls: some View {
@@ -190,7 +233,7 @@ struct StudioView: View {
         }
     }
 
-    private var finishingControls: some View {
+    private var cropControls: some View {
         editorCard {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -214,8 +257,11 @@ struct StudioView: View {
             } label: { $0.label }
 
             if recipe.cropPreset == .freeform { freeformControls }
+        }
+    }
 
-            Divider().overlay(Palette.cream.opacity(0.08)).padding(.vertical, 2)
+    private var frameControls: some View {
+        editorCard {
             VStack(alignment: .leading, spacing: 2) {
                 sectionTitle("Postcard")
                 Text("Optional frame and handwritten note")
@@ -357,12 +403,8 @@ struct StudioView: View {
 
     private var shownImage: UIImage? { showingOriginal ? originalPreview : preview }
 
-    private var previewAspect: CGFloat {
-        if recipe.frameStyle != .none, !showingOriginal {
-            return max(0.72, min(1.7, 1 / recipe.frameStyle.aspect))
-        }
-        guard let size = shownImage?.size, size.height > 0 else { return 4.0 / 3.0 }
-        return max(0.72, min(1.7, size.width / size.height))
+    private var compactToolNeedsRoom: Bool {
+        selectedTool == .crop && recipe.cropPreset == .freeform
     }
 
     private func renderPreview() async {
@@ -443,6 +485,30 @@ struct StudioView: View {
         default:
             TumbleAnalytics.shared.capture(.photoSaveFailed(reason: "photos_write", format: "jpeg", photoCount: 1))
             message = "The photo could not be saved. Your draft is still safe."
+        }
+    }
+}
+
+private enum StudioTool: String, CaseIterable, Identifiable {
+    case film
+    case crop
+    case frame
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .film: return "Film"
+        case .crop: return "Crop"
+        case .frame: return "Frame"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .film: return "camera.filters"
+        case .crop: return "crop"
+        case .frame: return "rectangle.inset.filled"
         }
     }
 }

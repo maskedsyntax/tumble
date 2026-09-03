@@ -94,6 +94,7 @@ public final class CameraController: NSObject, ObservableObject {
             isSimulated = true
             return
         }
+        configurePortraitOutput()
         session.commitConfiguration()
     }
 
@@ -104,6 +105,7 @@ public final class CameraController: NSObject, ObservableObject {
 
         session.beginConfiguration()
         let switched = configureInput(for: next)
+        if switched { configurePortraitOutput() }
         session.commitConfiguration()
 
         if switched {
@@ -147,6 +149,18 @@ public final class CameraController: NSObject, ObservableObject {
             flashMode = .off
         }
         return true
+    }
+
+    /// Tumble is portrait-only. Camera sensors deliver their native buffers in
+    /// landscape, so rotate both the live effect buffer and the still output at
+    /// the capture boundary rather than making each UI compensate separately.
+    private func configurePortraitOutput() {
+        for connection in [
+            videoOutput.connection(with: .video),
+            photoOutput.connection(with: .video),
+        ].compactMap({ $0 }) where connection.isVideoRotationAngleSupported(90) {
+            connection.videoRotationAngle = 90
+        }
     }
 
     private func device(for side: CameraSide) -> AVCaptureDevice? {
