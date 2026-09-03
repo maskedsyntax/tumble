@@ -21,6 +21,7 @@ struct StudioView: View {
     @State private var busy = false
     @State private var message: String?
     @State private var selectedTool: StudioTool = .film
+    @FocusState private var noteFieldFocused: Bool
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
         self.draft = draft
@@ -33,16 +34,18 @@ struct StudioView: View {
             GraincoreBackground()
             VStack(spacing: 0) {
                 topBar
-                GeometryReader { proxy in
-                    let previewHeight = compactToolNeedsRoom
-                        ? min(260, max(218, proxy.size.height * 0.37))
-                        : min(330, max(238, proxy.size.height * 0.48))
+                GeometryReader { _ in
                     VStack(spacing: 12) {
                         previewSurface
-                            .frame(height: previewHeight)
-                        toolSwitcher
+                            .frame(
+                                minHeight: noteFieldFocused ? 138 : (compactToolNeedsRoom ? 190 : 230),
+                                maxHeight: noteFieldFocused ? 168 : .infinity
+                            )
+                        if !noteFieldFocused {
+                            toolSwitcher
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
                         toolPanel
-                            .frame(maxHeight: .infinity, alignment: .top)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 10)
@@ -50,7 +53,13 @@ struct StudioView: View {
             }
         }
         .safeAreaPadding(.top, 4)
-        .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !noteFieldFocused {
+                actionBar
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: noteFieldFocused)
         .interactiveDismissDisabled()
         .task { await renderPreview() }
         .onChange(of: recipe) { _, value in
@@ -262,15 +271,33 @@ struct StudioView: View {
 
     private var frameControls: some View {
         editorCard {
-            VStack(alignment: .leading, spacing: 2) {
-                sectionTitle("Postcard")
-                Text("Optional frame and handwritten note")
-                    .font(Typography.sans(9))
-                    .foregroundStyle(Palette.cream.opacity(0.45))
+            if noteFieldFocused {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        sectionTitle("Handwritten note")
+                        Text("Appears beneath your postcard photo")
+                            .font(Typography.sans(9))
+                            .foregroundStyle(Palette.cream.opacity(0.45))
+                    }
+                    Spacer()
+                    Button("Done") { noteFieldFocused = false }
+                        .font(Typography.sans(11, weight: .bold))
+                        .foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
+                        .background(Palette.gold, in: Capsule())
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    sectionTitle("Postcard")
+                    Text("Optional frame and handwritten note")
+                        .font(Typography.sans(9))
+                        .foregroundStyle(Palette.cream.opacity(0.45))
+                }
+                chipRow(PostcardFrameStyle.allCases, selection: recipe.frameStyle) { style in
+                    recipe.frameID = style.rawValue
+                } label: { $0.shortName }
             }
-            chipRow(PostcardFrameStyle.allCases, selection: recipe.frameStyle) { style in
-                recipe.frameID = style.rawValue
-            } label: { $0.shortName }
 
             if recipe.frameStyle != .none {
                 TextField("Write something small…", text: Binding(
@@ -279,6 +306,9 @@ struct StudioView: View {
                 ))
                 .font(Typography.script(20))
                 .foregroundStyle(Palette.ink)
+                .focused($noteFieldFocused)
+                .submitLabel(.done)
+                .onSubmit { noteFieldFocused = false }
                 .padding(13)
                 .background(Palette.printStock, in: RoundedRectangle(cornerRadius: 13))
             }
