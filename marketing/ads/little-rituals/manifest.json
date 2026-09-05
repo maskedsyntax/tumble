@@ -1,0 +1,47 @@
+{
+  "campaign": "little-rituals",
+  "product": "tumble",
+  "product_root": "/Users/batman/maskedsyntax/tumble",
+  "created_at": "2026-09-01T15:01:53Z",
+  "duration_seconds": 15,
+  "format": "vertical",
+  "fps": 30,
+  "strategy": "story + relatable + product-first",
+  "hero_hook": "Your day isn't one color",
+  "selected_concept": "A Day in Five Stocks",
+  "status": "rendered-and-reviewed",
+  "revision": "v3-softer-everyday-diner",
+  "composition_id": "little-rituals",
+  "renders": [
+    {
+      "role": "final-deliverable",
+      "path": "marketing/ads/little-rituals/renders/little-rituals.mp4",
+      "sha256": "7871240a996a439825baeb244c58ca1df4621464d1cf54bd91a53dcf16e0f9e1",
+      "streams": ["h264-video", "silent-aac-audio"]
+    },
+    {
+      "role": "studio-master",
+      "path": "/Users/batman/maskedsyntax/agent-skills/ad-studio/renders/little-rituals/little-rituals.mp4",
+      "sha256": "7871240a996a439825baeb244c58ca1df4621464d1cf54bd91a53dcf16e0f9e1"
+    }
+  ],
+  "variants": [
+    "The small stuff, on film",
+    "One day. Five films.",
+    "Pick the feeling",
+    "CTA: Get Tumble on the App Store",
+    "CTA: Shoot your next roll"
+  ],
+  "filter_selections": {
+    "01-morning-coffee": "warmArchive",
+    "02-flower-walk": "everyday",
+    "03-record-shop": "dateStamp",
+    "04-rainy-bus": "poolParty",
+    "05-diner-fries": "everyday"
+  },
+  "assumptions": [
+    "Original AI-generated adult lifestyle photography is acceptable for this campaign.",
+    "The ad is intended to be fully understandable without sound, so the deliverable contains silent AAC audio.",
+    "Every selected after image uses Tumble's production-equivalent Core Image grade renderer."
+  ]
+}

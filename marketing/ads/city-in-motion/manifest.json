@@ -1,0 +1,48 @@
+{
+  "campaign": "city-in-motion",
+  "product": "tumble",
+  "product_root": "/Users/batman/maskedsyntax/tumble",
+  "created_at": "2026-08-31T16:24:15Z",
+  "duration_seconds": 15,
+  "format": "vertical",
+  "fps": 30,
+  "strategy": "transformation",
+  "hero_hook": "THE CITY DOESN'T POSE",
+  "selected_concept": "City in Motion",
+  "status": "rendered-and-reviewed",
+  "composition_id": "city-in-motion",
+  "renders": [
+    {
+      "version": 1,
+      "path": "marketing/ads/city-in-motion/renders/city-in-motion-v1.mp4",
+      "duration_seconds": 15.061333,
+      "video": "h264 1080x1920 30fps",
+      "audio": "aac 48kHz stereo",
+      "size_bytes": 27278176,
+      "sha256": "ece9214bd327e79eee2c95e6b11f9ccfe119c406e9386359cf2a2e6d3d0052d4"
+    },
+    {
+      "version": 2,
+      "path": "marketing/ads/city-in-motion/renders/city-in-motion-v2.mp4",
+      "duration_seconds": 15.061333,
+      "video": "h264 1080x1920 30fps",
+      "audio": "aac 48kHz stereo",
+      "size_bytes": 27108920,
+      "sha256": "f2a51f5a7bd06ec40ab31619bc97cb5a9159299e6ea558d445f08f571c29caea",
+      "filter_set": ["Warm Archive", "Everyday", "Pool Party", "Disposable", "Golden Hour"],
+      "reviewed": true
+    }
+  ],
+  "variants": [
+    {
+      "id": "filter-choice-v2",
+      "path": "marketing/ads/city-in-motion/renders/city-in-motion-v2.mp4",
+      "changes": "Replaced the first three looks with Warm Archive, Everyday, and Pool Party."
+    }
+  ],
+  "assumptions": [
+    "Generated city photographs are campaign source material.",
+    "All after images are real Tumble filter renders.",
+    "The ad is designed to work without audio."
+  ]
+}

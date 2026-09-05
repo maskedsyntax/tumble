@@ -90,3 +90,5 @@ video/public/looks/
 app/.env
 app/.ci-bin/
 .posthog-wizard-cache/
+.vercel
+.env*

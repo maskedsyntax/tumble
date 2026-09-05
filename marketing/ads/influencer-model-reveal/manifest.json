@@ -1,0 +1,37 @@
+{
+  "campaign": "influencer-model-reveal",
+  "product": "tumble",
+  "product_root": "/Users/batman/maskedsyntax/tumble",
+  "created_at": "2026-08-31T15:49:25Z",
+  "duration_seconds": 15,
+  "format": "vertical",
+  "fps": 30,
+  "strategy": "transformation",
+  "hero_hook": "Don't post it yet",
+  "selected_concept": "The Editorial Develop",
+  "status": "rendered-and-reviewed",
+  "revision": "v2-frame-one-hook-and-earlier-cta",
+  "composition_id": "influencer-model-reveal",
+  "renders": [
+    {
+      "role": "final-silent-deliverable",
+      "path": "marketing/ads/influencer-model-reveal/renders/influencer-model-reveal.mp4",
+      "sha256": "1cdd96242c834fb51733e517395f94b78e577d2fc2e219870be0d419609e05a5",
+      "streams": ["h264-video", "silent-aac-audio"]
+    },
+    {
+      "role": "studio-master",
+      "path": "/Users/batman/maskedsyntax/agent-skills/ad-studio/renders/influencer-model-reveal/influencer-model-reveal.mp4"
+    }
+  ],
+  "variants": [
+    "Pick your era",
+    "The edit is the outfit",
+    "Five moods. One roll."
+  ],
+  "assumptions": [
+    "Original AI-generated adult editorial portraits are acceptable for this campaign.",
+    "The ad targets Instagram creators while remaining free of fake handles, metrics, or testimonials.",
+    "After images use the app's production-equivalent Core Image grade renderer."
+  ]
+}

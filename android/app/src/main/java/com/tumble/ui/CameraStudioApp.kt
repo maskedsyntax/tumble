@@ -14,11 +14,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +29,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,10 +54,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +90,8 @@ import com.tumble.ui.theme.GraincoreBackground
 import com.tumble.ui.theme.Palette
 import com.tumble.ui.theme.TumbleType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -167,6 +176,7 @@ private fun CameraScreen(
     var permission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     var denied by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var importInProgress by remember { mutableStateOf(false) }
     val camera = rememberCameraController()
     val renderer = remember { StudioRenderer() }
     val selected = catalog.stock(selectedId)
@@ -175,10 +185,46 @@ private fun CameraScreen(
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch {
-            val bytes = withContext(Dispatchers.IO) { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }
-            if (bytes == null) message = "That image could not be imported."
-            else runCatching { drafts.create(bytes, SourceKind.LIBRARY, selectedId) }.onSuccess(onOpenStudio).onFailure { message = "Tumble could not create a private draft." }
+            importInProgress = true
+            try {
+                val bytes = withContext(Dispatchers.IO) { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }
+                if (bytes == null) message = "That image could not be imported."
+                else runCatching { drafts.create(bytes, SourceKind.LIBRARY, selectedId) }.onSuccess(onOpenStudio).onFailure { message = "Tumble could not create a private draft." }
+            } finally {
+                importInProgress = false
+            }
         }
+    }
+
+    val selectedIndex = catalog.stocks.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+    val filmRailState = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex)
+    val centeredFilmIndex by remember {
+        derivedStateOf {
+            val layout = filmRailState.layoutInfo
+            val center = (layout.viewportStartOffset + layout.viewportEndOffset) / 2
+            layout.visibleItemsInfo.minByOrNull { item ->
+                kotlin.math.abs(item.offset + item.size / 2 - center)
+            }?.index ?: selectedIndex
+        }
+    }
+    val filmRailFling = rememberSnapFlingBehavior(lazyListState = filmRailState)
+
+    LaunchedEffect(filmRailState, access) {
+        snapshotFlow {
+            if (filmRailState.isScrollInProgress) null else centeredFilmIndex
+        }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { index ->
+                val stock = catalog.stocks.getOrNull(index) ?: return@collect
+                if (access.unlocks(stock)) {
+                    selectedId = stock.id
+                } else {
+                    onLockedFilm()
+                    val current = catalog.stocks.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+                    filmRailState.animateScrollToItem(current)
+                }
+            }
     }
 
     LaunchedEffect(selectedId) {
@@ -210,43 +256,69 @@ private fun CameraScreen(
                     }, Modifier.padding(top = 12.dp)) { Text(if (denied) "Open Settings" else "Enable camera") }
                 }
             }
-            Row(
-                Modifier.fillMaxWidth().height(42.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                catalog.stocks.forEach { stock ->
-                    val unlocked = access.unlocks(stock)
-                    val isSelected = selectedId == stock.id
+            BoxWithConstraints(Modifier.fillMaxWidth().height(60.dp)) {
+                val itemWidth = 136.dp
+                val edgePadding = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
+                LazyRow(
+                    state = filmRailState,
+                    flingBehavior = filmRailFling,
+                    contentPadding = PaddingValues(horizontal = edgePadding),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items(catalog.stocks.size, key = { catalog.stocks[it].id }) { index ->
+                        val stock = catalog.stocks[index]
+                        val unlocked = access.unlocks(stock)
+                        val isCentered = centeredFilmIndex == index
+                        val packName = catalog.packs.firstOrNull { it.id == stock.packId }?.name?.uppercase() ?: "FILM"
                     Column(
-                        Modifier.clickable { if (unlocked) selectedId = stock.id else onLockedFilm() }.padding(vertical = 5.dp),
+                            Modifier
+                                .width(itemWidth)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isCentered) Palette.blueDeep.copy(alpha = .52f) else androidx.compose.ui.graphics.Color.Transparent)
+                                .border(
+                                    1.dp,
+                                    if (isCentered) Palette.gold.copy(alpha = .34f) else androidx.compose.ui.graphics.Color.Transparent,
+                                    RoundedCornerShape(10.dp),
+                                )
+                                .clickable {
+                                    if (isCentered && !unlocked) onLockedFilm()
+                                    else scope.launch { filmRailState.animateScrollToItem(index) }
+                                },
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(7.dp),
+                            verticalArrangement = Arrangement.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(
                                 stock.name,
-                                style = TumbleType.sans(12, if (isSelected) FontWeight.Bold else FontWeight.SemiBold),
-                                color = if (isSelected) Palette.gold else Palette.cream.copy(alpha = .64f),
+                                    style = TumbleType.sans(12, if (isCentered) FontWeight.Bold else FontWeight.SemiBold),
+                                    color = if (isCentered) Palette.gold else Palette.cream.copy(alpha = .62f),
                                 maxLines = 1,
                             )
                             if (!unlocked) {
                                 Icon(
                                     Icons.Default.Lock,
                                     contentDescription = "Locked",
-                                    tint = if (isSelected) Palette.gold else Palette.cream.copy(alpha = .64f),
+                                        tint = if (isCentered) Palette.gold else Palette.cream.copy(alpha = .62f),
                                     modifier = Modifier.size(9.dp),
                                 )
                             }
                         }
-                        Box(
-                            Modifier.size(4.dp).background(
-                                if (isSelected) Palette.gold else androidx.compose.ui.graphics.Color.Transparent,
-                                CircleShape,
+                            Text(
+                                packName,
+                                style = TumbleType.sans(7, FontWeight.Bold),
+                                color = Palette.cream.copy(alpha = if (isCentered) .52f else .30f),
                             )
+                        Box(
+                                Modifier
+                                    .padding(top = 4.dp)
+                                    .size(width = if (isCentered) 34.dp else 14.dp, height = 2.dp)
+                                    .background(if (isCentered) Palette.gold else Palette.cream.copy(alpha = .16f), CircleShape)
                         )
                     }
                 }
+            }
             }
             Row(Modifier.fillMaxWidth().height(82.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) { Icon(Icons.Default.PhotoLibrary, "Import", tint = Palette.cream, modifier = Modifier.size(26.dp)) }
@@ -265,6 +337,25 @@ private fun CameraScreen(
                 }, modifier = Modifier.size(76.dp), shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Palette.cream, contentColor = Palette.ink), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Box(Modifier.size(60.dp).background(Palette.cream, CircleShape)) }
                 Spacer(Modifier.weight(1f))
                 IconButton(enabled = permission && camera.canSwitch, onClick = camera::switchCamera) { Icon(Icons.Default.Cameraswitch, "Switch camera", tint = Palette.cream, modifier = Modifier.size(28.dp)) }
+            }
+        }
+        if (importInProgress) {
+            Box(
+                Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .56f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    Modifier
+                        .background(Palette.blueDeep.copy(alpha = .96f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Palette.cream.copy(alpha = .10f), RoundedCornerShape(24.dp))
+                        .padding(horizontal = 28.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    CircularProgressIndicator(color = Palette.gold)
+                    Text("Preparing your photo", style = TumbleType.display(22), color = Palette.cream)
+                    Text("Copying it privately into Studio…", style = TumbleType.sans(12), color = Palette.cream.copy(alpha = .62f))
+                }
             }
         }
     }

@@ -1,0 +1,30 @@
+{
+  "campaign": "nostalgia-memory",
+  "product": "tumble",
+  "product_root": "/Users/batman/maskedsyntax/tumble",
+  "created_at": "2026-08-28T17:40:17Z",
+  "duration_seconds": 15,
+  "format": "vertical",
+  "fps": 30,
+  "strategy": "transformation + aspirational + product-first",
+  "hero_hook": "Keep the ordinary.",
+  "selected_concept": "The moment becomes an object",
+  "status": "rendered-and-reviewed",
+  "composition_id": "NostalgiaMemory",
+  "renders": [
+    {
+      "path": "/Users/batman/maskedsyntax/agent-skills/ad-studio/renders/nostalgia-memory/nostalgia-memory-final-slow-transitions.mp4",
+      "status": "final"
+    }
+  ],
+  "variants": [
+    "Keep the ordinary.",
+    "Twenty-one ways to remember.",
+    "Macro grain, no copy"
+  ],
+  "assumptions": [
+    "Short-form social uses the 15-second vertical default.",
+    "No app screenshots or device shells appear.",
+    "Generated source photos are acceptable when disclosed and are intentionally ordinary."
+  ]
+}

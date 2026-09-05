@@ -1,0 +1,33 @@
+{
+  "campaign": "travel-filter-reveal",
+  "product": "Tumble",
+  "created_at": "2026-08-30T11:14:23Z",
+  "duration_seconds": 15,
+  "format": "vertical",
+  "dimensions": "1080x1920",
+  "fps": 30,
+  "strategy": "transformation + product-first + demo",
+  "hero_hook": "Begin mid-wipe on the friends photo",
+  "selected_concept": "Traveling prints",
+  "status": "rendered-and-reviewed",
+  "revision": "user-feedback-v2",
+  "composition_id": "travel-filter-reveal",
+  "renders": [
+    {
+      "role": "final-silent-deliverable",
+      "path": "marketing/ads/travel-filter-reveal/renders/travel-filter-reveal.mp4",
+      "sha256": "566c91ad656294b6a26526ae494e26f3524e1be378d3d26049c09a487845c9b2",
+      "streams": ["h264-video"]
+    },
+    {
+      "role": "studio-master",
+      "path": "/Users/batman/maskedsyntax/agent-skills/ad-studio/renders/travel-filter-reveal/travel-filter-reveal.mp4"
+    }
+  ],
+  "variants": [],
+  "assumptions": [
+    "Used five generated photos because five was the final explicit asset count.",
+    "The live App Store URL and existing product-site CTA support the final download call to action.",
+    "Changed the final alpine look from Overcast to Everyday for clarity and the portrait from Everyday to Golden Hour to keep the five looks distinct."
+  ]
+}

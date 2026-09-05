@@ -15,6 +15,9 @@ export default function Footer() {
           </div>
 
           <nav className="flex items-center gap-7 font-mono text-[11px] uppercase tracking-[0.12em] text-cream/60">
+            <a href="/updates" className="transition hover:text-cream">
+              Updates
+            </a>
             <a href="/privacy" className="transition hover:text-cream">
               Privacy
             </a>

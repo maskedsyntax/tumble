@@ -19,6 +19,9 @@ struct CameraWorkspace: View {
     @State private var showResume = false
     @State private var showAnalyticsOffer = false
     @State private var captureInProgress = false
+    @State private var importInProgress = false
+    @State private var centeredStockID: String?
+    @State private var filmRailIsScrolling = false
     @State private var message: String?
 
     private var selectedStock: FilmStock { FilmStockCatalog.resolve(selectedStockID) }
@@ -35,6 +38,12 @@ struct CameraWorkspace: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 12)
+
+            if importInProgress {
+                importProgressOverlay
+                    .transition(.opacity)
+                    .zIndex(10)
+            }
         }
         .task {
             await app.startStore()
@@ -53,6 +62,7 @@ struct CameraWorkspace: View {
         .onChange(of: selectedStockID) { _, _ in updatePreviewFilm() }
         .onChange(of: selectedItem) { _, item in
             guard let item else { return }
+            withAnimation(.easeOut(duration: 0.18)) { importInProgress = true }
             Task { await importPhoto(item) }
         }
         .onDisappear { camera.stop() }
@@ -163,20 +173,23 @@ struct CameraWorkspace: View {
     }
 
     private var filmSelector: some View {
-        ScrollViewReader { scrollProxy in
+        GeometryReader { proxy in
+            let itemWidth = min(148, max(124, proxy.size.width * 0.38))
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 24) {
+                LazyHStack(spacing: 4) {
                     ForEach(FilmStockCatalog.all) { stock in
                         let unlocked = app.purchases.isUnlocked(stock)
-                        let selected = selectedStockID == stock.id
+                        let centered = centeredStockID == stock.id
                         Button {
-                            guard unlocked else { showComplete = true; return }
-                            withAnimation(.easeOut(duration: 0.18)) {
-                                selectedStockID = stock.id
+                            if centered {
+                                guard unlocked else { showComplete = true; return }
+                            } else {
+                                withAnimation(.snappy(duration: 0.24)) {
+                                    centeredStockID = stock.id
+                                }
                             }
-                            UISelectionFeedbackGenerator().selectionChanged()
                         } label: {
-                            VStack(spacing: 7) {
+                            VStack(spacing: 4) {
                                 HStack(spacing: 5) {
                                     Text(stock.name)
                                         .lineLimit(1)
@@ -185,32 +198,53 @@ struct CameraWorkspace: View {
                                             .font(.system(size: 8, weight: .bold))
                                     }
                                 }
-                                .font(Typography.sans(12, weight: selected ? .bold : .semibold))
-                                .foregroundStyle(selected ? Palette.gold : Palette.cream.opacity(0.64))
+                                .font(Typography.sans(12, weight: centered ? .bold : .semibold))
+                                .foregroundStyle(centered ? Palette.gold : Palette.cream.opacity(0.62))
 
-                                Circle()
-                                    .fill(selected ? Palette.gold : Color.clear)
-                                    .frame(width: 4, height: 4)
+                                Text(FilmStockCatalog.pack(for: stock.packID)?.name.uppercased() ?? "FILM")
+                                    .font(Typography.sans(7, weight: .bold))
+                                    .tracking(0.9)
+                                    .foregroundStyle(Palette.cream.opacity(centered ? 0.52 : 0.30))
+
+                                Capsule()
+                                    .fill(centered ? Palette.gold : Palette.cream.opacity(0.16))
+                                    .frame(width: centered ? 34 : 14, height: 2)
                             }
-                            .padding(.vertical, 5)
-                            .contentShape(Rectangle())
+                            .frame(width: itemWidth, height: 56)
+                            .background(
+                                centered ? Palette.charcoalDeep.opacity(0.48) : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(centered ? Palette.gold.opacity(0.34) : Color.clear)
+                            }
+                            .scaleEffect(centered ? 1 : 0.94)
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .id(stock.id)
+                        .accessibilityLabel("\(stock.name) film\(unlocked ? "" : ", locked")")
+                        .accessibilityAddTraits(centered ? .isSelected : [])
                     }
                 }
-                .padding(.horizontal, 18)
+                .scrollTargetLayout()
             }
+            .contentMargins(.horizontal, max(0, (proxy.size.width - itemWidth) / 2), for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $centeredStockID, anchor: .center)
             .onAppear {
-                scrollProxy.scrollTo(selectedStockID, anchor: .center)
+                centeredStockID = selectedStockID
             }
-            .onChange(of: selectedStockID) { _, id in
-                withAnimation(.easeOut(duration: 0.22)) {
-                    scrollProxy.scrollTo(id, anchor: .center)
-                }
+            .onChange(of: centeredStockID) { _, id in
+                if !filmRailIsScrolling { selectCenteredStock(id) }
+            }
+            .onScrollPhaseChange { _, phase in
+                filmRailIsScrolling = phase != .idle
+                if phase == .idle { selectCenteredStock(centeredStockID) }
             }
         }
-        .frame(height: 42)
+        .frame(height: 60)
     }
 
     private var cameraControls: some View {
@@ -294,7 +328,10 @@ struct CameraWorkspace: View {
     }
 
     private func importPhoto(_ item: PhotosPickerItem) async {
-        defer { selectedItem = nil }
+        defer {
+            selectedItem = nil
+            withAnimation(.easeOut(duration: 0.16)) { importInProgress = false }
+        }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 message = "That image could not be imported."
@@ -304,6 +341,44 @@ struct CameraWorkspace: View {
         } catch {
             message = "That image could not be imported."
         }
+    }
+
+    private var importProgressOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.54).ignoresSafeArea()
+            VStack(spacing: 13) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(Palette.gold)
+                Text("Preparing your photo")
+                    .font(Typography.display(22))
+                    .foregroundStyle(Palette.cream)
+                Text("Copying it privately into Studio…")
+                    .font(Typography.sans(12))
+                    .foregroundStyle(Palette.cream.opacity(0.62))
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 24)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.cream.opacity(0.10))
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Preparing your photo for Studio")
+    }
+
+    private func selectCenteredStock(_ id: String?) {
+        guard let id, id != selectedStockID else { return }
+        let stock = FilmStockCatalog.resolve(id)
+        guard app.purchases.isUnlocked(stock) else {
+            showComplete = true
+            withAnimation(.snappy(duration: 0.24)) { centeredStockID = selectedStockID }
+            return
+        }
+        selectedStockID = stock.id
+        UISelectionFeedbackGenerator().selectionChanged()
     }
 
     private func createDraft(data: Data, source: EditSourceKind) {

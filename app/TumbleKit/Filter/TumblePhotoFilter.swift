@@ -154,6 +154,24 @@ public enum TumblePhotoFilter {
         )
     }
 
+    /// Renders a camera frame without round-tripping through JPEG. Camera video
+    /// buffers arrive many times per second, so keeping the frame in Core Image
+    /// lets the shared GPU-backed context grade it with far less latency.
+    public static func renderLivePreview(
+        from pixelBuffer: CVPixelBuffer,
+        stock: FilmStock,
+        intensity: Double = 1,
+        capturedAt: Date = Date(),
+        maxDimension: CGFloat = 960
+    ) -> UIImage? {
+        let source = downscaled(CIImage(cvPixelBuffer: pixelBuffer), maxDimension: maxDimension)
+        let graded = applyGrade(stock.grade, to: source, capturedAt: capturedAt)
+        let output = dissolve(original: source, graded: graded, amount: intensity)
+        let extent = output.extent.integral
+        guard !extent.isEmpty, let image = context.createCGImage(output, from: extent) else { return nil }
+        return UIImage(cgImage: image)
+    }
+
     private static func downscaled(_ image: CIImage, maxDimension: CGFloat) -> CIImage {
         let longEdge = max(image.extent.width, image.extent.height)
         guard longEdge > maxDimension, longEdge > 0 else { return image }

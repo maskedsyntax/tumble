@@ -201,19 +201,18 @@ public final class CameraController: NSObject, ObservableObject {
         }
     }
 
-    private func renderPreview(_ pixelBuffer: CVPixelBuffer) async {
+    private func renderPreview(_ buffer: SendablePixelBuffer) async {
         guard !previewRenderInFlight else { return }
         previewRenderInFlight = true
         defer { previewRenderInFlight = false }
-        let input = UIImage(ciImage: CIImage(cvPixelBuffer: pixelBuffer))
         let stock = previewStock
         let intensity = previewIntensity
         filteredPreview = await Task.detached(priority: .userInitiated) {
             TumblePhotoFilter.renderLivePreview(
-                from: input,
+                from: buffer.value,
                 stock: stock,
                 intensity: intensity,
-                maxDimension: 960
+                maxDimension: 720
             )
         }.value
     }
@@ -246,10 +245,10 @@ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         let now = CACurrentMediaTime()
-        guard now - lastPreviewTimestamp >= 0.10,
+        guard now - lastPreviewTimestamp >= (1.0 / 30.0),
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lastPreviewTimestamp = now
         let buffer = SendablePixelBuffer(value: pixelBuffer)
-        Task { @MainActor [weak self, buffer] in await self?.renderPreview(buffer.value) }
+        Task { @MainActor [weak self, buffer] in await self?.renderPreview(buffer) }
     }
 }

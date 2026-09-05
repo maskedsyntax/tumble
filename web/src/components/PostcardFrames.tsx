@@ -174,63 +174,52 @@ const FRAMES = [
     name: "Classic",
     full: "Classic Instant",
     tagline: "The Tumble print, cream stock and all.",
+    layout: "lg:col-span-3 lg:mt-16",
     render: <ClassicInstant src="/frames/frame-1.jpg" alt="A waterfall saved in the Classic Instant frame." />,
   },
   {
     name: "Vintage",
     full: "Vintage Postcard",
     tagline: "Stamp box, postmark, and room to write.",
+    layout: "lg:col-span-3",
     render: <VintagePostcard src="/frames/frame-2.jpg" alt="Flowers saved in the Vintage Postcard frame." />,
   },
   {
     name: "Film",
     full: "Bordered Film",
     tagline: "Full-bleed with a burnt-in date stamp.",
+    layout: "lg:col-span-3 lg:mt-16",
     render: <BorderedFilm src="/frames/frame-3.jpg" alt="Leaves saved in the Bordered Film frame." />,
   },
   {
     name: "Deckled",
     full: "Deckled Edge",
     tagline: "Torn paper edge, taped to the page.",
+    layout: "lg:col-span-3",
     render: <DeckledEdge src="/frames/frame-4.jpg" alt="Clouds saved in the Deckled Edge frame." />,
   },
 ];
 
-const DETAILS = [
-  {
-    kicker: "In your own hand",
-    body: "Sixty characters, written on the print itself. It rides along wherever the postcard goes.",
-  },
-  {
-    kicker: "Filters come with it",
-    body: "Faded Instant and Warm Archive export baked into the frame, not re-applied later.",
-  },
-  {
-    kicker: "Nothing saved blind",
-    body: "Every frame is previewed at full size before it reaches your photo library.",
-  },
-];
+const PROMISES = ["On device", "No account", "No cloud", "No subscriptions"];
 
 export default function PostcardFrames() {
   return (
-    <section className="relative z-10 mx-auto max-w-5xl px-6 py-14 md:py-18">
-      <div className="mb-10 max-w-2xl">
+    <section className="relative z-10 border-y border-cream/10 bg-cream/[0.025] px-5 py-20 sm:px-6 md:py-28">
+      <div className="mx-auto max-w-7xl">
+      <div className="mb-12 max-w-3xl">
         <Stamp frame="v1.2">Postcard studio</Stamp>
-        <h2 className="mt-4 font-display text-3xl leading-tight font-bold text-cream sm:text-4xl">
-          Frame it like you felt it.
+        <h2 className="mt-5 font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-cream sm:text-5xl lg:text-6xl">
+          Made to be sent,
+          <span className="block text-gold">not scrolled.</span>
         </h2>
-        <p className="mt-4 leading-relaxed text-cream/75">
-          A developed print doesn&rsquo;t have to leave Tumble as a bare square.
-          Pick one of four finishes, add a note in your own handwriting, and save
-          the moment as a postcard that looks like it was kept, not exported.
+        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-cream/72">
+          Pick one of four tactile finishes, add a note in your own hand, and save a postcard that looks kept rather than exported.
         </p>
       </div>
 
-      <ul className="grid grid-cols-2 gap-x-5 gap-y-9 sm:gap-x-7 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-x-5 gap-y-10 sm:gap-x-7 lg:grid-cols-12 lg:gap-7">
         {FRAMES.map((frame) => (
-          <li key={frame.name} className="flex min-w-0 flex-col">
-            {/* Grid rows stretch, so centring the frame in a flex-1 box keeps
-                every caption on the same baseline despite four aspect ratios. */}
+          <li key={frame.name} className={`flex min-w-0 flex-col ${frame.layout}`}>
             <div className="flex min-w-0 flex-1 items-center">{frame.render}</div>
             <div className="mt-5">
               <h3 className="font-display text-lg font-semibold text-cream">
@@ -244,15 +233,13 @@ export default function PostcardFrames() {
         ))}
       </ul>
 
-      <div className="mt-12 grid gap-4 border-t border-cream/12 pt-9 sm:grid-cols-3">
-        {DETAILS.map((detail) => (
-          <div key={detail.kicker}>
-            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-amber">
-              {detail.kicker}
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-cream/70">{detail.body}</p>
+      <div className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-cream/12 bg-cream/12 lg:grid-cols-4">
+        {PROMISES.map((promise) => (
+          <div key={promise} className="bg-blue-deep/95 px-4 py-6 text-center font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cream/70 sm:px-6">
+            {promise}
           </div>
         ))}
+      </div>
       </div>
     </section>
   );
