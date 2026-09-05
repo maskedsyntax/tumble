@@ -2,7 +2,7 @@
   "version": 1,
   "completeProductID": "com.tumble.pack.all",
   "packs": [
-    { "id": "core", "name": "The Roll", "blurb": "The everyday stocks, free with the app." },
+    { "id": "core", "name": "Core", "blurb": "Six everyday stocks, free with the app." },
     { "id": "nineties", "name": "Ninety-Six", "blurb": "Drugstore disposables, flash and all.", "legacyProductID": "com.tumble.pack.nineties" },
     { "id": "darkroom", "name": "Darkroom", "blurb": "Black and white, printed by hand.", "legacyProductID": "com.tumble.pack.darkroom2" },
     { "id": "summer", "name": "Long Summer", "blurb": "Leaks, flares and blown-out afternoons.", "legacyProductID": "com.tumble.pack.summer" }

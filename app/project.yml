@@ -9,6 +9,15 @@ packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios.git
     exactVersion: 3.70.1
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk.git
+    exactVersion: 12.18.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS.git
+    exactVersion: 9.0.0
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios.git
+    exactVersion: 5.88.0
 
 settings:
   base:
@@ -20,7 +29,7 @@ settings:
     # CURRENT_PROJECT_VERSION only matters for uploads from a Mac: Xcode Cloud
     # sets CFBundleVersion from its own build number and ignores this.
     MARKETING_VERSION: "3.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "27"
     TARGETED_DEVICE_FAMILY: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
@@ -67,11 +76,21 @@ targets:
     dependencies:
       - target: TumbleKit
       - target: TumbleAnalytics
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseCore
+      - package: GoogleSignIn
+        product: GoogleSignIn
+      - package: RevenueCat
+        product: RevenueCat
     entitlements:
       path: Tumble/Tumble.entitlements
       properties:
         com.apple.security.application-groups:
           - group.com.tumble
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app
@@ -83,6 +102,11 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tumble adds your finished edit to Photos only when you tap Save."
         POSTHOG_PROJECT_TOKEN: ${POSTHOG_PROJECT_TOKEN}
         POSTHOG_HOST: ${POSTHOG_HOST}
+        # RevenueCat SDK keys identify an app and are intentionally public in
+        # shipped binaries. Server credentials and private store keys stay out
+        # of this project.
+        REVENUECAT_API_KEY: appl_AqGfGhaCvpLnSDxjusKTULaLnKr
+        OTHER_LDFLAGS: "$(inherited) -ObjC"
         ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:
       - name: Upload dSYMs to PostHog
@@ -107,10 +131,14 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         POSTHOG_PROJECT_TOKEN: $(POSTHOG_PROJECT_TOKEN)
         POSTHOG_HOST: $(POSTHOG_HOST)
+        REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
         CFBundleURLTypes:
           - CFBundleURLName: com.tumble.app
             CFBundleURLSchemes:
               - tumble
+          - CFBundleURLName: GoogleSignIn
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.1093366796401-avdrcf4tokjrbtlsipun0na8gpnu25vv
 
   # ---- Tests --------------------------------------------------------------
   TumbleKitTests:

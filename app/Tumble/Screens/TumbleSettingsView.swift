@@ -10,6 +10,7 @@ struct TumbleSettingsView: View {
     @State private var analyticsEnabled = false
     @State private var showLegacy = false
     @State private var showComplete = false
+    @State private var showAccount = false
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,15 @@ struct TumbleSettingsView: View {
                 GraincoreBackground()
                 ScrollView {
                     VStack(spacing: 14) {
+                        Button { showAccount = true } label: {
+                            settingRow(
+                                "Tumble account",
+                                detail: app.account.isSignedIn ? "Purchases can follow you across platforms" : "Sign in only to buy or link purchases",
+                                icon: "person.crop.circle"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                         settingCard {
                             Toggle(isOn: Binding(
                                 get: { analyticsEnabled },
@@ -37,7 +47,11 @@ struct TumbleSettingsView: View {
                         }
 
                         Button { showComplete = true } label: {
-                            settingRow("Tumble Complete", detail: "Unlock all fifteen premium films", icon: "camera.filters")
+                            settingRow(
+                                "Tumble Complete",
+                                detail: app.purchases.accessState == .complete ? "All twenty-one films unlocked" : "Unlock all fifteen premium films",
+                                icon: "camera.filters"
+                            )
                         }
                         .buttonStyle(.plain)
 
@@ -78,6 +92,7 @@ struct TumbleSettingsView: View {
         .onAppear { analyticsEnabled = TumbleAnalytics.shared.isEnabled }
         .fullScreenCover(isPresented: $showLegacy) { LegacyDrawerView().environment(app) }
         .sheet(isPresented: $showComplete) { CompletePaywallView().environment(app) }
+        .sheet(isPresented: $showAccount) { AccountView().environment(app) }
     }
 
     private func settingCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {

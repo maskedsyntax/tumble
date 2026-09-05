@@ -20,6 +20,7 @@ class CompleteBillingManager(context: Context, private val productId: String) {
     var accessState by mutableStateOf<AccessState>(AccessState.Free); private set
     var product by mutableStateOf<ProductDetails?>(null); private set
     var message by mutableStateOf<String?>(null); private set
+    var onPurchaseObserved: () -> Unit = {}
 
     private val client = BillingClient.newBuilder(context.applicationContext)
         .setListener { result, purchases ->
@@ -80,7 +81,8 @@ class CompleteBillingManager(context: Context, private val productId: String) {
         if (!purchase.isAcknowledged) {
             client.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()) { result ->
                 if (result.responseCode != BillingClient.BillingResponseCode.OK) message = "Purchase received, but acknowledgement will be retried."
+                else onPurchaseObserved()
             }
-        }
+        } else onPurchaseObserved()
     }
 }

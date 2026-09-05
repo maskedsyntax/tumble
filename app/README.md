@@ -3,7 +3,7 @@
 Tumble is a private film camera and Studio. Capture a photo or import one from
 the system picker, preview a film look, refine the crop and postcard treatment,
 then explicitly save or share the finished image. Source photos and edits stay
-on-device; there is no account or Tumble cloud.
+on-device; an optional Tumble account links film purchases across platforms, never photos.
 
 ## Requirements
 

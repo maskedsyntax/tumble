@@ -74,7 +74,7 @@ export default function NotFound() {
       <footer className="pb-10">
         <Sprockets className="opacity-50" />
         <p className="mt-5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/35">
-          &copy; {new Date().getFullYear()} Tumble · Twelve shots a day
+          &copy; {new Date().getFullYear()} Tumble · 21 film looks
         </p>
       </footer>
       </div>

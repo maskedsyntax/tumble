@@ -1,0 +1,71 @@
+{
+  "project_info": {
+    "project_number": "1093366796401",
+    "project_id": "tumble-waitlist",
+    "storage_bucket": "tumble-waitlist.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1093366796401:android:738fd31485cbe961308bd0",
+        "android_client_info": {
+          "package_name": "com.tumble.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1093366796401-5ss2v6ibjekbdlsh62s66qe1e65ogbv1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tumble.app",
+            "certificate_hash": "05a0e242b936f217b5d6052aa8715edff7b71202"
+          }
+        },
+        {
+          "client_id": "1093366796401-88vb68t0tlcmre71fu7123rim1gta6p6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tumble.app",
+            "certificate_hash": "c3646b2be97e86b5e61c2236ed9ce3888f9e6657"
+          }
+        },
+        {
+          "client_id": "1093366796401-m49up85as3j89m84ejstu8nnlp86m7nr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tumble.app",
+            "certificate_hash": "34abde84ac81a359545adb01591cab6dc12c460a"
+          }
+        },
+        {
+          "client_id": "1093366796401-bd95tr29oppup5fc7s6uj0n2d1hl0fth.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmmGxyrTBxaJxkTBd43Z20hwNgth_LdBk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1093366796401-bd95tr29oppup5fc7s6uj0n2d1hl0fth.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1093366796401-avdrcf4tokjrbtlsipun0na8gpnu25vv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tumble.app",
+                "app_store_id": "6788386458"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -72,6 +72,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.tumble.BuildConfig
+import com.tumble.account.AccountCoordinator
+import com.tumble.account.AuthProvider
+import com.tumble.account.AuthState
 import com.tumble.analytics.AnalyticsController
 import com.tumble.camera.CameraCaptureResult
 import com.tumble.camera.CameraPreview
@@ -85,6 +88,7 @@ import com.tumble.studio.EditRecipe
 import com.tumble.studio.FilmCatalog
 import com.tumble.studio.SourceKind
 import com.tumble.studio.StudioRenderer
+import com.tumble.studio.mergeAccess
 import com.tumble.ui.studio.StudioScreen
 import com.tumble.ui.theme.GraincoreBackground
 import com.tumble.ui.theme.Palette
@@ -106,25 +110,31 @@ fun CameraStudioApp() {
     val drafts = remember { DraftRepository(context.applicationContext) }
     val analytics = remember { AnalyticsController(context.applicationContext) }
     val billing = remember { CompleteBillingManager(context.applicationContext, catalog.completeProductId) }
+    val account = remember { AccountCoordinator(context.applicationContext) }
+    val effectiveAccess = mergeAccess(billing.accessState, account.accountAccess)
     var surface by remember { mutableStateOf(if (prefs.getBoolean("introduced", false)) Surface.CAMERA else Surface.ONBOARDING) }
     var activeDraft by remember { mutableStateOf<EditDraft?>(null) }
     var resumePrompt by remember { mutableStateOf(surface == Surface.CAMERA && drafts.active != null) }
     var completeSheet by remember { mutableStateOf(false) }
     var settingsSheet by remember { mutableStateOf(false) }
+    var accountSheet by remember { mutableStateOf(false) }
     var analyticsOffer by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { billing.connect() }
+    LaunchedEffect(Unit) {
+        billing.onPurchaseObserved = { account.syncPurchases() }
+        billing.connect()
+    }
 
     when (surface) {
         Surface.ONBOARDING -> TumbleOnboarding {
             prefs.edit().putBoolean("introduced", true).apply()
             surface = Surface.CAMERA
         }
-        Surface.CAMERA -> CameraScreen(catalog, drafts, billing.accessState, analytics, onOpenStudio = {
+        Surface.CAMERA -> CameraScreen(catalog, drafts, effectiveAccess, analytics, onOpenStudio = {
             activeDraft = it; surface = Surface.STUDIO
         }, onLockedFilm = { completeSheet = true }, onSettings = { settingsSheet = true })
         Surface.STUDIO -> activeDraft?.let { draft ->
-            StudioScreen(draft, catalog, drafts, billing.accessState, { completeSheet = true }, {
+            StudioScreen(draft, catalog, drafts, effectiveAccess, { completeSheet = true }, {
                 activeDraft = null; surface = Surface.CAMERA
             }, {
                 analytics.capture("photo_saved", mapOf("format" to "jpeg"))
@@ -137,8 +147,9 @@ fun CameraStudioApp() {
         TextButton(onClick = { activeDraft = drafts.active; resumePrompt = false; surface = Surface.STUDIO }) { Text("Continue editing") }
     }, dismissButton = { TextButton(onClick = { drafts.discard(); resumePrompt = false }) { Text("Discard") } })
 
-    if (completeSheet) CompleteDialog(billing) { completeSheet = false }
-    if (settingsSheet) SettingsDialog(analytics, billing.accessState, { completeSheet = true }) { settingsSheet = false }
+    if (completeSheet) CompleteDialog(billing, account, effectiveAccess, { accountSheet = true }) { completeSheet = false }
+    if (settingsSheet) SettingsDialog(analytics, effectiveAccess, account, { completeSheet = true }, { accountSheet = true }) { settingsSheet = false }
+    if (accountSheet) AccountDialog(account, onLinked = { billing.refresh(); account.syncPurchases() }) { accountSheet = false }
     if (analyticsOffer) AlertDialog(onDismissRequest = {}, title = { Text("Help improve Tumble?") }, text = { Text("Share anonymous product events, crash diagnostics, and masked session replay. Photo pixels, filenames, edits, and notes are never sent.") }, confirmButton = {
         TextButton(onClick = { prefs.edit().putBoolean("analytics-prompt-shown", true).apply(); analytics.setEnabled(true); analyticsOffer = false }) { Text("Allow") }
     }, dismissButton = { TextButton(onClick = { prefs.edit().putBoolean("analytics-prompt-shown", true).apply(); analyticsOffer = false }) { Text("Not now") } })
@@ -153,7 +164,7 @@ private fun TumbleOnboarding(onDone: () -> Unit) {
             Text("Tumble", style = TumbleType.display(40), color = Palette.cream)
             Text("Your private film camera.", style = TumbleType.display(26), color = Palette.cream, textAlign = TextAlign.Center)
             Text("Shoot something new or bring a photo with you. Choose a film, make it yours, and save it—without sending your pictures anywhere.", style = TumbleType.sans(15), color = Palette.cream.copy(alpha = .72f), textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 22.dp))
-            Text("No account · Local photo processing", style = TumbleType.sans(12, FontWeight.SemiBold), color = Palette.cream.copy(alpha = .58f))
+            Text("Account optional · Photos stay local", style = TumbleType.sans(12, FontWeight.SemiBold), color = Palette.cream.copy(alpha = .58f))
             Button(onClick = onDone, Modifier.fillMaxWidth().padding(top = 40.dp), colors = ButtonDefaults.buttonColors(containerColor = Palette.gold, contentColor = Palette.ink)) { Text("Open the camera", fontWeight = FontWeight.Bold) }
         }
     }
@@ -229,7 +240,7 @@ private fun CameraScreen(
 
     LaunchedEffect(selectedId) {
         prefs.edit().putString("film", selectedId).apply()
-        camera.setPreviewRenderer { bitmap -> renderer.render(bitmap, selected, EditRecipe(stockId = selected.id), 0, 720) }
+        camera.setPreviewRenderer { bitmap -> renderer.render(bitmap, selected, EditRecipe(stockId = selected.id), 0, 480) }
     }
     DisposableEffect(Unit) { onDispose { camera.setPreviewRenderer(null) } }
 
@@ -362,30 +373,92 @@ private fun CameraScreen(
     message?.let { AlertDialog(onDismissRequest = { message = null }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } }, text = { Text(it) }) }
 }
 
-@Composable private fun CompleteDialog(billing: CompleteBillingManager, close: () -> Unit) {
+@Composable private fun CompleteDialog(
+    billing: CompleteBillingManager,
+    account: AccountCoordinator,
+    access: AccessState,
+    requireAccount: () -> Unit,
+    close: () -> Unit,
+) {
     val activity = LocalActivity.current
     AlertDialog(onDismissRequest = close, title = { Text("Tumble Complete", style = TumbleType.display(28)) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("All fifteen premium films. One payment, yours forever.")
             Text("Ninety-Six · Darkroom · Long Summer", color = Palette.gold)
-            if (billing.accessState == AccessState.Complete) Text("Complete is unlocked on this Play account.", fontWeight = FontWeight.Bold)
+            if (access == AccessState.Complete) Text("Complete is unlocked for this device or Tumble account.", fontWeight = FontWeight.Bold)
         }
     }, confirmButton = {
-        TextButton(enabled = activity != null && billing.product != null && billing.accessState != AccessState.Complete, onClick = { activity?.let(billing::launch) }) {
+        TextButton(enabled = activity != null && billing.product != null && access != AccessState.Complete, onClick = {
+            if (account.state is AuthState.SignedIn) activity?.let(billing::launch) else requireAccount()
+        }) {
             val price = billing.product?.oneTimePurchaseOfferDetailsList?.firstOrNull()?.formattedPrice ?: "…"
-            Text(if (billing.accessState == AccessState.Complete) "Unlocked" else "Own every film · $price")
+            Text(if (access == AccessState.Complete) "Unlocked" else "Own every film · $price")
         }
-    }, dismissButton = { TextButton(onClick = { billing.refresh(); close() }) { Text("Restore / Close") } })
+    }, dismissButton = { TextButton(onClick = {
+        if (account.state is AuthState.SignedIn) { billing.refresh(); account.syncPurchases() } else requireAccount()
+        close()
+    }) { Text(if (account.state is AuthState.SignedIn) "Restore / Close" else "Sign in to restore") } })
 }
 
-@Composable private fun SettingsDialog(analytics: AnalyticsController, access: AccessState, openComplete: () -> Unit, close: () -> Unit) {
+@Composable private fun SettingsDialog(
+    analytics: AnalyticsController,
+    access: AccessState,
+    account: AccountCoordinator,
+    openComplete: () -> Unit,
+    openAccount: () -> Unit,
+    close: () -> Unit,
+) {
     var enabled by remember { mutableStateOf(analytics.enabled) }
     AlertDialog(onDismissRequest = close, title = { Text("Settings", style = TumbleType.display(28)) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text("Help improve Tumble"); Text("Anonymous events, crashes and masked replay", style = TumbleType.sans(11)) }; Switch(enabled, { enabled = it; analytics.setEnabled(it) }) }
             TextButton(onClick = openComplete) { Text(if (access == AccessState.Complete) "Tumble Complete · Unlocked" else "Unlock Tumble Complete") }
-            Text("Privacy: local photo processing; optional analytics uses the network. Purchases use Google Play. Saved photos may sync through your device settings.", style = TumbleType.sans(11))
+            TextButton(onClick = openAccount) { Text(if (account.state is AuthState.SignedIn) "Account & linked purchases" else "Sign in or link purchases") }
+            Text("Privacy: photos and drafts stay on device. Firebase processes account identifiers; RevenueCat processes an opaque account ID and purchase history. Optional analytics uses the network only after consent.", style = TumbleType.sans(11))
             Text("Tumble ${BuildConfig.VERSION_NAME}", style = TumbleType.sans(11), color = Palette.cream.copy(alpha = .55f))
         }
     }, confirmButton = { TextButton(onClick = close) { Text("Done") } })
+}
+
+@Composable private fun AccountDialog(account: AccountCoordinator, onLinked: () -> Unit, close: () -> Unit) {
+    val activity = LocalActivity.current
+    val scope = rememberCoroutineScope()
+    val signedIn = account.state as? AuthState.SignedIn
+    var confirmDelete by remember { mutableStateOf(false) }
+    AlertDialog(onDismissRequest = close, title = { Text("Tumble Account", style = TumbleType.display(28)) }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Camera, import, editing and saving never require an account. Sign in only to buy once and use your films across iOS and Android.")
+            if (signedIn == null) {
+                Button(enabled = activity != null && account.state !is AuthState.Authenticating, onClick = {
+                    activity?.let { scope.launch { account.continueWithGoogle(it); if (account.state is AuthState.SignedIn) onLinked() } }
+                }, modifier = Modifier.fillMaxWidth()) { Text("Continue with Google") }
+                Button(enabled = activity != null && account.state !is AuthState.Authenticating, onClick = {
+                    activity?.let { scope.launch { account.continueWithApple(it); if (account.state is AuthState.SignedIn) onLinked() } }
+                }, modifier = Modifier.fillMaxWidth()) { Text("Continue with Apple") }
+                if (account.state is AuthState.Authenticating) CircularProgressIndicator(color = Palette.gold, modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                Text("Signed in", fontWeight = FontWeight.Bold, color = Palette.gold)
+                Text("Providers: ${signedIn.providers.joinToString { if (it == AuthProvider.APPLE) "Apple" else "Google" }}")
+                if (AuthProvider.GOOGLE !in signedIn.providers) TextButton(onClick = { activity?.let { scope.launch { account.continueWithGoogle(it, link = true) } } }) { Text("Link Google") }
+                if (AuthProvider.APPLE !in signedIn.providers) TextButton(onClick = { activity?.let { scope.launch { account.continueWithApple(it, link = true) } } }) { Text("Link Apple") }
+                TextButton(onClick = { account.syncPurchases { if (it) onLinked() } }) { Text("Link existing purchases") }
+                TextButton(onClick = { account.signOut(); close() }) { Text("Sign out") }
+                TextButton(enabled = activity != null, onClick = { confirmDelete = true }) { Text("Delete account") }
+            }
+            account.message?.let { Text(it, color = Palette.gold, style = TumbleType.sans(12)) }
+        }
+    }, confirmButton = { TextButton(onClick = { account.clearMessage(); close() }) { Text("Done") } })
+
+    if (confirmDelete) AlertDialog(
+        onDismissRequest = { confirmDelete = false },
+        title = { Text("Delete your Tumble account?") },
+        text = { Text("This removes your sign-in identity. Photos stay on this device and store purchases remain restorable.") },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmDelete = false
+                activity?.let { scope.launch { if (account.deleteAccount(it)) close() } }
+            }) { Text("Delete account") }
+        },
+        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+    )
 }

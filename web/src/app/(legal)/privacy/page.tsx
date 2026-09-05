@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         &larr; Back to Tumble
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold text-cream">Privacy</h1>
-      <p className="mt-2 text-sm text-cream/50">Last updated September 2, 2026.</p>
+      <p className="mt-2 text-sm text-cream/50">Last updated September 5, 2026.</p>
 
       <div className="mt-8 space-y-8 leading-relaxed text-cream/80">
         <section>
@@ -23,8 +23,9 @@ export default function PrivacyPage() {
             Photos and local storage
           </h2>
           <p className="mt-3">
-            Tumble processes photos on your device and does not require an
-            account. An unfinished edit is kept as one recoverable private
+            Tumble processes photos on your device. An account is optional and
+            is used only for purchases and cross-platform purchase linking.
+            An unfinished edit is kept as one recoverable private
             draft. The draft source and recipe are removed after a successful
             save or when you choose Discard.
           </p>
@@ -39,6 +40,24 @@ export default function PrivacyPage() {
             metadata. Images saved to the system photo library may sync through
             your own iCloud Photos, Google Photos, or other device settings;
             those services are controlled by you and are not Tumble cloud sync.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-2xl font-semibold text-cream">
+            Optional Tumble account
+          </h2>
+          <p className="mt-3">
+            If you choose Continue with Apple or Continue with Google, Firebase
+            Authentication processes the account identifier and provider details
+            needed to sign you in. Tumble does not use Firebase Analytics,
+            Firestore, Storage, or any photo-upload service.
+          </p>
+          <p className="mt-3">
+            Provider accounts are never merged merely because email addresses
+            match. You can link providers, sign out, or request account deletion
+            from Settings. Signing out removes account-linked access on that
+            device but does not remove purchases owned by its current store account.
           </p>
         </section>
 
@@ -89,9 +108,12 @@ export default function PrivacyPage() {
           <p className="mt-3">
             Tumble Complete is a one-time purchase handled by Apple StoreKit or
             Google Play Billing. The app uses store transaction information to
-            unlock premium films and restore purchases. Purchases do not transfer
-            between iOS and Android because Tumble has no cross-platform account.
-            Retired iOS products remain restorable for legacy ownership.
+            unlock premium films and restore purchases. When you choose to link
+            purchases, RevenueCat processes an opaque Firebase user ID and store
+            purchase history to synchronize eligible film ownership across iOS
+            and Android. Tumble does not send your email address or any photo,
+            filename, note, crop, or draft identifier to RevenueCat. Retired iOS
+            products remain restorable for legacy ownership.
           </p>
         </section>
 

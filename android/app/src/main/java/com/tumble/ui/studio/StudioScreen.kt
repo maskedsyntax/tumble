@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -94,6 +95,7 @@ fun StudioScreen(
     var busy by remember { mutableStateOf(false) }
     var discardPrompt by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var editorSection by remember { mutableStateOf(EditorSection.FILM) }
 
     LaunchedEffect(recipe) {
         drafts.update(recipe)
@@ -109,7 +111,7 @@ fun StudioScreen(
 
     Box(Modifier.fillMaxSize()) {
         GraincoreBackground()
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
             StudioHeader(catalog.stock(recipe.stockId).name) { discardPrompt = true }
 
             Column(
@@ -117,89 +119,94 @@ fun StudioScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val shown = if (compareOriginal) original else preview
-                val aspect = shown?.let { it.width.toFloat() / it.height.coerceAtLeast(1) }?.coerceIn(.72f, 1.7f) ?: 4f / 3f
-                PreviewCard(shown, aspect, compareOriginal, catalog.stock(recipe.stockId).name) { compareOriginal = it }
+                PreviewCard(shown, compareOriginal, catalog.stock(recipe.stockId).name) { compareOriginal = it }
 
-                EditorCard {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Film", style = TumbleType.display(22), color = Palette.cream)
-                        Spacer(Modifier.weight(1f))
-                        Text("${catalog.stocks.size} looks", style = TumbleType.sans(10, FontWeight.SemiBold), color = Palette.cream.copy(alpha = .42f))
+                EditorSectionBar(editorSection) { editorSection = it }
+
+                when (editorSection) {
+                    EditorSection.FILM -> EditorCard {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Film", style = TumbleType.display(22), color = Palette.cream)
+                            Spacer(Modifier.weight(1f))
+                            Text("${catalog.stocks.size} looks", style = TumbleType.sans(10, FontWeight.SemiBold), color = Palette.cream.copy(alpha = .42f))
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            catalog.stocks.forEach { stock ->
+                                val unlocked = access.unlocks(stock)
+                                FilterChip(
+                                    selected = recipe.stockId == stock.id,
+                                    onClick = { if (unlocked) recipe = recipe.copy(stockId = stock.id) else onLockedFilm() },
+                                    label = { Text(if (unlocked) stock.name else "🔒 ${stock.name}") },
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = Palette.cream.copy(alpha = .08f))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.size(width = 105.dp, height = 44.dp)) {
+                                Text("Intensity", style = TumbleType.sans(13, FontWeight.SemiBold), color = Palette.cream)
+                                Text("Film blend", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
+                            }
+                            Slider(recipe.intensity.toFloat(), { recipe = recipe.copy(intensity = it.toDouble()) }, Modifier.weight(1f))
+                            Text("${(recipe.intensity * 100).toInt()}", style = TumbleType.sans(11, FontWeight.Bold), color = Palette.cream, modifier = Modifier.padding(start = 6.dp))
+                        }
                     }
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                        catalog.stocks.forEach { stock ->
-                            val unlocked = access.unlocks(stock)
-                            FilterChip(
-                                selected = recipe.stockId == stock.id,
-                                onClick = { if (unlocked) recipe = recipe.copy(stockId = stock.id) else onLockedFilm() },
-                                label = { Text(if (unlocked) stock.name else "🔒 ${stock.name}") },
+
+                    EditorSection.CROP -> EditorCard {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                Text("Crop", style = TumbleType.display(22), color = Palette.cream)
+                                Text("Choose the final composition", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
+                            }
+                            Spacer(Modifier.weight(1f))
+                            TextButton(onClick = { recipe = recipe.copy(quarterTurns = (recipe.quarterTurns + 1) % 4) }) {
+                                Icon(Icons.AutoMirrored.Filled.RotateRight, null, tint = Palette.cream)
+                                Text(" Rotate", color = Palette.cream, style = TumbleType.sans(11, FontWeight.Bold))
+                            }
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            CropPreset.entries.forEach { preset ->
+                                FilterChip(recipe.cropPreset == preset, {
+                                    recipe = recipe.copy(cropPreset = preset, crop = if (preset == CropPreset.FREEFORM) recipe.crop else com.tumble.studio.NormalizedCrop())
+                                }, label = { Text(preset.label) })
+                            }
+                        }
+                        if (recipe.cropPreset == CropPreset.FREEFORM) {
+                            Column(Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .14f), RoundedCornerShape(14.dp)).padding(10.dp)) {
+                                CropSlider("Width", recipe.crop.width.toFloat(), .2f..1f) {
+                                    recipe = recipe.copy(crop = recipe.crop.copy(width = it.toDouble(), x = recipe.crop.x.coerceAtMost(1.0 - it.toDouble())))
+                                }
+                                CropSlider("Height", recipe.crop.height.toFloat(), .2f..1f) {
+                                    recipe = recipe.copy(crop = recipe.crop.copy(height = it.toDouble(), y = recipe.crop.y.coerceAtMost(1.0 - it.toDouble())))
+                                }
+                                CropSlider("Horizontal", recipe.crop.x.toFloat(), 0f..(1 - recipe.crop.width).toFloat().coerceAtLeast(.001f)) {
+                                    recipe = recipe.copy(crop = recipe.crop.copy(x = it.toDouble()))
+                                }
+                                CropSlider("Vertical", recipe.crop.y.toFloat(), 0f..(1 - recipe.crop.height).toFloat().coerceAtLeast(.001f)) {
+                                    recipe = recipe.copy(crop = recipe.crop.copy(y = it.toDouble()))
+                                }
+                            }
+                        }
+                    }
+
+                    EditorSection.FRAME -> EditorCard {
+                        Column {
+                            Text("Postcard", style = TumbleType.display(22), color = Palette.cream)
+                            Text("Optional frame and handwritten note", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            FrameStyle.entries.forEach { frame ->
+                                FilterChip(recipe.frame == frame, { recipe = recipe.copy(frame = frame) }, label = { Text(frame.label) })
+                            }
+                        }
+                        if (recipe.frame != FrameStyle.NONE) {
+                            TextField(
+                                recipe.note,
+                                { recipe = recipe.copy(note = it.replace('\n', ' ').take(60)) },
+                                Modifier.fillMaxWidth(),
+                                placeholder = { Text("Write something small…") },
+                                singleLine = true,
                             )
                         }
-                    }
-                    HorizontalDivider(color = Palette.cream.copy(alpha = .08f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.size(width = 105.dp, height = 44.dp)) {
-                            Text("Intensity", style = TumbleType.sans(13, FontWeight.SemiBold), color = Palette.cream)
-                            Text("Film blend", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
-                        }
-                        Slider(recipe.intensity.toFloat(), { recipe = recipe.copy(intensity = it.toDouble()) }, Modifier.weight(1f))
-                        Text("${(recipe.intensity * 100).toInt()}", style = TumbleType.sans(11, FontWeight.Bold), color = Palette.cream, modifier = Modifier.padding(start = 6.dp))
-                    }
-                }
-
-                EditorCard {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column {
-                            Text("Crop", style = TumbleType.display(22), color = Palette.cream)
-                            Text("Choose the final composition", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
-                        }
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { recipe = recipe.copy(quarterTurns = (recipe.quarterTurns + 1) % 4) }) {
-                            Icon(Icons.AutoMirrored.Filled.RotateRight, null, tint = Palette.cream)
-                            Text(" Rotate", color = Palette.cream, style = TumbleType.sans(11, FontWeight.Bold))
-                        }
-                    }
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        CropPreset.entries.forEach { preset ->
-                            FilterChip(recipe.cropPreset == preset, {
-                                recipe = recipe.copy(cropPreset = preset, crop = if (preset == CropPreset.FREEFORM) recipe.crop else com.tumble.studio.NormalizedCrop())
-                            }, label = { Text(preset.label) })
-                        }
-                    }
-                    if (recipe.cropPreset == CropPreset.FREEFORM) {
-                        Column(Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .14f), RoundedCornerShape(14.dp)).padding(10.dp)) {
-                            CropSlider("Width", recipe.crop.width.toFloat(), .2f..1f) {
-                                recipe = recipe.copy(crop = recipe.crop.copy(width = it.toDouble(), x = recipe.crop.x.coerceAtMost(1.0 - it.toDouble())))
-                            }
-                            CropSlider("Height", recipe.crop.height.toFloat(), .2f..1f) {
-                                recipe = recipe.copy(crop = recipe.crop.copy(height = it.toDouble(), y = recipe.crop.y.coerceAtMost(1.0 - it.toDouble())))
-                            }
-                            CropSlider("Horizontal", recipe.crop.x.toFloat(), 0f..(1 - recipe.crop.width).toFloat().coerceAtLeast(.001f)) {
-                                recipe = recipe.copy(crop = recipe.crop.copy(x = it.toDouble()))
-                            }
-                            CropSlider("Vertical", recipe.crop.y.toFloat(), 0f..(1 - recipe.crop.height).toFloat().coerceAtLeast(.001f)) {
-                                recipe = recipe.copy(crop = recipe.crop.copy(y = it.toDouble()))
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = Palette.cream.copy(alpha = .08f))
-                    Column {
-                        Text("Postcard", style = TumbleType.display(22), color = Palette.cream)
-                        Text("Optional frame and handwritten note", style = TumbleType.sans(9), color = Palette.cream.copy(alpha = .45f))
-                    }
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        FrameStyle.entries.forEach { frame ->
-                            FilterChip(recipe.frame == frame, { recipe = recipe.copy(frame = frame) }, label = { Text(frame.label) })
-                        }
-                    }
-                    if (recipe.frame != FrameStyle.NONE) {
-                        TextField(
-                            recipe.note,
-                            { recipe = recipe.copy(note = it.replace('\n', ' ').take(60)) },
-                            Modifier.fillMaxWidth(),
-                            placeholder = { Text("Write something small…") },
-                            singleLine = true,
-                        )
                     }
                 }
                 Spacer(Modifier.height(4.dp))
@@ -280,9 +287,9 @@ private fun StudioHeader(stockName: String, cancel: () -> Unit) {
 }
 
 @Composable
-private fun PreviewCard(image: Bitmap?, aspect: Float, original: Boolean, stockName: String, compare: (Boolean) -> Unit) {
+private fun PreviewCard(image: Bitmap?, original: Boolean, stockName: String, compare: (Boolean) -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Palette.charcoalDeep.copy(alpha = .78f))) {
-        Box(Modifier.fillMaxWidth().aspectRatio(aspect).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .28f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().height(235.dp).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .28f)), contentAlignment = Alignment.Center) {
             image?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().padding(8.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Fit) }
                 ?: CircularProgressIndicator(color = Palette.gold)
         }
@@ -296,6 +303,28 @@ private fun PreviewCard(image: Bitmap?, aspect: Float, original: Boolean, stockN
                 CompareButton("Original", original) { compare(true) }
                 CompareButton("Film", !original) { compare(false) }
             }
+        }
+    }
+}
+
+private enum class EditorSection(val label: String) { FILM("Film"), CROP("Crop"), FRAME("Frame") }
+
+@Composable
+private fun EditorSectionBar(selected: EditorSection, select: (EditorSection) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().background(Palette.blueDeep.copy(alpha = .82f), RoundedCornerShape(18.dp)).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        EditorSection.entries.forEach { section ->
+            Button(
+                onClick = { select(section) },
+                modifier = Modifier.weight(1f).height(42.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selected == section) Palette.gold else androidx.compose.ui.graphics.Color.Transparent,
+                    contentColor = if (selected == section) Palette.ink else Palette.cream.copy(alpha = .72f),
+                ),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text(section.label, style = TumbleType.sans(11, FontWeight.Bold)) }
         }
     }
 }

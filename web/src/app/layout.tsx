@@ -36,7 +36,7 @@ const caveat = Caveat({
 
 const SITE_URL = "https://gettumbleapp.com";
 const DESCRIPTION =
-  "Tumble is a private film camera for iPhone. Shoot a daily roll of twelve, shake to develop, and finish every shot on real film stock — from faded instant to hand-printed black & white. Free to start, one-time unlocks, no subscriptions.";
+  "Tumble is a private film camera and Studio for iPhone and Android. Capture or import, choose from 21 film looks, crop or frame, and save on-device. Free to start, one-time unlock, no subscription.";
 
 const TITLE = "Tumble · A film camera for iPhone";
 

@@ -26,6 +26,14 @@
 				<string>tumble</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1093366796401-avdrcf4tokjrbtlsipun0na8gpnu25vv</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
@@ -35,5 +43,7 @@
 	<string>$(POSTHOG_HOST)</string>
 	<key>POSTHOG_PROJECT_TOKEN</key>
 	<string>$(POSTHOG_PROJECT_TOKEN)</string>
+	<key>REVENUECAT_API_KEY</key>
+	<string>$(REVENUECAT_API_KEY)</string>
 </dict>
 </plist>

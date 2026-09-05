@@ -74,7 +74,7 @@ export default function AppShowcase() {
           {[
             "Tap a blank print and shake to develop it.",
             "Every print keeps its film stock, note, and date.",
-            "Nothing leaves the device — no account, no cloud.",
+            "Photos stay local — accounts only link film purchases.",
           ].map((line) => (
             <li key={line} className="flex items-start gap-3 text-[15px] text-cream/72">
               <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />

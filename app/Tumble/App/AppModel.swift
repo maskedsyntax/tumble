@@ -10,6 +10,7 @@ import TumbleKit
 final class AppModel {
     let roll: RollManager
     let purchases = PurchaseManager()
+    let account = AccountCoordinator()
     let cameraActivity = TumbleCameraActivityCoordinator()
     let drafts = EditDraftStore()
 
@@ -29,6 +30,7 @@ final class AppModel {
     /// Load StoreKit state and point the Roll at the owned tier.
     func startStore() async {
         await purchases.start()
+        await account.start(purchases: purchases)
         syncEntitlement()
     }
 

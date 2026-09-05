@@ -8,10 +8,10 @@ import { Stamp } from "./FilmEdge";
  */
 const ENTRIES = [
   {
-    tag: "NEXT",
+    tag: "v3.0",
     upcoming: true,
-    title: "Film packs",
-    body: "A shelf of film stocks — every print with its own look. Free everyday rolls, plus one-time packs for disposables, darkroom black & white, and summer leaks.",
+    title: "Private film camera and Studio",
+    body: "A camera-first workspace, imports, 21 film looks, crop and postcard tools, plus optional accounts that link purchases across iOS and Android.",
   },
   {
     tag: "v1.2",
@@ -30,7 +30,7 @@ const ENTRIES = [
   },
 ];
 
-const PROMISES = ["On device", "No account", "No cloud", "No subscriptions"];
+const PROMISES = ["On device", "Account optional", "No photo cloud", "No subscriptions"];
 
 export default function Releases() {
   return (
@@ -39,11 +39,11 @@ export default function Releases() {
         <div>
           <Stamp>Shipping log</Stamp>
           <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-cream sm:text-4xl">
-            On the App Store since July, and still developing.
+            On the App Store since July, now developing across platforms.
           </h2>
           <p className="mt-4 leading-relaxed text-cream/75">
-            The native iPhone app ships small, frequent releases — each one makes
-            the camera a little slower in the ways that count.
+            Tumble is evolving into one native film camera and Studio for iPhone
+            and Android, while every photo continues to be processed locally.
           </p>
 
           <a

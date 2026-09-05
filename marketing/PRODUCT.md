@@ -1,62 +1,47 @@
 # Product
 
-<!-- Update stale sections. Do not wipe human-written notes. -->
-
 ## Overview
 
-Tumble is a private iPhone film camera built around a daily roll. It turns a
-new phone photograph into a developing print, lets the photographer choose a
-film stock, and keeps the result in an on-device Drawer.
-
-## Primary value proposition
-
-Make ordinary moments feel worth keeping, with real baked-in film grades and a
-physical print ritual instead of another camera-roll grid.
+Tumble is a private, cross-platform film camera and Studio. Capture a new photo
+or import one, preview a real film grade, crop or frame it, and save the finished
+JPEG. Photo pixels, drafts, crops, and handwritten notes remain on-device.
 
 ## Platforms
 
 - Native iPhone app.
+- Native Android app in closed testing.
 
-## Pricing
+## Pricing and accounts
 
-- Free daily roll: 12 shots.
-- Optional one-time shot-count upgrades and film packs; no subscriptions.
+- Six film looks are permanently free.
+- Tumble Complete unlocks fifteen premium looks as a $4.99 one-time purchase.
+- Camera, import, editing, frames, notes, and saving are account-free.
+- Optional Apple or Google sign-in links purchase ownership across platforms.
+- Firebase handles authentication. RevenueCat receives only an opaque user ID
+  and purchase history; Apple and Google remain the payment processors.
 
 ## Strongest features
 
-- 21 film looks across The Roll, Ninety-Six, Darkroom, and Long Summer.
-- Shake-to-develop reveal.
-- A scattered Drawer of prints that visibly age.
-- Postcard frames and handwritten notes.
-- Lock Screen and Dynamic Island capture.
+- 21 baked-in film looks across Core, Ninety-Six, Darkroom, and Long Summer.
+- Real-time graded camera preview and permission-minimized photo import.
+- Original/Film comparison, intensity, rotate, crop, and four postcard frames.
+- One recoverable private draft; no permanent in-app library for new photos.
+- One-time purchase rather than a subscription.
 
-## Differentiators
+## Main workflow
 
-- A film camera workflow, not a filter applied after the moment.
-- Real Core Image grades with grain, halation, lifted blacks, toning, bloom,
-  vignette, date stamps, and light leaks.
-- No account, photo cloud, feed, or ads; anonymous analytics can be disabled in-app.
-- One-time purchases rather than subscriptions.
-
-## Main workflows
-
-Capture from the daily roll -> shake to develop -> choose a film stock -> keep
-the print in the Drawer -> optionally export as a photo or postcard.
-
-## Strongest demo moments
-
-- The same raw pixels developing into a materially different film look.
-- A flat snapshot becoming a physical print and joining a tactile pile.
+Capture or import → preview film → edit → save or share.
 
 ## Privacy / trust
 
-Photos and postcard notes remain on-device. No account, cloud sync, social feed,
-or advertising tracking. Anonymous product analytics and masked diagnostics can
-be disabled in-app.
+Photos and postcard notes remain on-device. There is no Tumble photo cloud,
+social feed, advertising, or watermark. Optional analytics is disabled until
+explicit consent. An optional Tumble account is only for buying and linking
+film ownership.
 
 ## Constraints
 
 - Do not imply real-film emulation is scientifically exact.
+- Do not show the retired daily roll, shake development, Drawer, Dynamic Island
+  capture, or “no account” language in current release materials.
 - Do not show fabricated reviews, adoption, or customer outcomes.
-- Social ads may use generated lifestyle source photos, but product grades must
-  be the real Tumble renderer and must be disclosed in campaign provenance.

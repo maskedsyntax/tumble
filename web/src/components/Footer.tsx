@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="flex items-baseline gap-3">
             <span className="font-display text-lg font-bold tracking-tight text-cream">Tumble</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-cream/45">
-              Film for iPhone
+              Film for iPhone &amp; Android
             </span>
           </div>
 
@@ -31,7 +31,7 @@ export default function Footer() {
         </div>
 
         <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/35 sm:text-left">
-          &copy; {new Date().getFullYear()} Tumble · Shake to see what you shot.
+          &copy; {new Date().getFullYear()} Tumble · Shoot, shape, save.
         </p>
       </div>
     </footer>

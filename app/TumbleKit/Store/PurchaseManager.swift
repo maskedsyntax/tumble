@@ -23,6 +23,7 @@ public enum RestoreOutcome: String, Sendable, CaseIterable {
 public final class PurchaseManager {
     public private(set) var products: [Product] = []
     public private(set) var ownedProductIDs: Set<String> = []
+    public private(set) var remoteEntitlementIDs: Set<String> = []
     public private(set) var isLoading = false
 
     /// The best tier the shooter owns.
@@ -39,10 +40,14 @@ public final class PurchaseManager {
             !ownedProductIDs.isDisjoint(with: retiredTierIDs) {
             return .complete
         }
-        let legacyPacks: Set<String> = Set(FilmStockCatalog.packs.compactMap { pack -> String? in
+        var legacyPacks: Set<String> = Set(FilmStockCatalog.packs.compactMap { pack -> String? in
             guard let productID = pack.productID, ownedProductIDs.contains(productID) else { return nil }
             return pack.id
         })
+        if remoteEntitlementIDs.contains("complete") { return .complete }
+        if remoteEntitlementIDs.contains("pack_nineties") { legacyPacks.insert(FilmStockCatalog.PackID.nineties) }
+        if remoteEntitlementIDs.contains("pack_darkroom") { legacyPacks.insert(FilmStockCatalog.PackID.darkroom) }
+        if remoteEntitlementIDs.contains("pack_summer") { legacyPacks.insert(FilmStockCatalog.PackID.summer) }
         return .free(legacyPackIDs: legacyPacks)
     }
 
@@ -88,6 +93,8 @@ public final class PurchaseManager {
     public func ownsPack(_ packID: String) -> Bool {
         guard let pack = FilmStockCatalog.pack(for: packID) else { return false }
         guard pack.productID != nil else { return true }
+        if accessState == .complete { return true }
+        if case .free(let legacyPackIDs) = accessState, legacyPackIDs.contains(packID) { return true }
         return FilmStockCatalog.unlockProductIDs(for: packID).contains(where: ownedProductIDs.contains)
     }
 
@@ -149,6 +156,12 @@ public final class PurchaseManager {
             }
         }
         ownedProductIDs = owned
+    }
+
+    /// RevenueCat supplies account-linked access. StoreKit remains the owner of
+    /// purchase and transaction finishing; the effective access is the union.
+    public func applyRemoteEntitlements(_ identifiers: Set<String>) {
+        remoteEntitlementIDs = identifiers
     }
 
     private func observeTransactionUpdates() -> Task<Void, Never> {

@@ -200,7 +200,7 @@ const FRAMES = [
   },
 ];
 
-const PROMISES = ["On device", "No account", "No cloud", "No subscriptions"];
+const PROMISES = ["On device", "Account optional", "No photo cloud", "No subscriptions"];
 
 export default function PostcardFrames() {
   return (

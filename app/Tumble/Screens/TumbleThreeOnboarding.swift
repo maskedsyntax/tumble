@@ -33,7 +33,7 @@ struct TumbleThreeOnboarding: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 34)
 
-                Label("No account · Local photo processing", systemImage: "lock.shield")
+                Label("Account optional · Photos stay local", systemImage: "lock.shield")
                     .font(Typography.sans(12, weight: .semibold))
                     .foregroundStyle(Palette.cream.opacity(0.58))
                 Spacer()

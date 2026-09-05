@@ -148,3 +148,19 @@ sealed interface AccessState {
     fun unlocks(stock: FilmStock): Boolean = stock.isFree || this is Complete ||
         (this is LegacyPacks && stock.packId in packIds)
 }
+
+data class EntitlementState(
+    val localStore: AccessState = AccessState.Free,
+    val account: AccessState = AccessState.Free,
+) {
+    val effective: AccessState get() = mergeAccess(localStore, account)
+}
+
+fun mergeAccess(first: AccessState, second: AccessState): AccessState {
+    if (first is AccessState.Complete || second is AccessState.Complete) return AccessState.Complete
+    val packs = buildSet {
+        if (first is AccessState.LegacyPacks) addAll(first.packIds)
+        if (second is AccessState.LegacyPacks) addAll(second.packIds)
+    }
+    return if (packs.isEmpty()) AccessState.Free else AccessState.LegacyPacks(packs)
+}

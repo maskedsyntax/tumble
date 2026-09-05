@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1093366796401-avdrcf4tokjrbtlsipun0na8gpnu25vv.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1093366796401-avdrcf4tokjrbtlsipun0na8gpnu25vv</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>1093366796401-5ss2v6ibjekbdlsh62s66qe1e65ogbv1.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAvy8aUG_CYHKl_1iGSccMIxTwmXT4oDcY</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1093366796401</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.tumble.app</string>
+	<key>PROJECT_ID</key>
+	<string>tumble-waitlist</string>
+	<key>STORAGE_BUCKET</key>
+	<string>tumble-waitlist.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1093366796401:ios:e8bb84b80433fec4308bd0</string>
+</dict>
+</plist>

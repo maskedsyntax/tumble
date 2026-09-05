@@ -101,7 +101,7 @@ struct PaywallView: View {
 
             HStack(spacing: 14) {
                 promiseItem("iphone", "On-device")
-                promiseItem("person.crop.circle.badge.xmark", "No account")
+                promiseItem("person.crop.circle.badge.checkmark", "Account optional")
                 promiseItem("icloud.slash", "No cloud")
             }
             .padding(.top, 2)

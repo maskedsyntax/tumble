@@ -193,7 +193,7 @@ private struct WelcomeStep: View {
                     .padding(.horizontal, 20)
             }
 
-            Label("No account · No cloud · Photos never leave your phone", systemImage: "lock.shield")
+            Label("Account optional · No photo cloud · Photos stay local", systemImage: "lock.shield")
                 .font(Typography.sans(11, weight: .semibold))
                 .foregroundStyle(Palette.cream.opacity(0.6))
                 .labelStyle(.titleAndIcon)
@@ -662,7 +662,7 @@ private struct PremiumOnboardingPage: View {
                 .disabled(busy != nil)
             }
 
-            Text("One-time purchase · no renewal · no account")
+            Text("One-time purchase · no renewal · account required only to buy or link")
                 .font(Typography.sans(10, weight: .medium))
                 .foregroundStyle(Palette.cream.opacity(0.46))
 
@@ -713,7 +713,7 @@ private struct PremiumFinaleHero: View {
 
             VStack(alignment: .leading, spacing: compact ? 4 : 5) {
                 PremiumStamp(icon: "checkmark.seal", text: "No subscription")
-                PremiumStamp(icon: "lock.shield", text: "No account")
+                PremiumStamp(icon: "lock.shield", text: "Account optional")
             }
         }
         .padding(.leading, compact ? 4 : 6)

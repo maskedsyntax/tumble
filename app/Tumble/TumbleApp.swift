@@ -1,11 +1,24 @@
 import SwiftUI
 import SwiftData
+import FirebaseCore
+import GoogleSignIn
+import RevenueCat
 import TumbleAnalytics
 import TumbleKit
 
 @main
 struct TumbleApp: App {
     init() {
+        FirebaseApp.configure()
+        if let key = Bundle.main.object(forInfoDictionaryKey: "REVENUECAT_API_KEY") as? String,
+           !key.isEmpty,
+           !key.contains("$(") {
+            Purchases.configure(
+                with: Configuration.Builder(withAPIKey: key)
+                    .with(purchasesAreCompletedBy: .myApp, storeKitVersion: .storeKit2)
+                    .build()
+            )
+        }
         TumbleAnalytics.shared.configure(.mainApp)
     }
 
@@ -41,6 +54,9 @@ struct TumbleApp: App {
             }
             .environment(app)
             .preferredColorScheme(.dark)
+            .onOpenURL { url in
+                _ = GIDSignIn.sharedInstance.handle(url)
+            }
         }
         .modelContainer(container)
     }

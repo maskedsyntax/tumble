@@ -15,7 +15,7 @@ export default function TermsPage() {
         &larr; Back to Tumble
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold text-cream">Terms</h1>
-      <p className="mt-2 text-sm text-cream/50">Last updated July 14, 2026.</p>
+      <p className="mt-2 text-sm text-cream/50">Last updated September 5, 2026.</p>
 
       <div className="mt-8 space-y-8 leading-relaxed text-cream/80">
         <section>
@@ -35,8 +35,9 @@ export default function TermsPage() {
             App availability
           </h2>
           <p className="mt-3">
-            Tumble is available for iPhone on the App Store. Features, pricing,
-            screenshots, and device support may change over time.
+            Tumble is available for iPhone and may be offered through Android
+            testing tracks. Features, pricing, screenshots, and device support
+            may change over time.
           </p>
         </section>
 
@@ -45,10 +46,16 @@ export default function TermsPage() {
             Purchases
           </h2>
           <p className="mt-3">
-            The app is free to start and offers optional one-time in-app
-            purchases for higher daily shot limits. Purchases are processed by
-            Apple on the App Store and are subject to the App Store&rsquo;s terms
-            and policies.
+            The app is free to start and offers Tumble Complete as an optional
+            one-time film-catalog purchase. Purchases are processed by Apple or
+            Google and are subject to the applicable store&rsquo;s terms. Signing in
+            is required to make a new purchase or link ownership across platforms;
+            camera, import, editing, and saving remain account-free.
+          </p>
+          <p className="mt-3">
+            Linking an existing store purchase may transfer the corresponding
+            cross-platform entitlement to the Tumble account currently signed in.
+            It does not duplicate ownership across multiple Tumble accounts.
           </p>
         </section>
 

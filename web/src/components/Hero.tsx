@@ -7,14 +7,14 @@ export default function Hero() {
     <section id="top" className="relative z-10 scroll-mt-20 overflow-hidden">
       <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-12 px-5 py-12 sm:px-6 md:grid-cols-[0.88fr_1.12fr] md:gap-12 md:py-16 lg:gap-20">
         <div className="order-2 max-w-xl text-center md:order-1 md:text-left">
-          <Stamp frame="36 EXP" className="justify-center md:justify-start">Film for iPhone</Stamp>
+          <Stamp frame="36 EXP" className="justify-center md:justify-start">Film for iPhone + Android</Stamp>
           <h1 className="mt-6 font-display text-[clamp(3.6rem,12vw,7.2rem)] font-extrabold leading-[0.83] tracking-[-0.055em] text-cream">
             One shot.
             <span className="block text-gold">Every film.</span>
           </h1>
           <p className="mx-auto mt-7 max-w-lg text-lg leading-relaxed text-cream/78 md:mx-0 md:text-xl">
-            A private film camera for iPhone. Twelve shots a day, a shake to develop,
-            and 21 film looks made for moments worth keeping.
+            A private film camera and Studio. Capture or import, choose from 21
+            film looks, and finish every photo on your device.
           </p>
           <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center md:justify-start">
             <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="group inline-flex min-h-14 items-center gap-3 rounded-2xl bg-gold px-6 py-3 text-ink shadow-[0_20px_45px_-20px_rgba(223,171,104,0.9)] ring-1 ring-inset ring-cream/30 transition hover:-translate-y-0.5 hover:bg-cream focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold" aria-label="Download Tumble on the App Store">
@@ -41,7 +41,7 @@ export default function Hero() {
               </div>
               <figcaption className="absolute inset-x-5 bottom-4 flex items-end justify-between gap-4 text-ink/70 sm:bottom-5">
                 <span className="font-script text-[clamp(1.25rem,5vw,1.8rem)] leading-none">one more night out</span>
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#bd7028]">One of twelve</span>
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#bd7028]">Flash Night</span>
               </figcaption>
             </figure>
           </div>

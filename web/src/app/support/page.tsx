@@ -7,7 +7,7 @@ const SUPPORT_EMAIL = "aftaab@aftaab.dev";
 export const metadata: Metadata = {
   title: "Support",
   description:
-    "Get help with Tumble, the private camera for daily photo rolls on iPhone.",
+    "Get help with Tumble, the private film camera and Studio for iPhone and Android.",
   alternates: { canonical: "/support" },
 };
 
@@ -24,12 +24,11 @@ export default function SupportPage() {
             Support
           </p>
           <h1 className="mt-3 font-display text-5xl font-semibold leading-tight text-cream">
-            Need a hand with your roll?
+            Need a hand with Tumble?
           </h1>
           <p className="mt-5 leading-relaxed text-cream/80">
-            Tumble is live on iPhone. For purchase restores, privacy requests,
-            bug reports, or launch questions, email support and we will help
-            from there.
+            For account linking, purchase restores, privacy requests, beta
+            feedback, or bug reports, email support and we will help from there.
           </p>
 
           <a
@@ -70,8 +69,8 @@ export default function SupportPage() {
             App questions
           </h2>
           <p className="mt-3 leading-relaxed">
-            Ask about daily rolls, developing photos, purchases, privacy, or the
-            App Store release.
+            Ask about sign-in, linked purchases, film looks, saving, privacy, or
+            the iOS and Android releases.
           </p>
         </article>
         <article className="border-t border-cream/15 pt-5">

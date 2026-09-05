@@ -19,21 +19,22 @@ export default function ProductJourney() {
       <div className="relative mx-auto max-w-7xl">
         <div className="grid items-end gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
           <div className="max-w-4xl">
-            <Stamp frame="12 EXP">The daily roll</Stamp>
+            <Stamp frame="21 LOOKS">Camera → Studio</Stamp>
             <h2 className="mt-5 font-display text-4xl font-extrabold leading-[0.94] tracking-tight text-cream sm:text-5xl lg:text-7xl">
-              A day feels different with only
-              <span className="text-gold"> twelve frames.</span>
+              One workspace for the shot.
+              <span className="text-gold"> One Studio for the finish.</span>
             </h2>
           </div>
           <p className="max-w-xl text-lg leading-relaxed text-cream/72 lg:pb-2">
-            A small roll makes every shutter press matter. Each shot lands hidden, comes alive when you shake it, and stays in your private Drawer—not a feed.
+            Capture something new or import a favorite, swipe to choose a film,
+            then crop, frame, compare, and save only when it feels right.
           </p>
         </div>
 
         <div className="mt-12 overflow-hidden rounded-[1.75rem] border border-cream/12 bg-[#111a22] shadow-[0_40px_100px_-48px_rgba(0,0,0,0.9)] sm:mt-16">
           <div className="flex items-center justify-between border-b border-cream/10 px-5 py-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cream/48 sm:px-7">
-            <span>Tumble · Daily roll</span>
-            <span>07 / 12 exposed</span>
+            <span>Tumble · Film shelf</span>
+            <span>6 free · 15 Complete</span>
           </div>
 
           <div className="grid grid-cols-3 gap-px bg-cream/8 sm:grid-cols-4 lg:grid-cols-6">
@@ -69,9 +70,9 @@ export default function ProductJourney() {
         </div>
 
         <ol className="mt-8 grid gap-0 border-y border-cream/12 md:grid-cols-3">
-          <RitualItem number="01" title="Shoot what matters" body="Twelve chances, refreshed each day." />
-          <RitualItem number="02" title="Shake it awake" body="The image rises through the print." />
-          <RitualItem number="03" title="Keep the roll" body="Your Drawer is private and feed-free." />
+          <RitualItem number="01" title="Capture or import" body="Camera and photo picker, always account-free." />
+          <RitualItem number="02" title="Find the film" body="Swipe the centered selector and compare the original." />
+          <RitualItem number="03" title="Finish in Studio" body="Crop, frame, add a note, then save or share." />
         </ol>
       </div>
     </section>

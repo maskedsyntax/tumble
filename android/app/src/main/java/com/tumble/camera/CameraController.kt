@@ -126,7 +126,11 @@ class CameraController(private val context: Context) {
                 ResolutionSelector.Builder()
                     .setResolutionStrategy(
                         ResolutionStrategy(
-                            Size(960, 720),
+                            // The live look is intentionally rendered below export
+                            // resolution. The CPU film recipe is deterministic but
+                            // expensive; 640×480 keeps the viewfinder responsive
+                            // while the still path continues to render at 4096 px.
+                            Size(640, 480),
                             ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
                         ),
                     )

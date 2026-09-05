@@ -108,8 +108,8 @@ export default function OpengraphImage() {
               maxWidth: "860px",
             }}
           >
-            A private film camera for iPhone. Shoot a daily roll, shake to
-            develop, finish on real film stock.
+            A private film camera and Studio. Capture or import, choose from 21
+            film looks, and finish every photo on-device.
           </div>
         </div>
 

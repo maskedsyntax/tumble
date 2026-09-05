@@ -6,15 +6,16 @@ Only **Verified** claims may appear on screen. See the remotion-ads `references/
 
 - 21 film looks.
 - Film grades are baked into developed photos and exports.
-- The library includes The Roll, Ninety-Six, Darkroom, and Long Summer packs.
-- 12 free shots per day.
-- Shake to develop.
+- The library includes Core, Ninety-Six, Darkroom, and Long Summer packs.
+- Six film looks are free and fifteen are included in Tumble Complete.
+- Camera, import, editing, and saving do not require an account.
+- Optional Apple or Google sign-in can link purchase access across iOS and Android.
 - Photos remain on-device.
-- No account, photo cloud, feed, ads, advertising tracking, or subscription.
+- No Tumble photo cloud, feed, ads, advertising tracking, or subscription.
 - Photos and postcard notes remain on-device.
 - Anonymous product analytics and masked diagnostics can be disabled in-app.
-- Optional film packs are one-time purchases.
-- Tumble is an iPhone film camera.
+- Tumble Complete is a one-time purchase.
+- Tumble is a native iPhone and Android film camera and Studio.
 - Tumble has a live App Store download URL.
 
 ## Requires evidence
