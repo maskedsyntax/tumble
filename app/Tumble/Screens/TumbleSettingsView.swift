@@ -6,71 +6,66 @@ import TumbleKit
 struct TumbleSettingsView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
-    @Query private var legacyPhotos: [Photo]
     @State private var analyticsEnabled = false
-    @State private var showLegacy = false
-    @State private var showComplete = false
     @State private var showAccount = false
+    @State private var showComplete = false
+
+    private var showsUpgrade: Bool {
+        if DebugLaunch.previewsFreeSettings { return true }
+        return app.purchases.accessState != .complete
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 GraincoreBackground()
                 ScrollView {
-                    VStack(spacing: 14) {
-                        Button { showAccount = true } label: {
-                            settingRow(
-                                "Tumble account",
-                                detail: app.account.isSignedIn ? "Purchases can follow you across platforms" : "Sign in only to buy or link purchases",
-                                icon: "person.crop.circle"
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        settingCard {
-                            Toggle(isOn: Binding(
-                                get: { analyticsEnabled },
-                                set: { value in
-                                    analyticsEnabled = value
-                                    TumbleAnalytics.shared.setEnabled(value)
-                                }
-                            )) {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Help improve Tumble")
-                                        .font(Typography.sans(15, weight: .semibold))
-                                    Text("Anonymous events, crashes and masked replay. Off by default.")
-                                        .font(Typography.sans(12))
-                                        .foregroundStyle(Palette.cream.opacity(0.58))
-                                }
-                            }
-                            .tint(Palette.gold)
+                    VStack(alignment: .leading, spacing: 24) {
+                        if showsUpgrade {
+                            Button { showComplete = true } label: { upgradeCard }
+                                .buttonStyle(.plain)
                         }
 
-                        Button { showComplete = true } label: {
-                            settingRow(
-                                "Tumble Complete",
-                                detail: app.purchases.accessState == .complete ? "All twenty-one films unlocked" : "Unlock all fifteen premium films",
-                                icon: "camera.filters"
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        if !legacyPhotos.isEmpty {
-                            Button { showLegacy = true } label: {
+                        settingsSection("Account") {
+                            Button { showAccount = true } label: {
                                 settingRow(
-                                    "Legacy Drawer",
-                                    detail: "\(legacyPhotos.count) saved \(legacyPhotos.count == 1 ? "print" : "prints")",
-                                    icon: "archivebox"
+                                    "Tumble account",
+                                    detail: app.account.isSignedIn ? "Signed in · purchases stay connected" : "Optional · only needed for purchases",
+                                    icon: "person.crop.circle"
                                 )
                             }
                             .buttonStyle(.plain)
                         }
 
-                        Link(destination: URL(string: "https://gettumbleapp.com/privacy")!) {
-                            settingRow("Privacy policy", detail: "How local processing and optional analytics work", icon: "lock.shield")
+                        settingsSection("Privacy") {
+                            settingCard {
+                                Toggle(isOn: Binding(
+                                    get: { analyticsEnabled },
+                                    set: { value in
+                                        analyticsEnabled = value
+                                        TumbleAnalytics.shared.setEnabled(value)
+                                    }
+                                )) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Share anonymous diagnostics")
+                                            .font(Typography.sans(15, weight: .semibold))
+                                        Text("Crash reports and masked usage events. Photo pixels are never included.")
+                                            .font(Typography.sans(12))
+                                            .foregroundStyle(Palette.cream.opacity(0.58))
+                                    }
+                                }
+                                .tint(Palette.gold)
+                            }
+
+                            Link(destination: URL(string: "https://gettumbleapp.com/privacy")!) {
+                                settingRow("Privacy policy", detail: "Read how Tumble handles your data", icon: "lock.shield")
+                            }
                         }
-                        Link(destination: URL(string: "mailto:aftaab@aftaab.dev?subject=Tumble%203")!) {
-                            settingRow("Support", detail: "Contact the developer", icon: "envelope")
+
+                        settingsSection("Help") {
+                            Link(destination: URL(string: "mailto:aftaab@aftaab.dev?subject=Tumble%203")!) {
+                                settingRow("Contact support", detail: "Questions, feedback, or a problem", icon: "envelope")
+                            }
                         }
 
                         Text("Tumble \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0")")
@@ -90,9 +85,66 @@ struct TumbleSettingsView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .onAppear { analyticsEnabled = TumbleAnalytics.shared.isEnabled }
-        .fullScreenCover(isPresented: $showLegacy) { LegacyDrawerView().environment(app) }
         .sheet(isPresented: $showComplete) { CompletePaywallView().environment(app) }
         .sheet(isPresented: $showAccount) { AccountView().environment(app) }
+    }
+
+    private var upgradeCard: some View {
+        HStack(spacing: 15) {
+            ZStack {
+                Circle().fill(Palette.gold.opacity(0.18))
+                Image(systemName: "camera.filters")
+                    .font(.system(size: 23, weight: .semibold))
+                    .foregroundStyle(Palette.gold)
+            }
+            .frame(width: 52, height: 52)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PRO FILMS")
+                    .font(Typography.sans(9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(Palette.gold)
+                Text("Unlock pro filters")
+                    .font(Typography.display(21))
+                    .foregroundStyle(Palette.cream)
+                Text("15 more films · one-time purchase")
+                    .font(Typography.sans(11, weight: .semibold))
+                    .foregroundStyle(Palette.cream.opacity(0.58))
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 31, height: 31)
+                .background(Palette.gold, in: Circle())
+        }
+        .padding(17)
+        .background(
+            LinearGradient(
+                colors: [Palette.charcoalDeep.opacity(0.96), Palette.blueDeep.opacity(0.92)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Palette.gold.opacity(0.30))
+        }
+    }
+
+    private func settingsSection<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title.uppercased())
+                .font(Typography.sans(10, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(Palette.gold.opacity(0.78))
+                .padding(.horizontal, 4)
+            VStack(spacing: 10, content: content)
+        }
     }
 
     private func settingCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -118,7 +170,7 @@ struct TumbleSettingsView: View {
     }
 }
 
-private struct LegacyDrawerView: View {
+struct DrawerLibraryView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -131,8 +183,8 @@ private struct LegacyDrawerView: View {
             VStack(spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Legacy Drawer").font(Typography.display(28)).foregroundStyle(Palette.cream)
-                        Text("Your prints from Tumble 2")
+                        Text("Drawer").font(Typography.display(28)).foregroundStyle(Palette.cream)
+                        Text("Your saved prints")
                             .font(Typography.sans(12)).foregroundStyle(Palette.cream.opacity(0.58))
                     }
                     Spacer()
@@ -151,7 +203,7 @@ private struct LegacyDrawerView: View {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 18) {
                             ForEach(photos) { photo in
-                                LegacyPrintTile(photo: photo) {
+                                DrawerPrintTile(photo: photo) {
                                     if !photo.isDeveloped { finish(photo) }
                                     selected = photo
                                 }
@@ -180,7 +232,7 @@ private struct LegacyDrawerView: View {
     }
 }
 
-private struct LegacyPrintTile: View {
+private struct DrawerPrintTile: View {
     let photo: Photo
     let action: () -> Void
     @State private var image: UIImage?

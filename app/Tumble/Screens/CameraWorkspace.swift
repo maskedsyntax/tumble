@@ -13,8 +13,10 @@ struct CameraWorkspace: View {
 
     @State private var permission = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var selectedItem: PhotosPickerItem?
+    @State private var showPhotoPicker = false
     @State private var studioDraft: EditDraft?
     @State private var showSettings = false
+    @State private var showDrawer = false
     @State private var showComplete = false
     @State private var showResume = false
     @State private var showAnalyticsOffer = false
@@ -44,15 +46,53 @@ struct CameraWorkspace: View {
                     .transition(.opacity)
                     .zIndex(10)
             }
+#if DEBUG
+            if DebugLaunch.opensSettings {
+                TumbleSettingsView().environment(app).zIndex(100)
+            } else if DebugLaunch.opensAccount {
+                AccountView()
+                    .environment(app)
+                    .safeAreaPadding(.top, 42)
+                    .background(GraincoreBackground())
+                    .zIndex(100)
+            }
+#endif
         }
+        .task { await app.startStore() }
         .task {
-            await app.startStore()
+#if DEBUG
+            if DebugLaunch.clearsDraft {
+                app.drafts.discard()
+            }
+            if DebugLaunch.opensPhotoPicker {
+                try? await Task.sleep(for: .milliseconds(350))
+                showPhotoPicker = true
+            }
+#endif
             permission = AVCaptureDevice.authorizationStatus(for: .video)
             if permission == .authorized { startCamera() }
 #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-studioDemo"),
-               let data = FilmScene.goldenHour.image(size: 1400).jpegData(compressionQuality: 0.96),
-               let draft = try? app.drafts.create(imageData: data, source: .camera, stockID: selectedStockID) {
+               let data = DebugLaunch.demoImageData
+                    ?? FilmScene.goldenHour.image(size: 1400).jpegData(compressionQuality: 0.96),
+               var draft = try? app.drafts.create(imageData: data, source: .camera, stockID: selectedStockID) {
+                var recipe = draft.recipe
+                if let stockID = DebugLaunch.value(for: "-demoStock") {
+                    recipe.stockID = stockID
+                }
+                if let crop = DebugLaunch.value(for: "-demoCrop"),
+                   let preset = CropPreset(rawValue: crop) {
+                    recipe.cropPreset = preset
+                }
+                if let frame = DebugLaunch.value(for: "-demoFrame"),
+                   PostcardFrameStyle(rawValue: frame) != nil {
+                    recipe.frameID = frame
+                }
+                if let note = DebugLaunch.value(for: "-demoNote") {
+                    recipe.note = PostcardNote.clamp(note.replacingOccurrences(of: "_", with: " "))
+                }
+                draft.recipe = recipe
+                app.drafts.update(recipe)
                 studioDraft = draft
                 return
             }
@@ -65,10 +105,12 @@ struct CameraWorkspace: View {
             withAnimation(.easeOut(duration: 0.18)) { importInProgress = true }
             Task { await importPhoto(item) }
         }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedItem, matching: .images)
         .onDisappear { camera.stop() }
         .fullScreenCover(item: $studioDraft) { draft in
             StudioView(draft: draft) { firstSaveCompleted() }.environment(app)
         }
+        .fullScreenCover(isPresented: $showDrawer) { DrawerLibraryView().environment(app) }
         .sheet(isPresented: $showSettings) { TumbleSettingsView().environment(app) }
         .sheet(isPresented: $showComplete) { CompletePaywallView().environment(app) }
         .confirmationDialog("Continue your last edit?", isPresented: $showResume, titleVisibility: .visible) {
@@ -103,12 +145,26 @@ struct CameraWorkspace: View {
                 Text(selectedStock.name).font(Typography.sans(12, weight: .semibold)).foregroundStyle(Palette.gold)
             }
             Spacer()
-            Button { showSettings = true } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Palette.cream)
-                    .frame(width: 42, height: 42)
-                    .background(.black.opacity(0.28), in: Circle())
+            HStack(spacing: 9) {
+                Button { showDrawer = true } label: {
+                    Label("Drawer", systemImage: "rectangle.stack.fill")
+                        .font(Typography.sans(12, weight: .bold))
+                        .foregroundStyle(Palette.cream)
+                        .padding(.horizontal, 13)
+                        .frame(height: 42)
+                        .background(.black.opacity(0.28), in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Palette.cream)
+                        .frame(width: 42, height: 42)
+                        .background(.black.opacity(0.28), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Settings")
             }
         }
     }
@@ -117,7 +173,11 @@ struct CameraWorkspace: View {
         GeometryReader { proxy in
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous).fill(.black)
-                if permission == .authorized {
+                if let demoImage = cameraDemoImage {
+                    Image(uiImage: demoImage)
+                        .resizable()
+                        .scaledToFill()
+                } else if permission == .authorized {
                     CameraPreview(session: camera.session)
                     if let filtered = camera.filteredPreview {
                         Image(uiImage: filtered)
@@ -157,6 +217,16 @@ struct CameraWorkspace: View {
         .frame(maxHeight: .infinity)
     }
 
+    private var cameraDemoImage: UIImage? {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-cameraDemo"),
+              let data = DebugLaunch.demoImageData else { return nil }
+        return UIImage(data: data)
+        #else
+        return nil
+        #endif
+    }
+
     @ViewBuilder private var permissionPlaceholder: some View {
         VStack(spacing: 13) {
             Image(systemName: permission == .denied ? "camera.fill.badge.ellipsis" : "camera.aperture")
@@ -181,12 +251,15 @@ struct CameraWorkspace: View {
                         let unlocked = app.purchases.isUnlocked(stock)
                         let centered = centeredStockID == stock.id
                         Button {
-                            if centered {
-                                guard unlocked else { showComplete = true; return }
-                            } else {
-                                withAnimation(.snappy(duration: 0.24)) {
-                                    centeredStockID = stock.id
-                                }
+                            guard unlocked else {
+                                showComplete = true
+                                return
+                            }
+                            // Apply the film on the first tap instead of waiting
+                            // for the rail's centering animation to finish.
+                            selectStockImmediately(stock)
+                            if !centered {
+                                withAnimation(.snappy(duration: 0.20)) { centeredStockID = stock.id }
                             }
                         } label: {
                             VStack(spacing: 4) {
@@ -381,6 +454,12 @@ struct CameraWorkspace: View {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
+    private func selectStockImmediately(_ stock: FilmStock) {
+        guard stock.id != selectedStockID else { return }
+        selectedStockID = stock.id
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
     private func createDraft(data: Data, source: EditSourceKind) {
         do {
             let draft = try app.drafts.create(imageData: data, source: source, stockID: selectedStockID)
@@ -414,12 +493,13 @@ struct TumbleChangedView: View {
                     .font(.system(size: 64, weight: .light)).foregroundStyle(Palette.gold)
                 Text("Tumble has changed")
                     .font(Typography.display(35)).foregroundStyle(Palette.cream)
-                Text("The daily roll and development ritual have made room for a faster private film camera and Studio. Your old prints are safe in Settings → Legacy Drawer.")
+                Text("The camera and Studio now sit up front, and your Drawer is still here whenever you want your saved prints.")
                     .font(Typography.sans(15)).foregroundStyle(Palette.cream.opacity(0.72))
                     .multilineTextAlignment(.center).padding(.horizontal, 34)
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Shoot or import any photo", systemImage: "camera")
                     Label("Preview and adjust every film", systemImage: "camera.filters")
+                    Label("Keep your Drawer of saved prints", systemImage: "rectangle.stack")
                     Label("Nothing enters Photos until you save", systemImage: "lock.shield")
                 }
                 .font(Typography.sans(14, weight: .semibold)).foregroundStyle(Palette.cream)

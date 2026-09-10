@@ -126,16 +126,18 @@ public enum TumblePhotoFilter {
         from imageData: Data,
         recipe: EditRecipe,
         capturedAt: Date,
-        maxDimension: CGFloat = 1024
+        maxDimension: CGFloat = 900
     ) -> UIImage? {
-        guard let data = renderEditedPhotoData(
-            from: imageData,
-            recipe: recipe,
-            capturedAt: capturedAt,
-            maxDimension: maxDimension,
-            compressionQuality: 0.86
-        ) else { return nil }
-        return UIImage(data: data)
+        guard let input = CIImage(data: imageData, options: [.applyOrientationProperty: true]) else { return nil }
+        let prepared = prepare(input, recipe: recipe)
+        let graded = applyGrade(recipe.stock.grade, to: prepared, capturedAt: capturedAt)
+        let output = downscaled(
+            dissolve(original: prepared, graded: graded, amount: recipe.intensity),
+            maxDimension: maxDimension
+        )
+        let extent = output.extent.integral
+        guard !extent.isEmpty, let image = context.createCGImage(output, from: extent) else { return nil }
+        return UIImage(cgImage: image)
     }
 
     public static func renderLivePreview(

@@ -33,8 +33,89 @@ enum DebugLaunch {
         #endif
     }
 
+    static var showsOriginal: Bool {
+        #if DEBUG
+        return arguments.contains("-showOriginal")
+        #else
+        return false
+        #endif
+    }
+
+    static var opensPhotoPicker: Bool {
+        #if DEBUG
+        return arguments.contains("-photoPickerDemo")
+        #else
+        return false
+        #endif
+    }
+
+    static var clearsDraft: Bool {
+        #if DEBUG
+        return arguments.contains("-clearDraft")
+        #else
+        return false
+        #endif
+    }
+
+    static var opensSettings: Bool {
+        #if DEBUG
+        return arguments.contains("-settingsDemo")
+        #else
+        return false
+        #endif
+    }
+
+    static var opensAccount: Bool {
+        #if DEBUG
+        return arguments.contains("-accountDemo")
+        #else
+        return false
+        #endif
+    }
+
+    /// Lets screenshots exercise the free-user Settings presentation without
+    /// touching StoreKit receipts or the signed-in RevenueCat customer.
+    static var previewsFreeSettings: Bool {
+        #if DEBUG
+        return arguments.contains("-previewFreeSettings")
+        #else
+        return false
+        #endif
+    }
+
+    /// Presentation-only signed-out state for reviewing the account UI. It
+    /// never signs the real Firebase user out.
+    static var previewsSignedOutAccount: Bool {
+        #if DEBUG
+        return arguments.contains("-previewSignedOutAccount")
+        #else
+        return false
+        #endif
+    }
+
     /// True while the app is being driven to a screen for a capture.
-    static var isCapturing: Bool { packPaywall != nil }
+    static var isCapturing: Bool {
+        packPaywall != nil
+            || arguments.contains("-studioDemo")
+            || arguments.contains("-cameraDemo")
+            || opensPhotoPicker
+            || clearsDraft
+            || opensSettings
+            || opensAccount
+    }
+
+    /// Loads a capture-only photograph copied into the app's Documents
+    /// directory by the screenshot script. Keeping it outside the bundle
+    /// means model/party photography can never leak into a Release archive.
+    static var demoImageData: Data? {
+        #if DEBUG
+        guard let name = value(for: "-demoImage") else { return nil }
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return try? Data(contentsOf: documents.appendingPathComponent(name))
+        #else
+        return nil
+        #endif
+    }
 
     /// Prices to draw when StoreKit has no products to offer - which is the
     /// case for any launch outside Xcode, since the `.storekit` configuration

@@ -45,12 +45,26 @@ public final class CameraController: NSObject, ObservableObject {
     @Published public private(set) var supportsFlash = false
     @Published public private(set) var flashMode: CameraFlashMode = .off
     @Published public private(set) var filteredPreview: UIImage?
-    @Published public var previewStock: FilmStock = FilmStockCatalog.defaultStock
+    @Published public var previewStock: FilmStock = FilmStockCatalog.defaultStock {
+        didSet {
+            guard oldValue.id != previewStock.id else { return }
+            previewRevision &+= 1
+            // Re-render the newest camera frame immediately. The old preview
+            // remains visible until this is ready, so changing film never
+            // flashes the unfiltered feed.
+            if let latestPreviewBuffer {
+                enqueuePreview(latestPreviewBuffer)
+            }
+        }
+    }
     @Published public var previewIntensity: Double = 1
 
     private let sessionQueue = DispatchQueue(label: "com.tumble.camera.session")
     private var configured = false
     private var previewRenderInFlight = false
+    private var latestPreviewBuffer: SendablePixelBuffer?
+    private var pendingPreviewBuffer: SendablePixelBuffer?
+    private var previewRevision: UInt = 0
     nonisolated(unsafe) private var lastPreviewTimestamp: CFTimeInterval = 0
 
     public func start() {
@@ -201,20 +215,38 @@ public final class CameraController: NSObject, ObservableObject {
         }
     }
 
-    private func renderPreview(_ buffer: SendablePixelBuffer) async {
+    private func enqueuePreview(_ buffer: SendablePixelBuffer) {
+        latestPreviewBuffer = buffer
+        pendingPreviewBuffer = buffer
+        guard !previewRenderInFlight else { return }
+        Task { await renderPendingPreviews() }
+    }
+
+    /// Keep only the newest camera frame while Core Image is busy. This avoids
+    /// building a backlog and guarantees a film change renders against the
+    /// latest frame as soon as the current GPU pass finishes.
+    private func renderPendingPreviews() async {
         guard !previewRenderInFlight else { return }
         previewRenderInFlight = true
         defer { previewRenderInFlight = false }
-        let stock = previewStock
-        let intensity = previewIntensity
-        filteredPreview = await Task.detached(priority: .userInitiated) {
-            TumblePhotoFilter.renderLivePreview(
-                from: buffer.value,
-                stock: stock,
-                intensity: intensity,
-                maxDimension: 720
-            )
-        }.value
+
+        while let buffer = pendingPreviewBuffer {
+            pendingPreviewBuffer = nil
+            let stock = previewStock
+            let intensity = previewIntensity
+            let revision = previewRevision
+            let rendered = await Task.detached(priority: .userInitiated) {
+                TumblePhotoFilter.renderLivePreview(
+                    from: buffer.value,
+                    stock: stock,
+                    intensity: intensity,
+                    maxDimension: 640
+                )
+            }.value
+            if revision == previewRevision {
+                filteredPreview = rendered
+            }
+        }
     }
 }
 
@@ -245,10 +277,10 @@ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         let now = CACurrentMediaTime()
-        guard now - lastPreviewTimestamp >= (1.0 / 30.0),
+        guard now - lastPreviewTimestamp >= (1.0 / 24.0),
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lastPreviewTimestamp = now
         let buffer = SendablePixelBuffer(value: pixelBuffer)
-        Task { @MainActor [weak self, buffer] in await self?.renderPreview(buffer) }
+        Task { @MainActor [weak self, buffer] in self?.enqueuePreview(buffer) }
     }
 }

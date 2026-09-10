@@ -14,7 +14,8 @@ struct AccountView: View {
                 GraincoreBackground()
                 ScrollView {
                     VStack(spacing: 14) {
-                        if case let .signedIn(_, name, email, providers) = app.account.state {
+                        if case let .signedIn(_, name, email, providers) = app.account.state,
+                           !DebugLaunch.previewsSignedOutAccount {
                             accountCard(name: name, email: email, providers: providers)
                         } else {
                             signInCard
@@ -55,34 +56,79 @@ struct AccountView: View {
     }
 
     private var signInCard: some View {
-        VStack(spacing: 14) {
-            Text("Carry your films across devices")
-                .font(Typography.display(25))
-                .foregroundStyle(Palette.cream)
-            Text("The camera and Studio never require an account. Sign in only to buy or link film purchases across iOS and Android.")
-                .font(Typography.sans(13))
-                .foregroundStyle(Palette.cream.opacity(0.66))
-                .multilineTextAlignment(.center)
+        VStack(spacing: 20) {
+            VStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Palette.printStock)
+                        .frame(width: 58, height: 70)
+                        .rotationEffect(.degrees(-9))
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Palette.gold.opacity(0.80))
+                        .frame(width: 58, height: 70)
+                        .rotationEffect(.degrees(8))
+                    Image(systemName: "person.crop.circle.fill.badge.checkmark")
+                        .font(.system(size: 34, weight: .medium))
+                        .foregroundStyle(Palette.ink)
+                }
+                .frame(height: 78)
 
-            SignInWithAppleButton(.continue) { request in
-                app.account.configureAppleRequest(request)
-            } onCompletion: { result in
-                Task { await app.account.finishApple(result) }
+                Text("OPTIONAL TUMBLE ACCOUNT")
+                    .font(Typography.sans(9, weight: .bold))
+                    .tracking(1.35)
+                    .foregroundStyle(Palette.gold)
+                Text("Keep your films with you")
+                    .font(Typography.display(29))
+                    .foregroundStyle(Palette.cream)
+                Text("Sign in to carry purchases between iOS and Android. Taking photos and using Studio never needs an account.")
+                    .font(Typography.sans(13))
+                    .foregroundStyle(Palette.cream.opacity(0.66))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .signInWithAppleButtonStyle(.white)
-            .frame(height: 50)
 
-            Button { Task { await app.account.signInWithGoogle() } } label: {
-                Label("Continue with Google", systemImage: "g.circle.fill")
-                    .font(Typography.sans(15, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(maxWidth: .infinity).frame(height: 50)
-                    .background(Palette.cream, in: RoundedRectangle(cornerRadius: 8))
+            VStack(spacing: 11) {
+                SignInWithAppleButton(.signIn) { request in
+                    app.account.configureAppleRequest(request)
+                } onCompletion: { result in
+                    Task { await app.account.finishApple(result) }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Button { Task { await app.account.signInWithGoogle() } } label: {
+                    HStack(spacing: 10) {
+                        GoogleLogo()
+                            .frame(width: 22, height: 22)
+                        Text("Sign in with Google")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .disabled(isAuthenticating)
+
+            if isAuthenticating {
+                HStack(spacing: 9) {
+                    ProgressView().tint(Palette.gold)
+                    Text("Opening secure sign-in…")
+                        .font(Typography.sans(12, weight: .semibold))
+                        .foregroundStyle(Palette.cream.opacity(0.62))
+                }
+            }
         }
-        .padding(20)
-        .background(Palette.charcoalDeep.opacity(0.66), in: RoundedRectangle(cornerRadius: 22))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 24)
+        .background(Palette.charcoalDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Palette.cream.opacity(0.08))
+        }
     }
 
     private func accountCard(name: String?, email: String?, providers: Set<String>) -> some View {
@@ -125,12 +171,27 @@ struct AccountView: View {
     }
 
     private var privacyCard: some View {
-        Text("Firebase receives your sign-in identity. RevenueCat receives only an opaque account ID and purchase history. Tumble never uploads photo pixels, filenames, drafts, crops, or notes.")
-            .font(Typography.sans(12))
-            .foregroundStyle(Palette.cream.opacity(0.58))
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Palette.gold)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Your photos stay private")
+                    .font(Typography.sans(13, weight: .bold))
+                    .foregroundStyle(Palette.cream)
+                Text("Sign-in links purchase access only. Tumble never uploads photo pixels, filenames, drafts, crops, or notes.")
+                    .font(Typography.sans(12))
+                    .foregroundStyle(Palette.cream.opacity(0.58))
+            }
+        }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var isAuthenticating: Bool {
+        if case .authenticating = app.account.state { return true }
+        return false
     }
 
     private var signedInProviders: Set<String> {
@@ -168,5 +229,30 @@ struct AccountView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+/// The official multicolor mark ships inside GoogleSignIn's resource bundle.
+/// We use only that mark and let Tumble own the surrounding button so the two
+/// providers share one visual system instead of stacking two incompatible SDK
+/// button styles.
+private struct GoogleLogo: View {
+    private static let image: UIImage? = {
+        guard let bundleURL = Bundle.main.url(
+            forResource: "GoogleSignIn_GoogleSignIn",
+            withExtension: "bundle"
+        ), let resources = Bundle(url: bundleURL) else { return nil }
+        return UIImage(named: "google", in: resources, compatibleWith: nil)
+    }()
+
+    var body: some View {
+        if let image = Self.image {
+            Image(uiImage: image)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+        } else {
+            Color.clear
+        }
     }
 }

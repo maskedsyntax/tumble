@@ -21,12 +21,18 @@ struct StudioView: View {
     @State private var busy = false
     @State private var message: String?
     @State private var selectedTool: StudioTool = .film
+    @State private var previewRenderTask: Task<Void, Never>?
+    @State private var originalPreviewRecipe: EditRecipe?
     @FocusState private var noteFieldFocused: Bool
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
         self.draft = draft
         self.onSaved = onSaved
         _recipe = State(initialValue: draft.recipe)
+        _showingOriginal = State(initialValue: DebugLaunch.showsOriginal)
+        _selectedTool = State(initialValue:
+            StudioTool(rawValue: DebugLaunch.value(for: "-studioTool") ?? "") ?? .film
+        )
     }
 
     var body: some View {
@@ -61,13 +67,19 @@ struct StudioView: View {
         }
         .animation(.easeOut(duration: 0.2), value: noteFieldFocused)
         .interactiveDismissDisabled()
-        .task { await renderPreview() }
-        .onChange(of: recipe) { _, value in
+        .task { await renderPreview(requestedRecipe: recipe) }
+        .onChange(of: recipe) { oldValue, value in
             app.drafts.update(value)
-            Task { await renderPreview() }
+            schedulePreviewRender(
+                value,
+                debounce: oldValue.stockID == value.stockID ? .milliseconds(45) : .zero
+            )
         }
         .onAppear { TumbleAnalytics.shared.pauseReplay() }
-        .onDisappear { TumbleAnalytics.shared.resumeReplay() }
+        .onDisappear {
+            previewRenderTask?.cancel()
+            TumbleAnalytics.shared.resumeReplay()
+        }
         .confirmationDialog("Discard this edit?", isPresented: $showDiscard, titleVisibility: .visible) {
             Button("Discard draft", role: .destructive) {
                 app.drafts.discard()
@@ -128,10 +140,15 @@ struct StudioView: View {
                                 .padding(8)
                         } else {
                             let availableWidth = max(1, proxy.size.width - 20)
-                            let availableHeight = max(1, proxy.size.height - 18)
+                            let availableHeight = max(1, proxy.size.height - 28)
+                            // A handwritten caption makes the Classic frame taller
+                            // than its captionless catalog aspect. Account for that
+                            // extra chin so the complete postcard remains visible.
+                            let previewAspect = recipe.frameStyle.aspect
+                                + (recipe.note.isEmpty ? 0 : 0.15)
                             let fittedWidth = min(
                                 availableWidth,
-                                availableHeight / recipe.frameStyle.aspect
+                                availableHeight / previewAspect
                             )
                             PostcardFrameView(
                                 style: recipe.frameStyle,
@@ -141,7 +158,7 @@ struct StudioView: View {
                                 seed: draft.id.stableSeed,
                                 width: fittedWidth
                             )
-                            .frame(width: fittedWidth, height: fittedWidth * recipe.frameStyle.aspect)
+                            .frame(width: fittedWidth, height: fittedWidth * previewAspect)
                         }
                     } else {
                         ProgressView().tint(Palette.gold)
@@ -437,27 +454,44 @@ struct StudioView: View {
         selectedTool == .crop && recipe.cropPreset == .freeform
     }
 
-    private func renderPreview() async {
+    private func schedulePreviewRender(_ requestedRecipe: EditRecipe, debounce: Duration) {
+        previewRenderTask?.cancel()
+        previewRenderTask = Task { @MainActor in
+            if debounce != .zero {
+                try? await Task.sleep(for: debounce)
+            }
+            guard !Task.isCancelled else { return }
+            await renderPreview(requestedRecipe: requestedRecipe)
+        }
+    }
+
+    private func renderPreview(requestedRecipe: EditRecipe) async {
         guard let data = app.drafts.sourceData(for: draft) else {
             preview = nil
             originalPreview = nil
             return
         }
-        let requestedRecipe = recipe
         let capturedAt = draft.capturedAt
+        var sourceRecipe = requestedRecipe
+        sourceRecipe.stockID = FilmStockCatalog.defaultStock.id
+        sourceRecipe.intensity = 0
+        sourceRecipe.frameID = PostcardFrameStyle.none.rawValue
+        sourceRecipe.note = ""
+        let needsOriginal = originalPreviewRecipe != sourceRecipe
         let rendered = await Task.detached(priority: .userInitiated) {
-            var sourceRecipe = requestedRecipe
-            sourceRecipe.intensity = 0
-            sourceRecipe.frameID = PostcardFrameStyle.none.rawValue
-            sourceRecipe.note = ""
             return (
                 TumblePhotoFilter.renderEditedPreview(from: data, recipe: requestedRecipe, capturedAt: capturedAt),
-                TumblePhotoFilter.renderEditedPreview(from: data, recipe: sourceRecipe, capturedAt: capturedAt)
+                needsOriginal
+                    ? TumblePhotoFilter.renderEditedPreview(from: data, recipe: sourceRecipe, capturedAt: capturedAt)
+                    : nil
             )
         }.value
-        guard requestedRecipe == recipe else { return }
+        guard !Task.isCancelled, requestedRecipe == recipe else { return }
         preview = rendered.0
-        originalPreview = rendered.1
+        if let original = rendered.1 {
+            originalPreview = original
+            originalPreviewRecipe = sourceRecipe
+        }
     }
 
     private func exportData() async -> Data? {
