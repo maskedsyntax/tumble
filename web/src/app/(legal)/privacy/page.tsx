@@ -56,8 +56,12 @@ export default function PrivacyPage() {
           <p className="mt-3">
             Provider accounts are never merged merely because email addresses
             match. You can link providers, sign out, or request account deletion
-            from Settings. Signing out removes account-linked access on that
-            device but does not remove purchases owned by its current store account.
+            from Settings. You can also follow the steps on our{" "}
+            <Link href="/account-deletion" className="text-amber hover:underline">
+              account-deletion page
+            </Link>
+            . Signing out removes account-linked access on that device but does
+            not remove purchases owned by its current store account.
           </p>
         </section>
 

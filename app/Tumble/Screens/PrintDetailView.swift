@@ -251,16 +251,21 @@ private struct DetailPrint: View {
         .task(id: "\(photo.id)|\(photo.filterID ?? "")") {
             // Render this print's own stock live, so the print on screen matches
             // exactly what saves to Photos.
-            if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
-                   from: rawData,
-                   grade: photo.filmStock.grade,
-                   capturedAt: photo.capturedAt
-               ) {
+            let rawData = await PhotoStore.loadImageDataAsync(named: photo.rawImageName)
+            let grade = photo.filmStock.grade
+            let capturedAt = photo.capturedAt
+            if let rawData,
+               let memoryData = await Task.detached(priority: .userInitiated, operation: {
+                   TumblePhotoFilter.renderMemoryPhotoData(
+                       from: rawData,
+                       grade: grade,
+                       capturedAt: capturedAt
+                   )
+               }).value {
                 image = UIImage(data: memoryData)
             } else {
                 let name = photo.developedImageName ?? photo.rawImageName
-                image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+                image = await PhotoThumbnailRepository.shared.image(named: name, maxPixelSize: 1280)
             }
         }
     }

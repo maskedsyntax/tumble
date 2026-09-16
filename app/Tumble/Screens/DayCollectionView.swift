@@ -219,7 +219,7 @@ private struct DayCollectionPrint: View {
         }
         .task(id: photo.id) {
             let name = photo.developedImageName ?? photo.rawImageName
-            image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+            image = await PhotoThumbnailRepository.shared.image(named: name, maxPixelSize: 420)
         }
         .accessibilityElement()
         .accessibilityLabel(

@@ -124,16 +124,21 @@ struct PostcardSaveSheet: View {
             guard let source = previewSource else { return }
             // Preview renders the print's own stock live, so what you see is
             // exactly what lands in Photos.
-            if let rawData = PhotoStore.loadImageData(named: source.rawImageName),
-               let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
-                   from: rawData,
-                   grade: source.filmStock.grade,
-                   capturedAt: source.capturedAt
-               ) {
+            let rawData = await PhotoStore.loadImageDataAsync(named: source.rawImageName)
+            let grade = source.filmStock.grade
+            let capturedAt = source.capturedAt
+            if let rawData,
+               let memoryData = await Task.detached(priority: .userInitiated, operation: {
+                   TumblePhotoFilter.renderMemoryPhotoData(
+                       from: rawData,
+                       grade: grade,
+                       capturedAt: capturedAt
+                   )
+               }).value {
                 image = UIImage(data: memoryData)
             } else {
                 let name = source.developedImageName ?? source.rawImageName
-                image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+                image = await PhotoThumbnailRepository.shared.image(named: name, maxPixelSize: 1280)
             }
         }
     }

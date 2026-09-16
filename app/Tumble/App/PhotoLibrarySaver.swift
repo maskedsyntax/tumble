@@ -19,7 +19,7 @@ enum PhotoLibrarySaver {
 
     @MainActor
     static func saveDeveloped(_ photo: Photo, style: PostcardFrameStyle) async -> PhotoLibrarySaveResult {
-        guard photo.isDeveloped, let data = imageData(for: photo, style: style) else {
+        guard photo.isDeveloped, let data = await imageData(for: photo, style: style) else {
             return .noDevelopedPhotos
         }
 
@@ -28,9 +28,12 @@ enum PhotoLibrarySaver {
 
     @MainActor
     static func saveDeveloped(in photos: [Photo], style: PostcardFrameStyle) async -> PhotoLibrarySaveResult {
-        let imagesData = photos
-            .filter(\.isDeveloped)
-            .compactMap { imageData(for: $0, style: style) }
+        var imagesData: [Data] = []
+        for photo in photos where photo.isDeveloped {
+            if let data = await imageData(for: photo, style: style) {
+                imagesData.append(data)
+            }
+        }
 
         guard !imagesData.isEmpty else {
             return .noDevelopedPhotos
@@ -40,26 +43,30 @@ enum PhotoLibrarySaver {
     }
 
     @MainActor
-    private static func imageData(for photo: Photo, style: PostcardFrameStyle) -> Data? {
-        guard let data = memoryPhotoData(for: photo) else { return nil }
+    private static func imageData(for photo: Photo, style: PostcardFrameStyle) async -> Data? {
+        guard let data = await memoryPhotoData(for: photo) else { return nil }
         guard style != .none else { return data }
         guard let image = UIImage(data: data) else { return nil }
         return postcardFrameData(for: photo, image: image, style: style)
     }
 
     @MainActor
-    private static func memoryPhotoData(for photo: Photo) -> Data? {
+    private static func memoryPhotoData(for photo: Photo) async -> Data? {
         // Render this print's own stock, so the file that lands in Photos matches
         // the look picked for it - not a global default.
-        if let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-           let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
-               from: rawData,
-               grade: photo.filmStock.grade,
-               capturedAt: photo.capturedAt
-           ) {
+        let grade = photo.filmStock.grade
+        let capturedAt = photo.capturedAt
+        if let rawData = await PhotoStore.loadImageDataAsync(named: photo.rawImageName),
+           let memoryData = await Task.detached(priority: .userInitiated, operation: {
+               TumblePhotoFilter.renderMemoryPhotoData(
+                   from: rawData,
+                   grade: grade,
+                   capturedAt: capturedAt
+               )
+           }).value {
             return memoryData
         }
-        return PhotoStore.loadImageData(named: photo.developedImageName ?? photo.rawImageName)
+        return await PhotoStore.loadImageDataAsync(named: photo.developedImageName ?? photo.rawImageName)
     }
 
     @MainActor

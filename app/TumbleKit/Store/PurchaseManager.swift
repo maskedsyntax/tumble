@@ -58,11 +58,14 @@ public final class PurchaseManager {
     @ObservationIgnored private lazy var productIDs: [String] =
         tierProductIDs + FilmStockCatalog.allProductIDs
     @ObservationIgnored private var updatesTask: Task<Void, Never>?
+    @ObservationIgnored private var started = false
 
     public init() {}
 
     /// Begin listening for transactions and load current state.
     public func start() async {
+        guard !started else { return }
+        started = true
         if updatesTask == nil { updatesTask = observeTransactionUpdates() }
         await loadProducts()
         await refreshEntitlements()

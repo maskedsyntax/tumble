@@ -31,7 +31,7 @@ struct LookPickerView: View {
             .padding(.vertical, 2)
         }
         .task(id: photo.id) {
-            rawData = PhotoStore.loadImageData(named: photo.rawImageName)
+            rawData = await PhotoStore.loadImageDataAsync(named: photo.rawImageName)
         }
     }
 
@@ -143,7 +143,7 @@ private struct LookThumbnail: View {
         // ran once against a nil `rawData` and every tile stayed empty.
         .task(id: "\(photoID)|\(stock.id)|\(rawData?.count ?? 0)") {
             guard let rawData else { return }
-            image = FilmPreviewRenderer.shared.preview(
+            image = await FilmPreviewRenderer.shared.preview(
                 photoID: photoID,
                 stock: stock,
                 source: rawData,

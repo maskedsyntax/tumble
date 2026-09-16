@@ -48,6 +48,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,6 +69,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -425,6 +427,7 @@ private fun CameraScreen(
     val scope = rememberCoroutineScope()
     val signedIn = account.state as? AuthState.SignedIn
     var confirmDelete by remember { mutableStateOf(false) }
+    var showReviewAccess by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = close, title = { Text("Tumble Account", style = TumbleType.display(28)) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Camera, import, editing and saving never require an account. Sign in only to buy once and use your films across iOS and Android.")
@@ -435,10 +438,23 @@ private fun CameraScreen(
                 Button(enabled = activity != null && account.state !is AuthState.Authenticating, onClick = {
                     activity?.let { scope.launch { account.continueWithApple(it); if (account.state is AuthState.SignedIn) onLinked() } }
                 }, modifier = Modifier.fillMaxWidth()) { Text("Continue with Apple") }
+                if (BuildConfig.PLAY_REVIEW_ACCESS) {
+                    TextButton(
+                        enabled = account.state !is AuthState.Authenticating,
+                        onClick = { showReviewAccess = true },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) { Text("Google Play review access") }
+                }
                 if (account.state is AuthState.Authenticating) CircularProgressIndicator(color = Palette.gold, modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 Text("Signed in", fontWeight = FontWeight.Bold, color = Palette.gold)
-                Text("Providers: ${signedIn.providers.joinToString { if (it == AuthProvider.APPLE) "Apple" else "Google" }}")
+                Text("Providers: ${signedIn.providers.joinToString {
+                    when (it) {
+                        AuthProvider.APPLE -> "Apple"
+                        AuthProvider.GOOGLE -> "Google"
+                        AuthProvider.PLAY_REVIEW -> "Play review"
+                    }
+                }}")
                 if (AuthProvider.GOOGLE !in signedIn.providers) TextButton(onClick = { activity?.let { scope.launch { account.continueWithGoogle(it, link = true) } } }) { Text("Link Google") }
                 if (AuthProvider.APPLE !in signedIn.providers) TextButton(onClick = { activity?.let { scope.launch { account.continueWithApple(it, link = true) } } }) { Text("Link Apple") }
                 TextButton(onClick = { account.syncPurchases { if (it) onLinked() } }) { Text("Link existing purchases") }
@@ -460,5 +476,67 @@ private fun CameraScreen(
             }) { Text("Delete account") }
         },
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+    )
+
+    if (showReviewAccess) PlayReviewAccessDialog(
+        busy = account.state is AuthState.Authenticating,
+        message = account.message,
+        dismiss = {
+            account.clearMessage()
+            showReviewAccess = false
+        },
+        signIn = { email, password ->
+            scope.launch {
+                account.continueForPlayReview(email, password)
+                if (account.state is AuthState.SignedIn) {
+                    onLinked()
+                    showReviewAccess = false
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PlayReviewAccessDialog(
+    busy: Boolean,
+    message: String?,
+    dismiss: () -> Unit,
+    signIn: (String, String) -> Unit,
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text("Google Play review", style = TumbleType.display(26)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("For Google Play reviewers only. Use the reusable credentials supplied in Play Console.")
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Reviewer email") },
+                    singleLine = true,
+                    enabled = !busy,
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    enabled = !busy,
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+                if (busy) CircularProgressIndicator(color = Palette.gold, modifier = Modifier.align(Alignment.CenterHorizontally))
+                message?.let { Text(it, color = Palette.gold, style = TumbleType.sans(12)) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !busy && email.isNotBlank() && password.isNotBlank(),
+                onClick = { signIn(email, password) },
+            ) { Text("Sign in") }
+        },
+        dismissButton = { TextButton(enabled = !busy, onClick = dismiss) { Text("Cancel") } },
     )
 }

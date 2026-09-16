@@ -5,9 +5,11 @@ import GoogleSignIn
 import RevenueCat
 import TumbleAnalytics
 import TumbleKit
+import UIKit
 
 @main
 struct TumbleApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     init() {
         FirebaseApp.configure()
         if let key = Bundle.main.object(forInfoDictionaryKey: "REVENUECAT_API_KEY") as? String,
@@ -56,6 +58,17 @@ struct TumbleApp: App {
             .preferredColorScheme(.dark)
             .onOpenURL { url in
                 _ = GIDSignIn.sharedInstance.handle(url)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active {
+                    Task { await app.drafts.flush() }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                Task {
+                    await PhotoThumbnailRepository.shared.removeAll()
+                    await FilmPreviewRenderer.shared.clear()
+                }
             }
         }
         .modelContainer(container)

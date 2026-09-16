@@ -1,10 +1,14 @@
 import AVFoundation
-import CoreImage
-import QuartzCore
 import UIKit
 
-private struct SendablePixelBuffer: @unchecked Sendable {
-    let value: CVPixelBuffer
+public struct CapturedPhoto: @unchecked Sendable {
+    public let data: Data
+
+    public init(data: Data) {
+        self.data = data
+    }
+
+    public var image: UIImage? { UIImage(data: data) }
 }
 
 public enum CameraSide: String, Sendable {
@@ -18,69 +22,121 @@ public enum CameraFlashMode: String, Sendable {
 }
 
 public enum CameraCaptureResult: @unchecked Sendable {
-    case success(UIImage)
+    case success(CapturedPhoto)
     case unavailable(String)
     case failure(String, Error?)
 }
 
-/// Thin wrapper over an `AVCaptureSession`. Production always returns an
-/// explicit success, unavailable, or failure result. A synthetic scene is
-/// available only in a DEBUG simulator build so the Studio remains testable.
-@MainActor
-public final class CameraController: NSObject, ObservableObject {
-    public let session = AVCaptureSession()
+private struct CameraHardwareState: Sendable {
+    var isSimulated: Bool
+    var side: CameraSide
+    var canSwitchCameras: Bool
+    var supportsFlash: Bool
+    var flashMode: CameraFlashMode
+}
+
+private final class MainActorCaptureCompletion: @unchecked Sendable {
+    let call: (CameraCaptureResult) -> Void
+
+    init(_ call: @escaping (CameraCaptureResult) -> Void) {
+        self.call = call
+    }
+}
+
+/// Owns every blocking AVFoundation operation on one serial executor. Nothing
+/// in this type is isolated to the main actor; it reports compact state changes
+/// back to the UI only after the hardware operation completes.
+private final class CameraPipeline: NSObject, @unchecked Sendable {
+    let session = AVCaptureSession()
+    let previewRenderer: LiveCameraRenderer
+
+    var stateHandler: (@Sendable (CameraHardwareState) -> Void)?
+
     private let photoOutput = AVCapturePhotoOutput()
     private let videoOutput = AVCaptureVideoDataOutput()
-    private var captureHandler: ((CameraCaptureResult) -> Void)?
+    private let queue = DispatchQueue(label: "com.tumble.camera.session", qos: .userInitiated)
+    private var captureHandler: (@Sendable (CameraCaptureResult) -> Void)?
     private var currentInput: AVCaptureDeviceInput?
     private var currentDevice: AVCaptureDevice?
+    private var configured = false
+    private var isSimulated = false
+    private var side: CameraSide = .back
+    private var canSwitchCameras = false
+    private var supportsFlash = false
+    private var flashMode: CameraFlashMode = .off
+    private var requestedFrameRate = 60
 
-    public override init() { super.init() }
+    init(previewRenderer: LiveCameraRenderer) {
+        self.previewRenderer = previewRenderer
+        super.init()
+        previewRenderer.onTargetFrameRateChanged = { [weak self] fps in
+            self?.setFrameRate(fps)
+        }
+    }
 
-    /// True when there is no usable camera (Simulator / denied), so the UI can
-    /// show a filmic placeholder instead of a black viewfinder.
-    @Published public private(set) var isSimulated = false
-    @Published public private(set) var side: CameraSide = .back
-    @Published public private(set) var canSwitchCameras = false
-    @Published public private(set) var supportsFlash = false
-    @Published public private(set) var flashMode: CameraFlashMode = .off
-    @Published public private(set) var filteredPreview: UIImage?
-    @Published public var previewStock: FilmStock = FilmStockCatalog.defaultStock {
-        didSet {
-            guard oldValue.id != previewStock.id else { return }
-            previewRevision &+= 1
-            // Re-render the newest camera frame immediately. The old preview
-            // remains visible until this is ready, so changing film never
-            // flashes the unfiltered feed.
-            if let latestPreviewBuffer {
-                enqueuePreview(latestPreviewBuffer)
+    func start() {
+        queue.async { [self] in
+            configureIfNeeded()
+            guard !isSimulated, !session.isRunning else { return }
+            session.startRunning()
+        }
+    }
+
+    func stop() {
+        queue.async { [self] in
+            guard !isSimulated, session.isRunning else { return }
+            session.stopRunning()
+        }
+    }
+
+    func switchCamera() {
+        queue.async { [self] in
+            configureIfNeeded()
+            guard canSwitchCameras, !isSimulated else { return }
+            let next: CameraSide = side == .back ? .front : .back
+            session.beginConfiguration()
+            let switched = configureInput(for: next)
+            if switched { configurePortraitOutput() }
+            session.commitConfiguration()
+            if switched {
+                applyFrameRate(requestedFrameRate)
+                publishState()
             }
         }
     }
-    @Published public var previewIntensity: Double = 1
 
-    private let sessionQueue = DispatchQueue(label: "com.tumble.camera.session")
-    private var configured = false
-    private var previewRenderInFlight = false
-    private var latestPreviewBuffer: SendablePixelBuffer?
-    private var pendingPreviewBuffer: SendablePixelBuffer?
-    private var previewRevision: UInt = 0
-    nonisolated(unsafe) private var lastPreviewTimestamp: CFTimeInterval = 0
-
-    public func start() {
-        configureIfNeeded()
-        guard !isSimulated else { return }
-        nonisolated(unsafe) let session = self.session
-        sessionQueue.async {
-            if !session.isRunning { session.startRunning() }
+    func setFlashMode(_ mode: CameraFlashMode) {
+        queue.async { [self] in
+            guard supportsFlash, !isSimulated else { return }
+            flashMode = mode
+            publishState()
         }
     }
 
-    public func stop() {
-        guard !isSimulated else { return }
-        nonisolated(unsafe) let session = self.session
-        sessionQueue.async {
-            if session.isRunning { session.stopRunning() }
+    func capture(completion: @escaping @Sendable (CameraCaptureResult) -> Void) {
+        queue.async { [self] in
+            configureIfNeeded()
+            guard !isSimulated else {
+#if DEBUG && targetEnvironment(simulator)
+                let data = FilmScene.random().image().jpegData(compressionQuality: 0.94)
+                if let data { completion(.success(CapturedPhoto(data: data))) }
+                else { completion(.failure("The simulated photo could not be encoded.", nil)) }
+#else
+                completion(.unavailable("The camera is unavailable."))
+#endif
+                return
+            }
+            guard captureHandler == nil else { return }
+            captureHandler = completion
+            let settings: AVCapturePhotoSettings
+            if photoOutput.availablePhotoCodecTypes.contains(.jpeg) {
+                settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
+            } else {
+                settings = AVCapturePhotoSettings()
+            }
+            settings.photoQualityPrioritization = .balanced
+            if supportsFlash { settings.flashMode = flashMode == .on ? .on : .off }
+            photoOutput.capturePhoto(with: settings, delegate: self)
         }
     }
 
@@ -91,6 +147,7 @@ public final class CameraController: NSObject, ObservableObject {
 
         guard session.canAddOutput(photoOutput), session.canAddOutput(videoOutput) else {
             isSimulated = true
+            publishState()
             return
         }
 
@@ -98,59 +155,35 @@ public final class CameraController: NSObject, ObservableObject {
         session.sessionPreset = .photo
         session.addOutput(photoOutput)
         videoOutput.alwaysDiscardsLateVideoFrames = true
+        let biPlanarFullRange = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        let previewPixelFormat = videoOutput.availableVideoPixelFormatTypes.contains(biPlanarFullRange)
+            ? biPlanarFullRange
+            : kCVPixelFormatType_32BGRA
         videoOutput.videoSettings = [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+            kCVPixelBufferPixelFormatTypeKey as String: previewPixelFormat,
         ]
-        videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
+        videoOutput.setSampleBufferDelegate(self, queue: queue)
         session.addOutput(videoOutput)
         guard configureInput(for: .back) else {
             session.commitConfiguration()
             isSimulated = true
+            publishState()
             return
         }
         configurePortraitOutput()
         session.commitConfiguration()
-    }
-
-    public func switchCamera() {
-        configureIfNeeded()
-        guard canSwitchCameras, !isSimulated else { return }
-        let next: CameraSide = side == .back ? .front : .back
-
-        session.beginConfiguration()
-        let switched = configureInput(for: next)
-        if switched { configurePortraitOutput() }
-        session.commitConfiguration()
-
-        if switched {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-    }
-
-    public func toggleFlash() {
-        configureIfNeeded()
-        guard supportsFlash, !isSimulated else { return }
-        flashMode = flashMode == .off ? .on : .off
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        applyFrameRate(requestedFrameRate)
+        publishState()
     }
 
     private func configureInput(for side: CameraSide) -> Bool {
-        guard
-            let device = device(for: side),
-            let input = try? AVCaptureDeviceInput(device: device)
-        else {
-            return false
-        }
+        guard let device = device(for: side),
+              let input = try? AVCaptureDeviceInput(device: device) else { return false }
 
         let previousInput = currentInput
-        if let previousInput {
-            session.removeInput(previousInput)
-        }
-
+        if let previousInput { session.removeInput(previousInput) }
         guard session.canAddInput(input) else {
-            if let previousInput, session.canAddInput(previousInput) {
-                session.addInput(previousInput)
-            }
+            if let previousInput, session.canAddInput(previousInput) { session.addInput(previousInput) }
             return false
         }
 
@@ -159,15 +192,10 @@ public final class CameraController: NSObject, ObservableObject {
         currentDevice = device
         self.side = side
         supportsFlash = side == .back && device.hasFlash
-        if !supportsFlash {
-            flashMode = .off
-        }
+        if !supportsFlash { flashMode = .off }
         return true
     }
 
-    /// Tumble is portrait-only. Camera sensors deliver their native buffers in
-    /// landscape, so rotate both the live effect buffer and the still output at
-    /// the capture boundary rather than making each UI compensate separately.
     private func configurePortraitOutput() {
         for connection in [
             videoOutput.connection(with: .video),
@@ -185,102 +213,149 @@ public final class CameraController: NSObject, ObservableObject {
         )
     }
 
-    /// Capture a still with an explicit production-safe outcome.
-    public func captureResult(_ completion: @escaping (CameraCaptureResult) -> Void) {
-        if isSimulated {
-#if DEBUG
-#if targetEnvironment(simulator)
-            completion(.success(FilmScene.random().image()))
-#else
-            completion(.unavailable("The camera is unavailable."))
-#endif
-#else
-            completion(.unavailable("The camera is unavailable."))
-#endif
-            return
-        }
-        captureHandler = completion
-        let settings = AVCapturePhotoSettings()
-        if supportsFlash {
-            settings.flashMode = flashMode == .on ? .on : .off
-        }
-        photoOutput.capturePhoto(with: settings, delegate: self)
-    }
-
-    /// Compatibility for legacy screens while they remain available from the
-    /// read-only Drawer. New code must use `captureResult`.
-    public func capture(_ completion: @escaping (UIImage) -> Void) {
-        captureResult { result in
-            if case .success(let image) = result { completion(image) }
+    private func setFrameRate(_ fps: Int) {
+        queue.async { [self] in
+            requestedFrameRate = fps == 30 ? 30 : 60
+            applyFrameRate(requestedFrameRate)
         }
     }
 
-    private func enqueuePreview(_ buffer: SendablePixelBuffer) {
-        latestPreviewBuffer = buffer
-        pendingPreviewBuffer = buffer
-        guard !previewRenderInFlight else { return }
-        Task { await renderPendingPreviews() }
+    private func applyFrameRate(_ requested: Int) {
+        guard let device = currentDevice else { return }
+        let supported = device.activeFormat.videoSupportedFrameRateRanges.contains {
+            $0.minFrameRate <= Double(requested) && $0.maxFrameRate >= Double(requested)
+        }
+        let fallback = device.activeFormat.videoSupportedFrameRateRanges.contains {
+            $0.minFrameRate <= 30 && $0.maxFrameRate >= 30
+        }
+        let actual = supported ? requested : (fallback ? 30 : 0)
+        guard actual > 0, (try? device.lockForConfiguration()) != nil else { return }
+        defer { device.unlockForConfiguration() }
+        let duration = CMTime(value: 1, timescale: CMTimeScale(actual))
+        device.activeVideoMinFrameDuration = duration
+        device.activeVideoMaxFrameDuration = duration
     }
 
-    /// Keep only the newest camera frame while Core Image is busy. This avoids
-    /// building a backlog and guarantees a film change renders against the
-    /// latest frame as soon as the current GPU pass finishes.
-    private func renderPendingPreviews() async {
-        guard !previewRenderInFlight else { return }
-        previewRenderInFlight = true
-        defer { previewRenderInFlight = false }
-
-        while let buffer = pendingPreviewBuffer {
-            pendingPreviewBuffer = nil
-            let stock = previewStock
-            let intensity = previewIntensity
-            let revision = previewRevision
-            let rendered = await Task.detached(priority: .userInitiated) {
-                TumblePhotoFilter.renderLivePreview(
-                    from: buffer.value,
-                    stock: stock,
-                    intensity: intensity,
-                    maxDimension: 640
-                )
-            }.value
-            if revision == previewRevision {
-                filteredPreview = rendered
-            }
-        }
+    private func publishState() {
+        stateHandler?(CameraHardwareState(
+            isSimulated: isSimulated,
+            side: side,
+            canSwitchCameras: canSwitchCameras,
+            supportsFlash: supportsFlash,
+            flashMode: flashMode
+        ))
     }
 }
 
-extension CameraController: AVCapturePhotoCaptureDelegate {
-    public nonisolated func photoOutput(
+extension CameraPipeline: AVCapturePhotoCaptureDelegate {
+    func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        let image = photo.fileDataRepresentation().flatMap(UIImage.init(data:))
-        Task { @MainActor in
-            if let error {
-                self.captureHandler?(.failure("The camera could not take that photo.", error))
-            } else if let image {
-                self.captureHandler?(.success(image))
-            } else {
-                self.captureHandler?(.failure("The captured photo could not be decoded.", nil))
-            }
-            self.captureHandler = nil
+        let completion = captureHandler
+        captureHandler = nil
+        if let error {
+            completion?(.failure("The camera could not take that photo.", error))
+        } else if let data = photo.fileDataRepresentation() {
+            completion?(.success(CapturedPhoto(data: data)))
+        } else {
+            completion?(.failure("The captured photo could not be prepared.", nil))
         }
     }
 }
 
-extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    public nonisolated func captureOutput(
+extension CameraPipeline: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
-        let now = CACurrentMediaTime()
-        guard now - lastPreviewTimestamp >= (1.0 / 24.0),
-              let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        lastPreviewTimestamp = now
-        let buffer = SendablePixelBuffer(value: pixelBuffer)
-        Task { @MainActor [weak self, buffer] in self?.enqueuePreview(buffer) }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        previewRenderer.enqueue(pixelBuffer)
+    }
+}
+
+/// Main-actor facade used by SwiftUI. The AVFoundation and Metal work lives in
+/// `CameraPipeline`; published properties change only for controls and never
+/// once per camera frame.
+@MainActor
+public final class CameraController: NSObject, ObservableObject {
+    public let session: AVCaptureSession
+    public let previewRenderer: LiveCameraRenderer
+
+    @Published public private(set) var isSimulated = false
+    @Published public private(set) var side: CameraSide = .back
+    @Published public private(set) var canSwitchCameras = false
+    @Published public private(set) var supportsFlash = false
+    @Published public private(set) var flashMode: CameraFlashMode = .off
+
+    public var previewStock: FilmStock = FilmStockCatalog.defaultStock {
+        didSet { updatePreviewRecipe() }
+    }
+    public var previewIntensity: Double = 1 {
+        didSet { updatePreviewRecipe() }
+    }
+
+    private let pipeline: CameraPipeline
+
+    public override init() {
+        let renderer = LiveCameraRenderer()
+        let pipeline = CameraPipeline(previewRenderer: renderer)
+        previewRenderer = renderer
+        session = pipeline.session
+        self.pipeline = pipeline
+        super.init()
+        pipeline.stateHandler = { [weak self] state in
+            Task { @MainActor [weak self] in self?.apply(state) }
+        }
+        updatePreviewRecipe()
+    }
+
+    public func start() { pipeline.start() }
+    public func stop() { pipeline.stop() }
+
+    public func switchCamera() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        pipeline.switchCamera()
+    }
+
+    public func toggleFlash() {
+        guard supportsFlash, !isSimulated else { return }
+        let next: CameraFlashMode = flashMode == .off ? .on : .off
+        flashMode = next
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        pipeline.setFlashMode(next)
+    }
+
+    public func captureResult(_ completion: @escaping (CameraCaptureResult) -> Void) {
+        let callback = MainActorCaptureCompletion(completion)
+        pipeline.capture { result in
+            Task { @MainActor in callback.call(result) }
+        }
+    }
+
+    /// Compatibility for onboarding and the older pull-down camera.
+    public func capture(_ completion: @escaping (UIImage) -> Void) {
+        captureResult { result in
+            if case .success(let photo) = result, let image = photo.image { completion(image) }
+        }
+    }
+
+    private func apply(_ state: CameraHardwareState) {
+        isSimulated = state.isSimulated
+        side = state.side
+        canSwitchCameras = state.canSwitchCameras
+        supportsFlash = state.supportsFlash
+        flashMode = state.flashMode
+        updatePreviewRecipe()
+    }
+
+    private func updatePreviewRecipe() {
+        previewRenderer.update(
+            stock: previewStock,
+            intensity: previewIntensity,
+            mirrored: side == .front
+        )
     }
 }

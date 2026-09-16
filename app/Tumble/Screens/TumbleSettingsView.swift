@@ -204,8 +204,8 @@ struct DrawerLibraryView: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 18) {
                             ForEach(photos) { photo in
                                 DrawerPrintTile(photo: photo) {
-                                    if !photo.isDeveloped { finish(photo) }
                                     selected = photo
+                                    if !photo.isDeveloped { Task { await finish(photo) } }
                                 }
                             }
                         }
@@ -218,14 +218,14 @@ struct DrawerLibraryView: View {
         .fullScreenCover(item: $selected) { PrintStage(photo: $0, developed: photos.filter(\.isDeveloped)).environment(app) }
     }
 
-    private func finish(_ photo: Photo) {
-        guard let raw = PhotoStore.loadImageData(named: photo.rawImageName),
-              let rendered = TumblePhotoFilter.renderMemoryPhotoData(
-                from: raw,
-                grade: photo.filmStock.grade,
-                capturedAt: photo.capturedAt
-              ) else { return }
-        photo.developedImageName = try? PhotoStore.writeImage(rendered, id: photo.id, kind: .developed)
+    private func finish(_ photo: Photo) async {
+        guard let raw = await PhotoStore.loadImageDataAsync(named: photo.rawImageName) else { return }
+        let grade = photo.filmStock.grade
+        let capturedAt = photo.capturedAt
+        guard let rendered = await Task.detached(priority: .userInitiated, operation: {
+            TumblePhotoFilter.renderMemoryPhotoData(from: raw, grade: grade, capturedAt: capturedAt)
+        }).value else { return }
+        photo.developedImageName = try? await PhotoStore.writeImageAsync(rendered, id: photo.id, kind: .developed)
         photo.developProgress = 1
         photo.isDeveloped = true
         try? context.save()
@@ -249,7 +249,7 @@ private struct DrawerPrintTile: View {
         .buttonStyle(.plain)
         .task(id: photo.developedImageName) {
             let name = photo.developedImageName ?? photo.rawImageName
-            image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+            image = await PhotoThumbnailRepository.shared.image(named: name, maxPixelSize: 420)
         }
     }
 }

@@ -1,0 +1,17 @@
+/.git
+/.github
+/.idea
+/.claude
+/android
+/app
+/iap-review-screenshots
+/marketing
+/mockups-appstore-v2
+/mockups-appstore-v3
+/mockups-appstore-v4
+/shared
+/test-images
+/test-output
+/logo.png
+/scripts
+/run.sh

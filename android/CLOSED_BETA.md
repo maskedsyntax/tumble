@@ -17,6 +17,10 @@
   relaunch, and confirmed discard.
 - Require no open crash, ANR, data-loss, privacy, purchase, capture, render, or
   save blocker and a clean Play pre-launch report.
+- The beta release build exposes **Google Play review access** inside the Account
+  sheet. Its reusable Firebase credential is stored only in Play Console and the
+  release keychain, and its revocable RevenueCat Complete grant expires in 2035.
+  Remove this reviewer-only entry point before the public production build.
 
 ## Play declarations
 

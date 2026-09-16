@@ -377,7 +377,10 @@ private struct DrawerPrint: View {
         )
         .task(id: photo.id) {
             let name = photo.developedImageName ?? photo.rawImageName
-            image = PhotoStore.loadImageData(named: name).flatMap(UIImage.init(data:))
+            image = await PhotoThumbnailRepository.shared.image(
+                named: name,
+                maxPixelSize: Int(max(320, width * UIScreen.main.scale))
+            )
         }
         .accessibilityElement()
         .accessibilityLabel(

@@ -26,7 +26,7 @@ import com.tumble.R
 import com.tumble.studio.AccessState
 import kotlinx.coroutines.tasks.await
 
-enum class AuthProvider { APPLE, GOOGLE }
+enum class AuthProvider { APPLE, GOOGLE, PLAY_REVIEW }
 
 sealed interface AuthState {
     data object SignedOut : AuthState
@@ -56,6 +56,7 @@ class AccountCoordinator(private val context: Context) {
                 when (it.providerId) {
                     "apple.com" -> AuthProvider.APPLE
                     "google.com" -> AuthProvider.GOOGLE
+                    "password" -> AuthProvider.PLAY_REVIEW
                     else -> null
                 }
             }.toSet(),
@@ -93,6 +94,23 @@ class AccountCoordinator(private val context: Context) {
                 val pending = auth.pendingAuthResult
                 (pending ?: auth.startActivityForSignInWithProvider(activity, provider)).await().user
             } ?: error("Apple sign-in did not return an account.")
+            identify(user.uid)
+        }.onFailure(::handleAuthFailure)
+    }
+
+    /**
+     * Dedicated Google Play review access. This is enabled only in the beta
+     * release build and uses a revocable Firebase test user whose entitlement
+     * is managed in RevenueCat. No reviewer credential is bundled in the app.
+     */
+    suspend fun continueForPlayReview(email: String, password: String) {
+        state = AuthState.Authenticating
+        runCatching {
+            require(email.isNotBlank() && password.isNotBlank()) {
+                "Enter the reviewer email and password supplied in Play Console."
+            }
+            val user = auth.signInWithEmailAndPassword(email.trim(), password).await().user
+                ?: error("Play review sign-in did not return an account.")
             identify(user.uid)
         }.onFailure(::handleAuthFailure)
     }
@@ -204,6 +222,7 @@ class AccountCoordinator(private val context: Context) {
                     when (it.providerId) {
                         "apple.com" -> AuthProvider.APPLE
                         "google.com" -> AuthProvider.GOOGLE
+                        "password" -> AuthProvider.PLAY_REVIEW
                         else -> null
                     }
                 }.toSet(),

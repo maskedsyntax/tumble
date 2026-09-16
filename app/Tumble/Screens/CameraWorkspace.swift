@@ -62,7 +62,7 @@ struct CameraWorkspace: View {
         .task {
 #if DEBUG
             if DebugLaunch.clearsDraft {
-                app.drafts.discard()
+                await app.drafts.discard()
             }
             if DebugLaunch.opensPhotoPicker {
                 try? await Task.sleep(for: .milliseconds(350))
@@ -75,7 +75,7 @@ struct CameraWorkspace: View {
             if ProcessInfo.processInfo.arguments.contains("-studioDemo"),
                let data = DebugLaunch.demoImageData
                     ?? FilmScene.goldenHour.image(size: 1400).jpegData(compressionQuality: 0.96),
-               var draft = try? app.drafts.create(imageData: data, source: .camera, stockID: selectedStockID) {
+               var draft = try? await app.drafts.create(imageData: data, source: .camera, stockID: selectedStockID) {
                 var recipe = draft.recipe
                 if let stockID = DebugLaunch.value(for: "-demoStock") {
                     recipe.stockID = stockID
@@ -115,7 +115,7 @@ struct CameraWorkspace: View {
         .sheet(isPresented: $showComplete) { CompletePaywallView().environment(app) }
         .confirmationDialog("Continue your last edit?", isPresented: $showResume, titleVisibility: .visible) {
             Button("Continue editing") { studioDraft = app.drafts.activeDraft }
-            Button("Discard draft", role: .destructive) { app.drafts.discard() }
+            Button("Discard draft", role: .destructive) { Task { await app.drafts.discard() } }
         } message: {
             Text("Tumble kept one private draft on this device because it was not saved yet.")
         }
@@ -178,12 +178,10 @@ struct CameraWorkspace: View {
                         .resizable()
                         .scaledToFill()
                 } else if permission == .authorized {
-                    CameraPreview(session: camera.session)
-                    if let filtered = camera.filteredPreview {
-                        Image(uiImage: filtered)
-                            .resizable().scaledToFill()
-                            .scaleEffect(x: camera.side == .front ? -1 : 1, y: 1)
-                    }
+                    LiveFilmCameraPreview(
+                        session: camera.session,
+                        renderer: camera.previewRenderer
+                    )
                 } else {
                     permissionPlaceholder
                 }
@@ -386,16 +384,18 @@ struct CameraWorkspace: View {
         guard !captureInProgress else { return }
         captureInProgress = true
         camera.captureResult { result in
-            captureInProgress = false
             switch result {
-            case .success(let image):
-                guard let data = image.jpegData(compressionQuality: 0.98) else {
-                    message = "The captured image could not be prepared. No draft was created."
-                    return
+            case .success(let photo):
+                Task {
+                    await createDraft(data: photo.data, source: .camera)
+                    captureInProgress = false
                 }
-                createDraft(data: data, source: .camera)
-            case .unavailable(let reason): message = reason
-            case .failure(let reason, _): message = reason
+            case .unavailable(let reason):
+                captureInProgress = false
+                message = reason
+            case .failure(let reason, _):
+                captureInProgress = false
+                message = reason
             }
         }
     }
@@ -410,7 +410,7 @@ struct CameraWorkspace: View {
                 message = "That image could not be imported."
                 return
             }
-            createDraft(data: data, source: .library)
+            await createDraft(data: data, source: .library)
         } catch {
             message = "That image could not be imported."
         }
@@ -460,9 +460,9 @@ struct CameraWorkspace: View {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
-    private func createDraft(data: Data, source: EditSourceKind) {
+    private func createDraft(data: Data, source: EditSourceKind) async {
         do {
-            let draft = try app.drafts.create(imageData: data, source: source, stockID: selectedStockID)
+            let draft = try await app.drafts.create(imageData: data, source: source, stockID: selectedStockID)
             TumbleAnalytics.shared.capture(.photoCaptured(source: source.rawValue, remainingAfter: nil))
             studioDraft = draft
         } catch {

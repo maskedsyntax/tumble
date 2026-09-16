@@ -51,7 +51,7 @@ struct DevelopView: View {
             await setup()
         }
         .onDisappear { persistPartialProgress(); shake.stop() }
-        .sheet(isPresented: $showPostcardSheet, onDismiss: refreshPreviewImage) {
+        .sheet(isPresented: $showPostcardSheet, onDismiss: { Task { await refreshPreviewImage() } }) {
             PostcardSaveSheet(photo: photo, onSave: {
                 Task { await savePrint() }
             }, saveEnabled: developed)
@@ -228,7 +228,7 @@ struct DevelopView: View {
     private func setup() async {
         progress = photo.developProgress
         if ProcessInfo.processInfo.arguments.contains("-devMid") { progress = 0.4 }
-        image = PhotoStore.loadImageData(named: photo.rawImageName).flatMap(UIImage.init(data:))
+        image = await PhotoThumbnailRepository.shared.image(named: photo.rawImageName, maxPixelSize: 1280)
 
         // Play the gesture demo once, only for a still-blank print.
         if !developed {
@@ -280,7 +280,7 @@ struct DevelopView: View {
         if photo.filterID == nil {
             photo.filterID = FilmStockCatalog.stored().id
         }
-        renderDevelopedMemoryPhoto()
+        Task { await renderDevelopedMemoryPhoto() }
         try? context.save()
         TumbleAnalytics.shared.capture(.photoDeveloped(
             source: photo.source,
@@ -296,15 +296,14 @@ struct DevelopView: View {
         }
     }
 
-    private func renderDevelopedMemoryPhoto() {
-        guard let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
-                  from: rawData,
-                  grade: photo.filmStock.grade,
-                  capturedAt: photo.capturedAt
-              )
-        else { return }
-        photo.developedImageName = try? PhotoStore.writeImage(memoryData, id: photo.id, kind: .developed)
+    private func renderDevelopedMemoryPhoto() async {
+        guard let rawData = await PhotoStore.loadImageDataAsync(named: photo.rawImageName) else { return }
+        let grade = photo.filmStock.grade
+        let capturedAt = photo.capturedAt
+        guard let memoryData = await Task.detached(priority: .userInitiated, operation: {
+            TumblePhotoFilter.renderMemoryPhotoData(from: rawData, grade: grade, capturedAt: capturedAt)
+        }).value else { return }
+        photo.developedImageName = try? await PhotoStore.writeImageAsync(memoryData, id: photo.id, kind: .developed)
         image = UIImage(data: memoryData)
     }
 
@@ -316,15 +315,15 @@ struct DevelopView: View {
 
     /// Re-render the on-screen print with the currently selected memory
     /// filter, so what you see is exactly what saves.
-    private func refreshPreviewImage() {
+    private func refreshPreviewImage() async {
         guard developed,
-              let rawData = PhotoStore.loadImageData(named: photo.rawImageName),
-              let memoryData = TumblePhotoFilter.renderMemoryPhotoData(
-                  from: rawData,
-                  grade: photo.filmStock.grade,
-                  capturedAt: photo.capturedAt
-              )
+              let rawData = await PhotoStore.loadImageDataAsync(named: photo.rawImageName)
         else { return }
+        let grade = photo.filmStock.grade
+        let capturedAt = photo.capturedAt
+        guard let memoryData = await Task.detached(priority: .userInitiated, operation: {
+            TumblePhotoFilter.renderMemoryPhotoData(from: rawData, grade: grade, capturedAt: capturedAt)
+        }).value else { return }
         image = UIImage(data: memoryData)
     }
 

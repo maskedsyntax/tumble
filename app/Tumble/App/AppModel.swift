@@ -13,6 +13,7 @@ final class AppModel {
     let account = AccountCoordinator()
     let cameraActivity = TumbleCameraActivityCoordinator()
     let drafts = EditDraftStore()
+    private var storeStarted = false
 
     /// The just-captured print, surfaced so the UI can animate it tossing into
     /// the Drawer.
@@ -29,6 +30,8 @@ final class AppModel {
 
     /// Load StoreKit state and point the Roll at the owned tier.
     func startStore() async {
+        guard !storeStarted else { return }
+        storeStarted = true
         await purchases.start()
         await account.start(purchases: purchases)
         syncEntitlement()

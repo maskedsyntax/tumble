@@ -23,6 +23,8 @@ struct StudioView: View {
     @State private var selectedTool: StudioTool = .film
     @State private var previewRenderTask: Task<Void, Never>?
     @State private var originalPreviewRecipe: EditRecipe?
+    @State private var sourceData: Data?
+    @State private var previewWorker = StudioPreviewWorker()
     @FocusState private var noteFieldFocused: Bool
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
@@ -67,7 +69,10 @@ struct StudioView: View {
         }
         .animation(.easeOut(duration: 0.2), value: noteFieldFocused)
         .interactiveDismissDisabled()
-        .task { await renderPreview(requestedRecipe: recipe) }
+        .task {
+            sourceData = await app.drafts.sourceData(for: draft)
+            await renderPreview(requestedRecipe: recipe)
+        }
         .onChange(of: recipe) { oldValue, value in
             app.drafts.update(value)
             schedulePreviewRender(
@@ -78,12 +83,15 @@ struct StudioView: View {
         .onAppear { TumbleAnalytics.shared.pauseReplay() }
         .onDisappear {
             previewRenderTask?.cancel()
+            Task { await app.drafts.flush() }
             TumbleAnalytics.shared.resumeReplay()
         }
         .confirmationDialog("Discard this edit?", isPresented: $showDiscard, titleVisibility: .visible) {
             Button("Discard draft", role: .destructive) {
-                app.drafts.discard()
-                dismiss()
+                Task {
+                    await app.drafts.discard()
+                    dismiss()
+                }
             }
             Button("Keep editing", role: .cancel) {}
         } message: {
@@ -371,6 +379,7 @@ struct StudioView: View {
                     Button {
                         guard unlocked else { showComplete = true; return }
                         recipe.stockID = stock.id
+                        UISelectionFeedbackGenerator().selectionChanged()
                         TumbleAnalytics.shared.capture(.filmStockSelected(filmStockID: stock.id, packID: stock.packID))
                     } label: {
                         VStack(alignment: .leading, spacing: 5) {
@@ -466,7 +475,7 @@ struct StudioView: View {
     }
 
     private func renderPreview(requestedRecipe: EditRecipe) async {
-        guard let data = app.drafts.sourceData(for: draft) else {
+        guard let data = sourceData else {
             preview = nil
             originalPreview = nil
             return
@@ -478,24 +487,29 @@ struct StudioView: View {
         sourceRecipe.frameID = PostcardFrameStyle.none.rawValue
         sourceRecipe.note = ""
         let needsOriginal = originalPreviewRecipe != sourceRecipe
-        let rendered = await Task.detached(priority: .userInitiated) {
-            return (
-                TumblePhotoFilter.renderEditedPreview(from: data, recipe: requestedRecipe, capturedAt: capturedAt),
-                needsOriginal
-                    ? TumblePhotoFilter.renderEditedPreview(from: data, recipe: sourceRecipe, capturedAt: capturedAt)
-                    : nil
-            )
-        }.value
+        guard let rendered = await previewWorker.render(
+            data: data,
+            recipe: requestedRecipe,
+            sourceRecipe: sourceRecipe,
+            capturedAt: capturedAt,
+            needsOriginal: needsOriginal
+        ) else { return }
         guard !Task.isCancelled, requestedRecipe == recipe else { return }
-        preview = rendered.0
-        if let original = rendered.1 {
+        preview = rendered.preview
+        if let original = rendered.original {
             originalPreview = original
             originalPreviewRecipe = sourceRecipe
         }
     }
 
     private func exportData() async -> Data? {
-        guard let source = app.drafts.sourceData(for: draft) else { return nil }
+        let source: Data?
+        if let sourceData {
+            source = sourceData
+        } else {
+            source = await app.drafts.sourceData(for: draft)
+        }
+        guard let source else { return nil }
         let requestedRecipe = recipe
         let capturedAt = draft.capturedAt
         guard let filmData = await Task.detached(priority: .userInitiated, operation: {
@@ -521,6 +535,7 @@ struct StudioView: View {
         Task {
             busy = true
             defer { busy = false }
+            await app.drafts.flush()
             guard let data = await exportData(), let image = UIImage(data: data) else {
                 message = "The edited image could not be prepared. Your draft is still safe."
                 return
@@ -533,6 +548,7 @@ struct StudioView: View {
     private func save() async {
         busy = true
         defer { busy = false }
+        await app.drafts.flush()
         guard let data = await exportData() else {
             message = "The edited image could not be rendered. Your draft is still safe."
             return
@@ -541,7 +557,7 @@ struct StudioView: View {
         switch result {
         case .saved:
             TumbleAnalytics.shared.capture(.photoSaved(format: "jpeg", frameStyle: recipe.frameID, photoCount: 1))
-            app.drafts.discard()
+            await app.drafts.discard()
             onSaved()
             dismiss()
         case .denied:
@@ -550,6 +566,41 @@ struct StudioView: View {
             TumbleAnalytics.shared.capture(.photoSaveFailed(reason: "photos_write", format: "jpeg", photoCount: 1))
             message = "The photo could not be saved. Your draft is still safe."
         }
+    }
+}
+
+private struct StudioPreviewResult: @unchecked Sendable {
+    let preview: UIImage?
+    let original: UIImage?
+}
+
+/// Serializes Core Image work so rapid filter taps cannot leave several
+/// detached GPU renders fighting each other. Cancelled queued requests exit
+/// before decoding or rendering; the newest request runs next.
+private actor StudioPreviewWorker {
+    func render(
+        data: Data,
+        recipe: EditRecipe,
+        sourceRecipe: EditRecipe,
+        capturedAt: Date,
+        needsOriginal: Bool
+    ) -> StudioPreviewResult? {
+        guard !Task.isCancelled else { return nil }
+        let preview = TumblePhotoFilter.renderEditedPreview(
+            from: data,
+            recipe: recipe,
+            capturedAt: capturedAt
+        )
+        guard !Task.isCancelled else { return nil }
+        let original = needsOriginal
+            ? TumblePhotoFilter.renderEditedPreview(
+                from: data,
+                recipe: sourceRecipe,
+                capturedAt: capturedAt
+            )
+            : nil
+        guard !Task.isCancelled else { return nil }
+        return StudioPreviewResult(preview: preview, original: original)
     }
 }
 

@@ -30,14 +30,15 @@ android {
         applicationId = "com.tumble.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 5
-        versionName = "3.0.0-beta05"
+        versionCode = 6
+        versionName = "3.0.0-beta06"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
         buildConfigField("String", "POSTHOG_API_KEY", "\"$posthogApiKey\"")
         buildConfigField("String", "POSTHOG_HOST", "\"$posthogHost\"")
         buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenueCatApiKey\"")
+        buildConfigField("boolean", "PLAY_REVIEW_ACCESS", "false")
     }
 
     signingConfigs {
@@ -54,6 +55,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            buildConfigField("boolean", "PLAY_REVIEW_ACCESS", "true")
             if (hasUploadSigning) signingConfig = signingConfigs.getByName("upload")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

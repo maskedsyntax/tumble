@@ -166,12 +166,30 @@ public enum TumblePhotoFilter {
         capturedAt: Date = Date(),
         maxDimension: CGFloat = 960
     ) -> UIImage? {
-        let source = downscaled(CIImage(cvPixelBuffer: pixelBuffer), maxDimension: maxDimension)
-        let graded = applyGrade(stock.grade, to: source, capturedAt: capturedAt)
-        let output = dissolve(original: source, graded: graded, amount: intensity)
+        let output = livePreviewImage(
+            from: pixelBuffer,
+            stock: stock,
+            intensity: intensity,
+            maxDimension: maxDimension
+        )
         let extent = output.extent.integral
         guard !extent.isEmpty, let image = context.createCGImage(output, from: extent) else { return nil }
         return UIImage(cgImage: image)
+    }
+
+    /// Builds the low-latency Core Image graph used by the live Metal
+    /// viewfinder. Spatial blur, freshly-generated grain, and text are omitted
+    /// here because they are expensive to rebuild for every camera frame. The
+    /// full pipeline above remains the source of truth for saved photos.
+    public static func livePreviewImage(
+        from pixelBuffer: CVPixelBuffer,
+        stock: FilmStock,
+        intensity: Double = 1,
+        maxDimension: CGFloat = 960
+    ) -> CIImage {
+        let source = downscaled(CIImage(cvPixelBuffer: pixelBuffer), maxDimension: maxDimension)
+        let graded = applyLiveGrade(stock.grade, to: source)
+        return dissolve(original: source, graded: graded, amount: intensity)
     }
 
     private static func downscaled(_ image: CIImage, maxDimension: CGFloat) -> CIImage {
@@ -313,6 +331,42 @@ public enum TumblePhotoFilter {
         current = addLeak(to: current, extent: extent, style: grade.leak, strength: grade.leakStrength)
         current = stampDate(on: current, extent: extent, when: capturedAt, if: grade.stampsDate)
 
+        return current.cropped(to: extent)
+    }
+
+    /// Pixel-local approximation of the complete film recipe for the live
+    /// camera. It preserves the look's colour identity while keeping the hot
+    /// path free of Gaussian blur, random-noise generation, bloom, and text.
+    private static func applyLiveGrade(_ grade: FilmGrade, to input: CIImage) -> CIImage {
+        let image = normalized(input)
+        let extent = image.extent
+
+        var current = image.applyingFilter("CIColorControls", parameters: [
+            kCIInputSaturationKey: grade.saturation,
+            kCIInputContrastKey: grade.contrast,
+            kCIInputBrightnessKey: grade.brightness,
+        ])
+        current = current.applyingFilter("CIToneCurve", parameters: [
+            "inputPoint0": CIVector(x: 0.0, y: grade.blackLift),
+            "inputPoint1": CIVector(x: 0.22, y: 0.24 + grade.blackLift * 0.35),
+            "inputPoint2": CIVector(x: 0.52, y: 0.52),
+            "inputPoint3": CIVector(x: 0.82, y: 0.80),
+            "inputPoint4": CIVector(x: 1.0, y: 0.97),
+        ])
+        current = warmGrade(current, warmth: grade.warmth)
+        current = monochrome(current, extent: extent, amount: grade.monochrome, tint: grade.monoTint)
+        current = splitTone(current, extent: extent, grade: grade)
+        current = fade(current, amount: grade.fade)
+        current = current.applyingFilter("CIVignette", parameters: [
+            kCIInputIntensityKey: grade.vignette,
+            kCIInputRadiusKey: max(extent.width, extent.height) * 1.05,
+        ])
+        current = addLeak(
+            to: current,
+            extent: extent,
+            style: grade.leak,
+            strength: grade.leakStrength * 0.75
+        )
         return current.cropped(to: extent)
     }
 

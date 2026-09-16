@@ -1,4 +1,5 @@
 import Testing
+import CoreVideo
 import UIKit
 @testable import TumbleKit
 
@@ -87,21 +88,43 @@ struct TumblePhotoFilterTests {
         }
     }
 
-    @Test @MainActor func previewRendererCachesByPhotoAndStock() {
+    @Test @MainActor func previewRendererCachesByPhotoAndStock() async {
         let source = sampleData(CGSize(width: 400, height: 400))
         let renderer = FilmPreviewRenderer(capacity: 8)
         let id = UUID()
         let stock = FilmStockCatalog.resolve("goldenHour")
 
-        let first = renderer.preview(photoID: id, stock: stock, source: source, maxDimension: 120)
+        let first = await renderer.preview(photoID: id, stock: stock, source: source, maxDimension: 120)
         // A cache hit must not need the source at all.
-        let second = renderer.preview(photoID: id, stock: stock, source: { () -> Data? in
-            Issue.record("source read on a cache hit")
-            return nil
-        }(), maxDimension: 120)
+        let second = await renderer.preview(
+            photoID: id,
+            stock: stock,
+            source: nil,
+            maxDimension: 120
+        )
 
         #expect(first != nil)
         #expect(second === first)
+    }
+
+    @Test @MainActor func thumbnailRepositoryDownsamplesAndCachesBySize() async throws {
+        let source = sampleData(CGSize(width: 600, height: 400))
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tumble-thumbnail-\(UUID().uuidString).jpg")
+        try source.write(to: url, options: .atomic)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let repository = PhotoThumbnailRepository(countLimit: 4)
+        let first = await repository.image(at: url, cacheKey: url.lastPathComponent, maxPixelSize: 120)
+        #expect(first != nil)
+        #expect(max(first?.size.width ?? 0, first?.size.height ?? 0) <= 120)
+
+        let cached = await repository.image(at: url, cacheKey: url.lastPathComponent, maxPixelSize: 120)
+        #expect(cached === first)
+        let differentSize = await repository.image(at: url, cacheKey: url.lastPathComponent, maxPixelSize: 80)
+        #expect(differentSize != nil)
+        #expect(differentSize !== first)
+        #expect(max(differentSize?.size.width ?? 0, differentSize?.size.height ?? 0) <= 80)
     }
 
     @Test @MainActor func editIntensityEndpointsMatchOriginalAndFilm() {
@@ -124,6 +147,102 @@ struct TumblePhotoFilterTests {
         if let image {
             #expect(max(image.size.width, image.size.height) <= 512)
             #expect(abs(image.size.width / image.size.height - 0.8) < 0.03)
+        }
+    }
+
+    @Test func adaptiveFrameRateFallsBackAndRecoversWithHeadroom() {
+        var policy = AdaptiveFrameRatePolicy()
+        #expect(policy.targetFPS == 60)
+
+        var change: Int?
+        for index in 0..<30 {
+            change = policy.record(
+                renderDuration: index < 8 ? 0.024 : 0.010,
+                thermallyConstrained: false
+            ) ?? change
+        }
+        #expect(change == 30)
+        #expect(policy.targetFPS == 30)
+
+        change = nil
+        for _ in 0..<300 {
+            change = policy.record(renderDuration: 0.010, thermallyConstrained: false) ?? change
+        }
+        #expect(change == 60)
+        #expect(policy.targetFPS == 60)
+    }
+
+    @Test func adaptiveFrameRateImmediatelyHonorsThermalPressure() {
+        var policy = AdaptiveFrameRatePolicy()
+        #expect(policy.record(renderDuration: 0.008, thermallyConstrained: true) == 30)
+        #expect(policy.targetFPS == 30)
+        #expect(policy.record(renderDuration: 0.008, thermallyConstrained: true) == nil)
+    }
+
+    @Test func latestFrameMailboxNeverBuildsABacklog() {
+        var mailbox = LatestValueMailbox<Int>()
+        let initialSchedule = mailbox.submit(1)
+        let replacementSchedule = mailbox.submit(2)
+        #expect(initialSchedule)
+        #expect(!replacementSchedule)
+        let first = mailbox.take()
+        #expect(first == 2)
+
+        // A value arriving while the consumer is active replaces the pending
+        // slot and does not schedule a competing consumer.
+        let inFlightSchedule = mailbox.submit(3)
+        let newestSchedule = mailbox.submit(4)
+        #expect(!inFlightSchedule)
+        #expect(!newestSchedule)
+        let newest = mailbox.take()
+        let drained = mailbox.take()
+        #expect(newest == 4)
+        #expect(drained == nil)
+
+        // Once drained, the next frame schedules a new consumer.
+        let restartSchedule = mailbox.submit(5)
+        #expect(restartSchedule)
+        let restarted = mailbox.take()
+        #expect(restarted == 5)
+    }
+
+    @Test func livePreviewMirroringAndAspectFillPreserveDisplayGeometry() {
+        let sourceExtent = CGRect(x: 10, y: 20, width: 120, height: 80)
+        let source = CIImage(color: .red).cropped(to: sourceExtent)
+        let mirrored = LivePreviewGeometry.mirroredHorizontally(source)
+        #expect(mirrored.extent == sourceExtent)
+
+        let displayBounds = CGRect(x: 0, y: 0, width: 180, height: 320)
+        let filled = LivePreviewGeometry.aspectFill(mirrored, into: displayBounds)
+        #expect(filled.extent == displayBounds)
+    }
+
+    @Test func everyCatalogStockBuildsALivePreviewGraph() throws {
+        var pixelBuffer: CVPixelBuffer?
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            96,
+            128,
+            kCVPixelFormatType_32BGRA,
+            [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary,
+            &pixelBuffer
+        )
+        #expect(status == kCVReturnSuccess)
+        let buffer = try #require(pixelBuffer)
+        CVPixelBufferLockBaseAddress(buffer, [])
+        if let base = CVPixelBufferGetBaseAddress(buffer) {
+            memset(base, 127, CVPixelBufferGetDataSize(buffer))
+        }
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+
+        for stock in FilmStockCatalog.all {
+            let output = TumblePhotoFilter.livePreviewImage(
+                from: buffer,
+                stock: stock,
+                maxDimension: 96
+            )
+            #expect(!output.extent.isEmpty, "\(stock.id) produced an empty live preview")
+            #expect(output.extent.width <= 96)
         }
     }
 }

@@ -4,7 +4,7 @@ import UIKit
 /// A small fixed-capacity cache that evicts the least-recently-used entry once
 /// it fills. Backed by a dictionary for lookup and an array for recency order;
 /// the array stays short (a screenful of thumbnails), so the linear touch cost
-/// is nothing. Not thread-safe - the preview renderer holds it on the main actor.
+/// is nothing. Not thread-safe - the preview renderer actor owns it.
 final class LRUCache<Key: Hashable, Value> {
     private let capacity: Int
     private var store: [Key: Value] = [:]
@@ -47,7 +47,7 @@ final class LRUCache<Key: Hashable, Value> {
 /// grade pipeline once and keeps the result; a hit is a dictionary lookup. The
 /// key folds in the preview size, so the same photo cached small and large never
 /// collide.
-@MainActor public final class FilmPreviewRenderer {
+public actor FilmPreviewRenderer {
     public static let shared = FilmPreviewRenderer()
 
     private struct Key: Hashable {
@@ -60,16 +60,6 @@ final class LRUCache<Key: Hashable, Value> {
 
     public init(capacity: Int = 60) {
         cache = LRUCache(capacity: capacity)
-
-        // Previews are cheap to rebuild and the source images can be large, so
-        // drop everything the moment the system asks for memory back.
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.cache.removeAll() }
-        }
     }
 
     /// A cached preview of `photoID` under `stock`. On a miss, `source` is read
@@ -77,7 +67,7 @@ final class LRUCache<Key: Hashable, Value> {
     public func preview(
         photoID: UUID,
         stock: FilmStock,
-        source: @autoclosure () -> Data?,
+        source: Data?,
         capturedAt: Date? = nil,
         maxDimension: CGFloat = 320
     ) -> UIImage? {
@@ -85,7 +75,7 @@ final class LRUCache<Key: Hashable, Value> {
         if let hit = cache.value(for: key) {
             return hit
         }
-        guard let data = source() else { return nil }
+        guard let data = source else { return nil }
         guard let image = TumblePhotoFilter.renderPreviewImage(
             from: data,
             grade: stock.grade,
