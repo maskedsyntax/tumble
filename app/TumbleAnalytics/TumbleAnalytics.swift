@@ -8,6 +8,9 @@ public enum AnalyticsRuntime: Sendable {
 }
 
 public enum AnalyticsScreen: String, Sendable, CaseIterable {
+    case home
+    case studio
+    case finish
     case onboardingWelcome = "onboarding_welcome"
     case onboardingCapture = "onboarding_capture"
     case onboardingDevelop = "onboarding_develop"
@@ -25,6 +28,20 @@ public enum AnalyticsScreen: String, Sendable, CaseIterable {
 }
 
 public enum AnalyticsEvent: Sendable {
+    case homeViewed
+    case homeEntrySelected(entryPoint: String, filmStockID: String?, intendedFormat: String?)
+    case sourceSelected(source: String)
+    case sourcePreparationFinished(source: String, outcome: String, reason: String?)
+    case studioOpened(source: String, initialFilmStockID: String)
+    case filmPreviewed(filmStockID: String, packID: String, premium: Bool)
+    case originalComparisonUsed
+    case finishOpened(filmStockID: String, premium: Bool)
+    case finishFormatSelected(format: String)
+    case postcardConfigured(frameStyle: String, hasNote: Bool)
+    case premiumExportGated(filmStockID: String, action: String)
+    case exportStarted(format: String, action: String, premium: Bool)
+    case exportCompleted(format: String, action: String, frameStyle: String)
+    case exportFailed(reason: String, format: String, action: String)
     case onboardingStarted
     case onboardingStepCompleted(step: String)
     case onboardingCompleted(path: String, tier: String)
@@ -43,6 +60,20 @@ public enum AnalyticsEvent: Sendable {
 
     public var name: String {
         switch self {
+        case .homeViewed: "home_viewed"
+        case .homeEntrySelected: "home_entry_selected"
+        case .sourceSelected: "source_selected"
+        case .sourcePreparationFinished: "source_preparation_finished"
+        case .studioOpened: "studio_opened"
+        case .filmPreviewed: "film_previewed"
+        case .originalComparisonUsed: "original_comparison_used"
+        case .finishOpened: "finish_opened"
+        case .finishFormatSelected: "finish_format_selected"
+        case .postcardConfigured: "postcard_configured"
+        case .premiumExportGated: "premium_export_gated"
+        case .exportStarted: "export_started"
+        case .exportCompleted: "export_completed"
+        case .exportFailed: "export_failed"
         case .onboardingStarted: "onboarding_started"
         case .onboardingStepCompleted: "onboarding_step_completed"
         case .onboardingCompleted: "onboarding_completed"
@@ -63,6 +94,38 @@ public enum AnalyticsEvent: Sendable {
 
     public var properties: [String: Any] {
         switch self {
+        case .homeViewed:
+            [:]
+        case .homeEntrySelected(let entryPoint, let filmStockID, let intendedFormat):
+            compact([
+                "entry_point": entryPoint,
+                "film_stock_id": filmStockID,
+                "intended_format": intendedFormat,
+            ])
+        case .sourceSelected(let source):
+            ["source": source]
+        case .sourcePreparationFinished(let source, let outcome, let reason):
+            compact(["source": source, "outcome": outcome, "reason": reason])
+        case .studioOpened(let source, let initialFilmStockID):
+            ["source": source, "initial_film_stock_id": initialFilmStockID]
+        case .filmPreviewed(let filmStockID, let packID, let premium):
+            ["film_stock_id": filmStockID, "pack_id": packID, "premium": premium]
+        case .originalComparisonUsed:
+            [:]
+        case .finishOpened(let filmStockID, let premium):
+            ["film_stock_id": filmStockID, "premium": premium]
+        case .finishFormatSelected(let format):
+            ["format": format]
+        case .postcardConfigured(let frameStyle, let hasNote):
+            ["frame_style": frameStyle, "has_note": hasNote]
+        case .premiumExportGated(let filmStockID, let action):
+            ["film_stock_id": filmStockID, "action": action]
+        case .exportStarted(let format, let action, let premium):
+            ["format": format, "action": action, "premium": premium]
+        case .exportCompleted(let format, let action, let frameStyle):
+            ["format": format, "action": action, "frame_style": frameStyle]
+        case .exportFailed(let reason, let format, let action):
+            ["reason": reason, "format": format, "action": action]
         case .onboardingStarted:
             [:]
         case .onboardingStepCompleted(let step):
@@ -107,10 +170,11 @@ public enum AnalyticsEvent: Sendable {
 public final class TumbleAnalytics {
     public static let shared = TumbleAnalytics()
 
-    public static let schemaVersion = 1
+    public static let schemaVersion = 3
     public static let consentKey = "tumble.analytics.enabled"
     public static let forbiddenPropertyFragments = [
-        "caption", "filename", "photo_id", "image_data", "raw_image", "developed_image", "free_text"
+        "caption", "filename", "file_name", "photo_id", "image_data", "raw_image", "developed_image",
+        "free_text", "note_content", "crop_coordinate", "pixel"
     ]
 
     private var configured = false

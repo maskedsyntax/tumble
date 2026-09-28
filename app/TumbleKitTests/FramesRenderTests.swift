@@ -7,29 +7,31 @@ struct FramesRenderTests {
     @MainActor
     @Test func everyFrameRenders() throws {
         let image = sampleImage()
-        let note = "Golden hour at the pier, take me back"
-
         for style in PostcardFrameStyle.allCases {
-            let view = PostcardFrameView(
-                style: style,
-                image: image,
-                age: 0.4,
-                note: note,
-                capturedAt: Date(timeIntervalSince1970: 1_750_000_000),
-                seed: 12345,
-                width: 800
-            )
-            .padding(60)
-            .background(Color.white)
+            for note in [nil, "Golden hour at the pier, take me back"] as [String?] {
+                let view = PostcardFrameView(
+                    style: style,
+                    image: image,
+                    age: 0.4,
+                    note: note,
+                    capturedAt: Date(timeIntervalSince1970: 1_750_000_000),
+                    seed: 12345,
+                    width: 800
+                )
+                .background(Color.white)
 
-            let renderer = ImageRenderer(content: view)
-            renderer.scale = 1
-            let rendered = renderer.uiImage
-            #expect(rendered != nil, "\(style) did not render")
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 1
+                let rendered = renderer.uiImage
+                #expect(rendered != nil, "\(style) did not render")
+                #expect(abs((rendered?.size.width ?? 0) - 800) < 0.5)
+                #expect(abs((rendered?.size.height ?? 0) - 800 * style.renderAspect(hasNote: note != nil)) <= 1)
 
-            if let data = rendered?.pngData() {
-                let url = URL(fileURLWithPath: "/tmp/tumble-frame-\(style.rawValue).png")
-                try data.write(to: url)
+                if let data = rendered?.pngData() {
+                    let suffix = note == nil ? "plain" : "note"
+                    let url = URL(fileURLWithPath: "/tmp/tumble-frame-\(style.rawValue)-\(suffix).png")
+                    try data.write(to: url)
+                }
             }
         }
     }

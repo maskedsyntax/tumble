@@ -52,6 +52,24 @@ struct TumblePhotoFilterTests {
         #expect(Set(outputs.map(\.hashValue)).count == ids.count)
     }
 
+    @Test @MainActor func everyFilmRendersAtFullAndReducedIntensityForQACorpus() {
+        let capturedAt = Date(timeIntervalSince1970: 1_757_865_600)
+        for scene in FilmScene.allCases {
+            let source = scene.image(size: 96).jpegData(compressionQuality: 0.9)!
+            for stock in FilmStockCatalog.all {
+                for intensity in [0.6, 1.0] {
+                    let data = TumblePhotoFilter.renderEditedPhotoData(
+                        from: source,
+                        recipe: EditRecipe(stockID: stock.id, intensity: intensity),
+                        capturedAt: capturedAt,
+                        maxDimension: 96
+                    )
+                    #expect(data != nil, "\(scene) / \(stock.id) / \(intensity) failed")
+                }
+            }
+        }
+    }
+
     @Test @MainActor func dateStampChangesTheImage() {
         let source = sampleData()
         let stock = FilmStockCatalog.resolve("dateStamp")

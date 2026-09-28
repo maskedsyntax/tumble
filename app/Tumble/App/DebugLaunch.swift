@@ -97,6 +97,8 @@ enum DebugLaunch {
     static var isCapturing: Bool {
         packPaywall != nil
             || arguments.contains("-studioDemo")
+            || arguments.contains("-finishDemo")
+            || arguments.contains("-completeDemo")
             || arguments.contains("-cameraDemo")
             || opensPhotoPicker
             || clearsDraft

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "completeProductID": "com.tumble.pack.all",
   "packs": [
     { "id": "core", "name": "Core", "blurb": "Six everyday stocks, free with the app." },

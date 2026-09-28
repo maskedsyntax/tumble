@@ -21,10 +21,24 @@ public enum Typography {
         return .system(size: size, weight: weight, design: .serif)
     }
 
+    public static func displayFixed(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
+        if hasFraunces {
+            return .custom("Fraunces", fixedSize: size).weight(weight)
+        }
+        return .system(size: size, weight: weight, design: .serif)
+    }
+
     /// Sans body face.
     public static func sans(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         if hasInter {
             return .custom("Inter", size: size).weight(weight)
+        }
+        return .system(size: size, weight: weight, design: .default)
+    }
+
+    public static func sansFixed(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        if hasInter {
+            return .custom("Inter", fixedSize: size).weight(weight)
         }
         return .system(size: size, weight: weight, design: .default)
     }
@@ -35,6 +49,17 @@ public enum Typography {
         registerBundledFontsIfNeeded()
         if fontExists("Caveat") {
             return .custom("Caveat", size: size)
+        }
+        return .system(size: size, weight: .regular, design: .serif).italic()
+    }
+
+    /// Fixed-size handwriting for pixels that are part of the exported
+    /// postcard artwork. Dynamic Type belongs in controls, but must not alter
+    /// the composition or export dimensions of a user's finished image.
+    public static func scriptFixed(_ size: CGFloat) -> Font {
+        registerBundledFontsIfNeeded()
+        if fontExists("Caveat") {
+            return .custom("Caveat", fixedSize: size)
         }
         return .system(size: size, weight: .regular, design: .serif).italic()
     }

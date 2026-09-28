@@ -9,6 +9,9 @@ struct CompletePaywallView: View {
     @State private var busy = false
     @State private var message: String?
     @State private var showAccount = false
+    var source: String = "settings"
+    var onUnlocked: (() -> Void)? = nil
+    var onClose: (() -> Void)? = nil
 
     private var product: Product? { app.purchases.bundleProduct }
     private var isComplete: Bool { app.purchases.accessState == .complete }
@@ -24,10 +27,16 @@ struct CompletePaywallView: View {
                     Text("Tumble Complete")
                         .font(Typography.display(34))
                         .foregroundStyle(Palette.cream)
-                    Text("All fifteen premium films. One payment, yours forever.")
+                    Text("Preview every film. Unlock fifteen additional looks with one payment—yours forever.")
                         .font(Typography.sans(15))
                         .foregroundStyle(Palette.cream.opacity(0.72))
                         .multilineTextAlignment(.center)
+
+                    HStack(spacing: 9) {
+                        CompletePreviewTile(stockID: "disposable", scene: .blueHourRooftop)
+                        CompletePreviewTile(stockID: "silver", scene: .warmPortrait)
+                        CompletePreviewTile(stockID: "goldenHour", scene: .beachMorning)
+                    }
 
                     VStack(alignment: .leading, spacing: 12) {
                         benefit("Ninety-Six", "Disposable colour and hard flash")
@@ -70,7 +79,7 @@ struct CompletePaywallView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Button { dismiss() } label: {
+                    Button { close() } label: {
                         Image(systemName: "xmark")
                             .foregroundStyle(Palette.cream)
                             .padding(10)
@@ -81,7 +90,10 @@ struct CompletePaywallView: View {
             }
             .padding(20)
         }
-        .task { await app.startStore() }
+        .task {
+            await app.startStore()
+            TumbleAnalytics.shared.capture(.paywallViewed(type: "complete", source: source, packID: nil, remainingShots: nil))
+        }
         .sheet(isPresented: $showAccount) { AccountView().environment(app) }
     }
 
@@ -103,11 +115,16 @@ struct CompletePaywallView: View {
         }
         guard let product else { return }
         busy = true
+        TumbleAnalytics.shared.capture(.purchaseStarted(productID: product.id, productType: "complete", source: source))
         let outcome = await app.purchases.purchase(product)
         app.syncEntitlement()
         if outcome == .completed { await app.account.purchaseDidComplete() }
         busy = false
-        if outcome == .completed, app.purchases.accessState == .complete { dismiss() }
+        TumbleAnalytics.shared.capture(.purchaseFinished(productID: product.id, productType: "complete", source: source, outcome: outcome.rawValue))
+        if outcome == .completed, app.purchases.accessState == .complete {
+            onUnlocked?()
+            close()
+        }
         else if outcome != .cancelled { message = "The purchase could not be completed. Try again." }
     }
 
@@ -122,7 +139,53 @@ struct CompletePaywallView: View {
         app.syncEntitlement()
         if outcome == .completed { await app.account.linkPurchases() }
         busy = false
-        if outcome == .completed, app.purchases.accessState == .complete { dismiss() }
+        TumbleAnalytics.shared.capture(.restoreFinished(source: source, outcome: outcome.rawValue, entitlement: app.purchases.accessState == .complete ? "complete" : "free"))
+        if outcome == .completed, app.purchases.accessState == .complete {
+            onUnlocked?()
+            close()
+        }
         else { message = "No Complete purchase was found." }
+    }
+
+    private func close() {
+        if let onClose { onClose() }
+        else { dismiss() }
+    }
+}
+
+private struct CompletePreviewTile: View {
+    let stockID: String
+    let scene: FilmScene
+    @State private var image: UIImage?
+
+    private var stock: FilmStock { FilmStockCatalog.resolve(stockID) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Group {
+                if let image { Image(uiImage: image).resizable().scaledToFill() }
+                else { Color.black.opacity(0.22).overlay(ProgressView().tint(Palette.gold)) }
+            }
+            .frame(height: 92)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            Text(stock.name)
+                .font(Typography.sans(10, weight: .bold))
+                .foregroundStyle(Palette.cream)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task {
+            #if DEBUG
+            let captureSource = DebugLaunch.demoImageData.flatMap(UIImage.init(data:))
+            #else
+            let captureSource: UIImage? = nil
+            #endif
+            let source = captureSource ?? UIImage(named: "onboarding-editorial") ?? scene.image(size: 420)
+            let chosenStock = stock
+            image = await Task.detached(priority: .utility) {
+                TumblePhotoFilter.renderLivePreview(from: source, stock: chosenStock, maxDimension: 280)
+            }.value
+        }
     }
 }

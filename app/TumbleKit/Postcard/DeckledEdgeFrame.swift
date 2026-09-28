@@ -33,7 +33,7 @@ struct DeckledEdgeFrame: View {
 
             if let note, !note.isEmpty {
                 Text(note)
-                    .font(Typography.script(width * 0.055))
+                    .font(Typography.scriptFixed(width * 0.055))
                     .foregroundStyle(Palette.ink.opacity(0.75))
                     .lineLimit(1)
                     .truncationMode(.tail)

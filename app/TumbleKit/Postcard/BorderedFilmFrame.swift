@@ -31,7 +31,7 @@ struct BorderedFilmFrame: View {
         HStack(alignment: .lastTextBaseline, spacing: width * 0.03) {
             if let note, !note.isEmpty {
                 Text(note)
-                    .font(Typography.script(width * 0.05))
+                    .font(Typography.scriptFixed(width * 0.05))
                     .foregroundStyle(Color.white.opacity(0.92))
                     .shadow(color: .black.opacity(0.55), radius: width * 0.006, y: width * 0.002)
                     .lineLimit(1)

@@ -5,6 +5,52 @@ public enum EditSourceKind: String, Codable, Sendable {
     case library
 }
 
+public enum StudioRoute: Equatable, Sendable {
+    case home
+    case camera
+    case studio(UUID)
+    case finish(UUID)
+}
+
+public enum HomeEntryPoint: String, Equatable, Sendable {
+    case primary
+    case camera
+    case filmCard = "film_card"
+    case postcardCard = "postcard_card"
+}
+
+public enum IntendedFinishFormat: String, Equatable, Sendable {
+    case photo
+    case postcard
+}
+
+/// A launch choice only. Once a draft is created its recipe is the source of
+/// truth, so this intent is deliberately never encoded or restored.
+public struct HomeEditIntent: Equatable, Sendable {
+    public var entryPoint: HomeEntryPoint
+    public var initialFilmID: String
+    public var intendedFormat: IntendedFinishFormat?
+
+    public init(
+        entryPoint: HomeEntryPoint,
+        initialFilmID: String,
+        intendedFormat: IntendedFinishFormat? = nil
+    ) {
+        self.entryPoint = entryPoint
+        self.initialFilmID = initialFilmID
+        self.intendedFormat = intendedFormat
+    }
+
+    public var initialRecipe: EditRecipe {
+        EditRecipe(
+            stockID: initialFilmID,
+            frameID: intendedFormat == .postcard
+                ? PostcardFrameStyle.classicInstant.rawValue
+                : PostcardFrameStyle.none.rawValue
+        )
+    }
+}
+
 public enum CropPreset: String, CaseIterable, Codable, Identifiable, Sendable {
     case original
     case freeform

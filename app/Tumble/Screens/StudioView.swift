@@ -6,6 +6,7 @@ import UIKit
 struct StudioView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let draft: EditDraft
     let onSaved: () -> Void
@@ -14,64 +15,59 @@ struct StudioView: View {
     @State private var preview: UIImage?
     @State private var originalPreview: UIImage?
     @State private var showingOriginal = false
+    @State private var pressingOriginal = false
     @State private var showDiscard = false
-    @State private var showComplete = false
-    @State private var showShare = false
-    @State private var shareImage: UIImage?
-    @State private var busy = false
-    @State private var message: String?
+    @State private var showFinish = false
     @State private var selectedTool: StudioTool = .film
+    @State private var adjustingAmount = false
     @State private var previewRenderTask: Task<Void, Never>?
     @State private var originalPreviewRecipe: EditRecipe?
     @State private var sourceData: Data?
     @State private var previewWorker = StudioPreviewWorker()
-    @FocusState private var noteFieldFocused: Bool
+    @State private var selectedPackID: String
+    @AppStorage(FilmStockCatalog.storageKey) private var lastSelectedStockID = FilmStockCatalog.defaultStock.id
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
         self.draft = draft
         self.onSaved = onSaved
         _recipe = State(initialValue: draft.recipe)
+        _selectedPackID = State(initialValue: draft.recipe.stock.packID)
         _showingOriginal = State(initialValue: DebugLaunch.showsOriginal)
         _selectedTool = State(initialValue:
             StudioTool(rawValue: DebugLaunch.value(for: "-studioTool") ?? "") ?? .film
         )
+#if DEBUG
+        _adjustingAmount = State(initialValue: ProcessInfo.processInfo.arguments.contains("-amountDemo"))
+        _showFinish = State(initialValue: ProcessInfo.processInfo.arguments.contains("-finishDemo"))
+#endif
     }
 
     var body: some View {
         ZStack {
             GraincoreBackground()
-            VStack(spacing: 0) {
-                topBar
-                GeometryReader { _ in
-                    VStack(spacing: 12) {
-                        previewSurface
-                            .frame(
-                                minHeight: noteFieldFocused ? 138 : (compactToolNeedsRoom ? 190 : 230),
-                                maxHeight: noteFieldFocused ? 168 : .infinity
-                            )
-                        if !noteFieldFocused {
-                            toolSwitcher
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                        }
-                        toolPanel
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+            GeometryReader { proxy in
+                let dockHeight = studioDockHeight
+                VStack(spacing: 0) {
+                    topBar.frame(height: EditorChromeMetrics.topBarHeight)
+                    previewSurface
+                        .frame(maxHeight: .infinity)
+                        .layoutPriority(1)
+                        .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
+                        .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
+                    editorDock.frame(height: dockHeight)
                 }
             }
         }
-        .safeAreaPadding(.top, 4)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !noteFieldFocused {
-                actionBar
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: noteFieldFocused)
+        .safeAreaPadding(.top, 2)
         .interactiveDismissDisabled()
         .task {
             sourceData = await app.drafts.sourceData(for: draft)
             await renderPreview(requestedRecipe: recipe)
+            TumbleAnalytics.shared.screen(.studio)
+            TumbleAnalytics.shared.capture(.studioOpened(
+                source: draft.sourceKind.rawValue,
+                initialFilmStockID: recipe.stockID
+            ))
         }
         .onChange(of: recipe) { oldValue, value in
             app.drafts.update(value)
@@ -97,133 +93,170 @@ struct StudioView: View {
         } message: {
             Text("The original and your edits have not been saved to Photos.")
         }
-        .sheet(isPresented: $showComplete) { CompletePaywallView().environment(app) }
-        .sheet(isPresented: $showShare) {
-            if let shareImage { ActivityView(items: [shareImage]) }
+        .fullScreenCover(isPresented: $showFinish) {
+            FinishView(draft: draft, recipe: $recipe) {
+                onSaved()
+                dismiss()
+            }
+            .environment(app)
         }
-        .alert("Tumble", isPresented: Binding(
-            get: { message != nil },
-            set: { if !$0 { message = nil } }
-        )) { Button("OK") { message = nil } } message: { Text(message ?? "") }
     }
 
     private var topBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 7) {
             Button { showDiscard = true } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .frame(width: 42, height: 42)
-                    .background(Palette.cream.opacity(0.10), in: Circle())
+                ZStack {
+                    Circle()
+                        .fill(Palette.cream.opacity(0.09))
+                        .frame(
+                            width: EditorChromeMetrics.topBarControlVisual,
+                            height: EditorChromeMetrics.topBarControlVisual
+                        )
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .frame(
+                    width: EditorChromeMetrics.minimumHitTarget,
+                    height: EditorChromeMetrics.minimumHitTarget
+                )
+                .contentShape(Rectangle())
             }
             .accessibilityLabel("Cancel editing")
 
+            Text(recipe.stock.name)
+                .font(Typography.sans(12, weight: .bold))
+                .lineLimit(1)
             Spacer()
-            VStack(spacing: 1) {
-                Text("Studio")
-                    .font(Typography.display(25))
-                Text(recipe.stock.name)
-                    .font(Typography.sans(10, weight: .semibold))
-                    .foregroundStyle(Palette.gold)
-                    .lineLimit(1)
+            Button { openFinish() } label: {
+                ZStack {
+                    Capsule().fill(Palette.gold)
+                        .frame(height: EditorChromeMetrics.topBarPrimaryVisualHeight)
+                    HStack(spacing: 4) {
+                        Text("Next")
+                        Image(systemName: "arrow.right")
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .font(Typography.sans(12, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(height: EditorChromeMetrics.minimumHitTarget)
+                .contentShape(Rectangle())
             }
-            Spacer()
-            Color.clear.frame(width: 42, height: 42)
+            .disabled(preview == nil)
         }
         .foregroundStyle(Palette.cream)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
     }
 
     private var previewSurface: some View {
-        VStack(spacing: 0) {
-            GeometryReader { proxy in
-                ZStack {
-                    Color.black.opacity(0.28)
-                    if let image = shownImage {
-                        if recipe.frameStyle == .none || showingOriginal {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                .padding(8)
-                        } else {
-                            let availableWidth = max(1, proxy.size.width - 20)
-                            let availableHeight = max(1, proxy.size.height - 28)
-                            // A handwritten caption makes the Classic frame taller
-                            // than its captionless catalog aspect. Account for that
-                            // extra chin so the complete postcard remains visible.
-                            let previewAspect = recipe.frameStyle.aspect
-                                + (recipe.note.isEmpty ? 0 : 0.15)
-                            let fittedWidth = min(
-                                availableWidth,
-                                availableHeight / previewAspect
-                            )
-                            PostcardFrameView(
-                                style: recipe.frameStyle,
-                                image: image,
-                                note: recipe.note.isEmpty ? nil : recipe.note,
-                                capturedAt: draft.capturedAt,
-                                seed: draft.id.stableSeed,
-                                width: fittedWidth
-                            )
-                            .frame(width: fittedWidth, height: fittedWidth * previewAspect)
-                        }
-                    } else {
-                        ProgressView().tint(Palette.gold)
-                    }
-                }
+        ZStack {
+            Color.black.opacity(0.34)
+            if let image = shownImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(8)
+            } else {
+                ProgressView().tint(Palette.gold)
             }
-            .clipped()
-
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(showingOriginal ? "SOURCE" : "FILM PREVIEW")
-                        .font(Typography.sans(9, weight: .bold))
-                        .tracking(1.1)
-                        .foregroundStyle(Palette.cream.opacity(0.48))
-                    Text(showingOriginal ? "Original" : recipe.stock.name)
-                        .font(Typography.sans(13, weight: .bold))
-                        .foregroundStyle(Palette.cream)
-                }
+            VStack {
                 Spacer()
-                Picker("Preview", selection: $showingOriginal) {
-                    Text("Original").tag(true)
-                    Text("Film").tag(false)
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text((showingOriginal || pressingOriginal) ? "ORIGINAL" : recipe.stock.name.uppercased())
+                            .font(Typography.sans(9, weight: .bold))
+                            .tracking(1)
+                        if !showingOriginal && !pressingOriginal {
+                            Text(recipe.stock.blurb)
+                                .font(Typography.sans(9))
+                                .lineLimit(1)
+                        }
+                    }
+                    .foregroundStyle(Palette.cream)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.62), in: RoundedRectangle(cornerRadius: 10))
+                    .frame(maxWidth: 200, alignment: .leading)
+                    Spacer()
+                    Button {
+                        showingOriginal.toggle()
+                        if showingOriginal { TumbleAnalytics.shared.capture(.originalComparisonUsed) }
+                    } label: {
+                        Label("Compare", systemImage: "circle.lefthalf.filled")
+                            .font(Typography.sans(9, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .frame(height: 28)
+                            .background(Palette.cream.opacity(0.90), in: Capsule())
+                            .foregroundStyle(Palette.ink)
+                            .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityHint("Double tap to switch between Original and Film")
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 164)
+                .padding(8)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .background(Palette.charcoalDeep.opacity(0.78))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius, style: .continuous)
                 .stroke(Palette.cream.opacity(0.08), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
+        .shadow(color: .black.opacity(0.20), radius: 12, y: 7)
+        .onLongPressGesture(minimumDuration: 0.08, maximumDistance: 44, pressing: { pressed in
+            if pressed, !pressingOriginal {
+                TumbleAnalytics.shared.capture(.originalComparisonUsed)
+            }
+            pressingOriginal = pressed
+        }, perform: {})
+    }
+
+    private var editorDock: some View {
+        VStack(spacing: 0) {
+            if adjustingAmount && selectedTool == .film {
+                filmBrowserHeader
+                    .padding(.horizontal, 16)
+                    .frame(height: EditorChromeMetrics.filmBrowserHeaderHeight)
+                amountPanel
+                    .padding(.horizontal, 18)
+                    .frame(maxHeight: .infinity)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    toolPanel
+                        .padding(.horizontal, EditorChromeMetrics.dockHorizontalPadding)
+                        .padding(.vertical, selectedTool == .film ? 2 : EditorChromeMetrics.dockVerticalPadding)
+                }
+                .frame(height: max(0, studioDockHeight - EditorChromeMetrics.toolSwitcherHeight))
+                .scrollBounceBehavior(.basedOnSize)
+
+                toolSwitcher
+                    .frame(height: EditorChromeMetrics.toolSwitcherHeight)
+            }
+        }
+        .background(Palette.blueDeep.opacity(0.98))
+        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
+        .clipped()
     }
 
     private var toolSwitcher: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 0) {
             ForEach(StudioTool.allCases) { tool in
                 Button {
                     withAnimation(.easeOut(duration: 0.18)) { selectedTool = tool }
                 } label: {
                     Label(tool.title, systemImage: tool.icon)
-                        .font(Typography.sans(11, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background(selectedTool == tool ? Palette.gold : Color.clear, in: Capsule())
-                        .foregroundStyle(selectedTool == tool ? Palette.ink : Palette.cream.opacity(0.68))
+                    .font(Typography.sans(12, weight: selectedTool == tool ? .bold : .semibold))
+                    .foregroundStyle(selectedTool == tool ? Palette.gold : Palette.cream.opacity(0.68))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: EditorChromeMetrics.minimumHitTarget)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(selectedTool == tool ? .isSelected : [])
             }
         }
-        .padding(4)
-        .background(Palette.blueDeep.opacity(0.90), in: Capsule())
-        .overlay(Capsule().stroke(Palette.cream.opacity(0.08)))
+        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
+        .frame(height: EditorChromeMetrics.toolSwitcherHeight)
     }
 
     @ViewBuilder private var toolPanel: some View {
@@ -232,43 +265,86 @@ struct StudioView: View {
             filmControls
         case .crop:
             cropControls
-        case .frame:
-            frameControls
         }
     }
 
     private var filmControls: some View {
-        editorCard {
-            HStack(alignment: .firstTextBaseline) {
-                sectionTitle("Film")
-                Spacer()
-                Text("\(FilmStockCatalog.all.count) looks")
-                    .font(Typography.sans(10, weight: .semibold))
-                    .foregroundStyle(Palette.cream.opacity(0.42))
-            }
+        VStack(alignment: .leading, spacing: 4) {
+            filmBrowserHeader
+                .padding(.horizontal, 6)
+                .frame(height: EditorChromeMetrics.filmBrowserHeaderHeight)
             filmPicker
-            Divider().overlay(Palette.cream.opacity(0.08))
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Intensity").font(Typography.sans(13, weight: .semibold))
-                    Text("Blend the film with your original")
-                        .font(Typography.sans(9))
-                        .foregroundStyle(Palette.cream.opacity(0.45))
+        }
+        .foregroundStyle(Palette.cream)
+    }
+
+    private var filmBrowserHeader: some View {
+        HStack(spacing: 12) {
+            Menu {
+                ForEach(FilmStockCatalog.packs) { pack in
+                    Button {
+                        selectPack(pack.id)
+                    } label: {
+                        if selectedPackID == pack.id {
+                            Label(pack.name, systemImage: "checkmark")
+                        } else {
+                            Text(pack.name)
+                        }
+                    }
                 }
-                Slider(value: $recipe.intensity, in: 0...1)
-                    .tint(Palette.gold)
-                Text("\(Int(recipe.intensity * 100))")
-                    .font(Typography.sans(11, weight: .bold))
-                    .monospacedDigit()
-                    .frame(width: 28)
-                    .padding(.vertical, 6)
-                    .background(Palette.cream.opacity(0.08), in: Capsule())
+            } label: {
+                HStack(spacing: 6) {
+                    Text(FilmStockCatalog.packs.first(where: { $0.id == selectedPackID })?.name ?? "Films")
+                        .font(Typography.display(18))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Palette.gold)
+                }
+                .foregroundStyle(Palette.cream)
+                .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
+                .contentShape(Rectangle())
             }
+            .accessibilityLabel("Film collection")
+            .accessibilityValue(FilmStockCatalog.packs.first(where: { $0.id == selectedPackID })?.name ?? "Films")
+
+            Spacer(minLength: 8)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.16)) { adjustingAmount.toggle() }
+            } label: {
+                Text(adjustingAmount ? "Done" : "Amount \(Int(recipe.intensity * 100))")
+                    .font(Typography.sans(12, weight: .bold))
+                    .foregroundStyle(Palette.gold)
+                    .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel(adjustingAmount ? "Done adjusting film amount" : "Adjust film amount")
+        }
+    }
+
+    private var amountPanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(recipe.stock.name)
+                    .font(Typography.sans(13, weight: .bold))
+                if !app.purchases.isUnlocked(recipe.stock) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Palette.gold)
+                }
+                Spacer()
+                Text("\(Int(recipe.intensity * 100))%")
+                    .font(Typography.sans(12, weight: .bold))
+                    .monospacedDigit()
+            }
+            .foregroundStyle(Palette.cream)
+            CompactAmountSlider(value: $recipe.intensity)
         }
     }
 
     private var cropControls: some View {
-        editorCard {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     sectionTitle("Crop")
@@ -280,9 +356,9 @@ struct StudioView: View {
                 Button { recipe.quarterTurns = (recipe.quarterTurns + 1) % 4 } label: {
                     Label("Rotate", systemImage: "rotate.right")
                         .font(Typography.sans(11, weight: .bold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Palette.cream.opacity(0.09), in: Capsule())
+                        .foregroundStyle(Palette.gold)
+                        .frame(height: EditorChromeMetrics.minimumHitTarget)
+                        .contentShape(Rectangle())
                 }
             }
             chipRow(CropPreset.allCases, selection: recipe.cropPreset) { preset in
@@ -292,119 +368,60 @@ struct StudioView: View {
 
             if recipe.cropPreset == .freeform { freeformControls }
         }
-    }
-
-    private var frameControls: some View {
-        editorCard {
-            if noteFieldFocused {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        sectionTitle("Handwritten note")
-                        Text("Appears beneath your postcard photo")
-                            .font(Typography.sans(9))
-                            .foregroundStyle(Palette.cream.opacity(0.45))
-                    }
-                    Spacer()
-                    Button("Done") { noteFieldFocused = false }
-                        .font(Typography.sans(11, weight: .bold))
-                        .foregroundStyle(Palette.ink)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 8)
-                        .background(Palette.gold, in: Capsule())
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    sectionTitle("Postcard")
-                    Text("Optional frame and handwritten note")
-                        .font(Typography.sans(9))
-                        .foregroundStyle(Palette.cream.opacity(0.45))
-                }
-                chipRow(PostcardFrameStyle.allCases, selection: recipe.frameStyle) { style in
-                    recipe.frameID = style.rawValue
-                } label: { $0.shortName }
-            }
-
-            if recipe.frameStyle != .none {
-                TextField("Write something small…", text: Binding(
-                    get: { recipe.note },
-                    set: { recipe.note = PostcardNote.clamp($0) }
-                ))
-                .font(Typography.script(20))
-                .foregroundStyle(Palette.ink)
-                .focused($noteFieldFocused)
-                .submitLabel(.done)
-                .onSubmit { noteFieldFocused = false }
-                .padding(13)
-                .background(Palette.printStock, in: RoundedRectangle(cornerRadius: 13))
-            }
-        }
-    }
-
-    private var actionBar: some View {
-        HStack(spacing: 12) {
-            Button { prepareShare() } label: {
-                Label("Share", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Palette.cream.opacity(0.10), in: RoundedRectangle(cornerRadius: 17))
-                    .overlay(RoundedRectangle(cornerRadius: 17).stroke(Palette.cream.opacity(0.12)))
-            }
-            Button { Task { await save() } } label: {
-                HStack(spacing: 8) {
-                    if busy { ProgressView().tint(Palette.ink) }
-                    else { Image(systemName: "arrow.down.to.line.compact") }
-                    Text("Save photo")
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(Palette.gold, in: RoundedRectangle(cornerRadius: 17))
-                .foregroundStyle(Palette.ink)
-            }
-        }
-        .font(Typography.sans(14, weight: .bold))
         .foregroundStyle(Palette.cream)
-        .padding(.horizontal, 16)
-        .padding(.top, 11)
-        .padding(.bottom, 8)
-        .background(Palette.blueDeep.opacity(0.97))
-        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
-        .disabled(busy || preview == nil)
+    }
+
+    private func openFinish() {
+        app.drafts.update(recipe)
+        TumbleAnalytics.shared.capture(.finishOpened(
+            filmStockID: recipe.stockID,
+            premium: !app.purchases.isUnlocked(recipe.stock)
+        ))
+        showFinish = true
+    }
+
+    private func selectPack(_ packID: String) {
+        guard let firstStock = FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == packID })?.stocks.first else { return }
+        selectedPackID = packID
+        selectFilm(firstStock)
+    }
+
+    private func selectFilm(_ stock: FilmStock) {
+        recipe.stockID = stock.id
+        selectedPackID = stock.packID
+        lastSelectedStockID = stock.id
+        showingOriginal = false
+        UISelectionFeedbackGenerator().selectionChanged()
+        TumbleAnalytics.shared.capture(.filmPreviewed(
+            filmStockID: stock.id,
+            packID: stock.packID,
+            premium: !app.purchases.isUnlocked(stock)
+        ))
     }
 
     private var filmPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(FilmStockCatalog.all) { stock in
-                    let unlocked = app.purchases.isUnlocked(stock)
-                    Button {
-                        guard unlocked else { showComplete = true; return }
-                        recipe.stockID = stock.id
-                        UISelectionFeedbackGenerator().selectionChanged()
-                        TumbleAnalytics.shared.capture(.filmStockSelected(filmStockID: stock.id, packID: stock.packID))
-                    } label: {
-                        VStack(alignment: .leading, spacing: 5) {
-                            HStack(spacing: 5) {
-                                Text(stock.name).font(Typography.sans(12, weight: .bold)).lineLimit(1)
-                                if !unlocked { Image(systemName: "lock.fill").font(.caption2) }
-                            }
-                            Text(stock.blurb)
-                                .font(Typography.sans(9))
-                                .lineLimit(2)
-                                .foregroundStyle(Palette.cream.opacity(0.52))
-                        }
-                        .frame(width: 136, height: 48, alignment: .topLeading)
-                        .padding(12)
-                        .background(recipe.stockID == stock.id ? Palette.gold.opacity(0.22) : .black.opacity(0.18), in: RoundedRectangle(cornerRadius: 15))
-                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(recipe.stockID == stock.id ? Palette.gold : Palette.cream.opacity(0.06)))
+            HStack(alignment: .top, spacing: 8) {
+                ForEach(
+                    FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == selectedPackID })?.stocks ?? []
+                ) { stock in
+                    FilmThumbnailCard(
+                        stock: stock,
+                        sourceData: sourceData,
+                        draftID: draft.id,
+                        capturedAt: draft.capturedAt,
+                        selected: recipe.stockID == stock.id,
+                        premium: !app.purchases.isUnlocked(stock)
+                    ) {
+                        selectFilm(stock)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
     private var freeformControls: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             cropSlider("Width", value: $recipe.crop.width)
             cropSlider("Height", value: $recipe.crop.height)
             cropSlider("Horizontal", value: Binding(
@@ -416,8 +433,8 @@ struct StudioView: View {
                 set: { recipe.crop.y = min(1 - recipe.crop.height, $0) }
             ), upper: max(0.001, 1 - recipe.crop.height))
         }
-        .padding(12)
-        .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
+        .padding(8)
+        .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func cropSlider(_ name: String, value: Binding<Double>, upper: Double = 1) -> some View {
@@ -432,35 +449,56 @@ struct StudioView: View {
         _ values: [T], selection: T, action: @escaping (T) -> Void, label: @escaping (T) -> String
     ) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 2) {
                 ForEach(values) { value in
                     Button(label(value)) { action(value) }
-                        .font(Typography.sans(11, weight: .bold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(selection == value ? Palette.gold : Palette.cream.opacity(0.09), in: Capsule())
-                        .foregroundStyle(selection == value ? Palette.ink : Palette.cream)
+                        .font(Typography.sans(11, weight: .semibold))
+                        .foregroundStyle(selection == value ? Palette.gold : Palette.cream.opacity(0.70))
+                        .frame(minWidth: 54)
+                        .frame(height: EditorChromeMetrics.minimumHitTarget)
+                        .overlay(alignment: .bottom) {
+                            Capsule()
+                                .fill(selection == value ? Palette.gold : Color.clear)
+                                .frame(width: 30, height: 3)
+                        }
+                        .contentShape(Rectangle())
                 }
             }
         }
     }
 
-    private func editorCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14, content: content)
-            .foregroundStyle(Palette.cream)
-            .padding(16)
-            .background(Palette.blueDeep.opacity(0.82), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.cream.opacity(0.06)))
-    }
-
     private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(Typography.display(20)).foregroundStyle(Palette.cream)
+        Text(title).font(Typography.display(18)).foregroundStyle(Palette.cream)
     }
 
-    private var shownImage: UIImage? { showingOriginal ? originalPreview : preview }
+    private var shownImage: UIImage? { (showingOriginal || pressingOriginal) ? originalPreview : preview }
 
     private var compactToolNeedsRoom: Bool {
         selectedTool == .crop && recipe.cropPreset == .freeform
+    }
+
+    private var studioDockHeight: CGFloat {
+        if adjustingAmount && selectedTool == .film {
+            return EditorChromeMetrics.studioAmountDockHeight
+        }
+        if dynamicTypeSize.isAccessibilitySize {
+            switch selectedTool {
+            case .film:
+                return EditorChromeMetrics.studioFilmAccessibilityDockHeight
+            case .crop:
+                return compactToolNeedsRoom
+                    ? EditorChromeMetrics.studioFilmAccessibilityDockHeight
+                    : EditorChromeMetrics.studioCompositionAccessibilityDockHeight
+            }
+        }
+        switch selectedTool {
+        case .film:
+            return EditorChromeMetrics.studioFilmDockHeight
+        case .crop:
+            return compactToolNeedsRoom
+                ? EditorChromeMetrics.studioFreeformDockHeight
+                : EditorChromeMetrics.studioCompositionDockHeight
+        }
     }
 
     private func schedulePreviewRender(_ requestedRecipe: EditRecipe, debounce: Duration) {
@@ -502,70 +540,151 @@ struct StudioView: View {
         }
     }
 
-    private func exportData() async -> Data? {
-        let source: Data?
-        if let sourceData {
-            source = sourceData
-        } else {
-            source = await app.drafts.sourceData(for: draft)
-        }
-        guard let source else { return nil }
-        let requestedRecipe = recipe
-        let capturedAt = draft.capturedAt
-        guard let filmData = await Task.detached(priority: .userInitiated, operation: {
-            TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: requestedRecipe, capturedAt: capturedAt)
-        }).value else { return nil }
-        guard requestedRecipe.frameStyle != .none, let image = UIImage(data: filmData) else { return filmData }
-        let width = floor(4096 / max(1, requestedRecipe.frameStyle.aspect))
-        let content = PostcardFrameView(
-            style: requestedRecipe.frameStyle,
-            image: image,
-            note: requestedRecipe.note.isEmpty ? nil : requestedRecipe.note,
-            capturedAt: capturedAt,
-            seed: draft.id.stableSeed,
-            width: width
-        )
-        .background(Color.white)
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 1
-        return renderer.uiImage?.jpegData(compressionQuality: 0.92)
-    }
+}
 
-    private func prepareShare() {
-        Task {
-            busy = true
-            defer { busy = false }
-            await app.drafts.flush()
-            guard let data = await exportData(), let image = UIImage(data: data) else {
-                message = "The edited image could not be prepared. Your draft is still safe."
-                return
+private struct CompactAmountSlider: View {
+    @Binding var value: Double
+
+    private let knobDiameter: CGFloat = 18
+
+    var body: some View {
+        GeometryReader { proxy in
+            let travel = max(1, proxy.size.width - knobDiameter)
+            let knobCenter = (knobDiameter / 2) + (travel * value)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Palette.cream.opacity(0.16))
+                    .frame(height: 3)
+                Capsule()
+                    .fill(Palette.gold)
+                    .frame(width: knobCenter, height: 3)
+                Circle()
+                    .fill(Palette.cream)
+                    .frame(width: knobDiameter, height: knobDiameter)
+                    .shadow(color: .black.opacity(0.22), radius: 2, y: 1)
+                    .offset(x: knobCenter - (knobDiameter / 2))
             }
-            shareImage = image
-            showShare = true
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        value = min(1, max(0, (gesture.location.x - knobDiameter / 2) / travel))
+                    }
+            )
+        }
+        .frame(height: EditorChromeMetrics.minimumHitTarget)
+        .accessibilityElement()
+        .accessibilityLabel("Film amount")
+        .accessibilityValue("\(Int(value * 100)) percent")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: value = min(1, value + 0.05)
+            case .decrement: value = max(0, value - 0.05)
+            @unknown default: break
+            }
         }
     }
+}
 
-    private func save() async {
-        busy = true
-        defer { busy = false }
-        await app.drafts.flush()
-        guard let data = await exportData() else {
-            message = "The edited image could not be rendered. Your draft is still safe."
-            return
+private struct FilmThumbnailCard: View {
+    let stock: FilmStock
+    let sourceData: Data?
+    let draftID: UUID
+    let capturedAt: Date
+    let selected: Bool
+    let premium: Bool
+    let action: () -> Void
+
+    @State private var image: UIImage?
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 4) {
+                Group {
+                    if let image {
+                        Image(uiImage: image).resizable().scaledToFill()
+                    } else {
+                        Color.black.opacity(0.24).overlay(ProgressView().tint(Palette.gold))
+                    }
+                }
+                .frame(
+                    width: EditorChromeMetrics.filmThumbnailWidth,
+                    height: EditorChromeMetrics.filmThumbnailHeight
+                )
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .stroke(selected ? Palette.gold : Palette.cream.opacity(0.12), lineWidth: selected ? 2 : 1)
+                }
+                .overlay(alignment: .topTrailing) {
+                    if premium {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Palette.ink)
+                            .frame(width: 20, height: 20)
+                            .background(Palette.gold, in: Circle())
+                            .padding(5)
+                    }
+                }
+
+                Text(stock.name)
+                    .font(Typography.sans(10, weight: selected ? .bold : .semibold))
+                    .foregroundStyle(selected ? Palette.gold : Palette.cream.opacity(0.82))
+                    .lineLimit(1)
+            }
+            .frame(width: EditorChromeMetrics.filmThumbnailWidth, alignment: .leading)
+            .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
+            .contentShape(Rectangle())
         }
-        let result = await PhotoLibrarySaver.saveImageData(data)
-        switch result {
-        case .saved:
-            TumbleAnalytics.shared.capture(.photoSaved(format: "jpeg", frameStyle: recipe.frameID, photoCount: 1))
-            await app.drafts.discard()
-            onSaved()
-            dismiss()
-        case .denied:
-            message = "Allow Tumble to add photos in Settings, then try again. Your draft is still safe."
-        default:
-            TumbleAnalytics.shared.capture(.photoSaveFailed(reason: "photos_write", format: "jpeg", photoCount: 1))
-            message = "The photo could not be saved. Your draft is still safe."
+        .buttonStyle(.plain)
+        .task(id: "\(draftID.uuidString)|\(stock.id)|\(sourceData == nil ? 0 : 1)") {
+            guard let sourceData else { return }
+            let key = "\(draftID.uuidString)|\(stock.id)"
+            if let data = await FilmThumbnailRepository.shared.thumbnail(
+                key: key,
+                sourceData: sourceData,
+                stock: stock,
+                capturedAt: capturedAt
+            ) {
+                image = UIImage(data: data)
+            }
         }
+        .accessibilityLabel("\(stock.name). \(stock.blurb)\(premium ? ". Tumble Complete" : "")")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+private actor FilmThumbnailRepository {
+    static let shared = FilmThumbnailRepository()
+    private var values: [String: Data] = [:]
+    private var order: [String] = []
+    private let limit = 32
+
+    func thumbnail(
+        key: String,
+        sourceData: Data,
+        stock: FilmStock,
+        capturedAt: Date
+    ) -> Data? {
+        if let cached = values[key] { return cached }
+        guard !Task.isCancelled else { return nil }
+        let recipe = EditRecipe(stockID: stock.id)
+        guard let image = TumblePhotoFilter.renderEditedPreview(
+            from: sourceData,
+            recipe: recipe,
+            capturedAt: capturedAt,
+            maxDimension: 320
+        ), !Task.isCancelled,
+              let data = image.jpegData(compressionQuality: 0.76) else { return nil }
+        values[key] = data
+        order.append(key)
+        while order.count > limit {
+            values.removeValue(forKey: order.removeFirst())
+        }
+        return data
     }
 }
 
@@ -607,15 +726,13 @@ private actor StudioPreviewWorker {
 private enum StudioTool: String, CaseIterable, Identifiable {
     case film
     case crop
-    case frame
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .film: return "Film"
-        case .crop: return "Crop"
-        case .frame: return "Frame"
+        case .crop: return "Composition"
         }
     }
 
@@ -623,15 +740,6 @@ private enum StudioTool: String, CaseIterable, Identifiable {
         switch self {
         case .film: return "camera.filters"
         case .crop: return "crop"
-        case .frame: return "rectangle.inset.filled"
         }
     }
-}
-
-private struct ActivityView: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

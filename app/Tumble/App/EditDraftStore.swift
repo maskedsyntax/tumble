@@ -11,9 +11,9 @@ final class EditDraftStore: ObservableObject {
     private let fileIO = DraftFileIO()
     private var persistTask: Task<Void, Never>?
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, rootOverride: URL? = nil) {
         let applicationSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        root = applicationSupport.appendingPathComponent("TumbleDraft", isDirectory: true)
+        root = rootOverride ?? applicationSupport.appendingPathComponent("TumbleDraft", isDirectory: true)
         metadataURL = root.appendingPathComponent("draft.json")
         try? fileManager.createDirectory(at: root, withIntermediateDirectories: true)
         Self.excludeFromBackup(root)
@@ -22,8 +22,17 @@ final class EditDraftStore: ObservableObject {
     }
 
     func create(imageData: Data, source: EditSourceKind, stockID: String) async throws -> EditDraft {
+        try await create(imageData: imageData, source: source, recipe: EditRecipe(stockID: stockID))
+    }
+
+    /// Replaces the active draft transactionally: the new source and metadata
+    /// are durable before the old source is removed. A failed import therefore
+    /// leaves the recoverable draft untouched.
+    func create(imageData: Data, source: EditSourceKind, recipe: EditRecipe) async throws -> EditDraft {
+        guard !imageData.isEmpty else { throw DraftCreationError.emptySource }
         persistTask?.cancel()
-        await discard()
+        persistTask = nil
+        let previousDraft = activeDraft
         let id = UUID()
         let sourceName = "\(id.uuidString)-source.jpg"
         let sourceURL = root.appendingPathComponent(sourceName)
@@ -34,10 +43,13 @@ final class EditDraftStore: ObservableObject {
                 id: id,
                 sourceFile: sourceName,
                 sourceKind: source,
-                recipe: EditRecipe(stockID: stockID)
+                recipe: recipe
             )
             try await fileIO.persist(draft, to: metadataURL)
             activeDraft = draft
+            if let previousDraft, previousDraft.sourceFile != sourceName {
+                await fileIO.removeSource(root.appendingPathComponent(previousDraft.sourceFile))
+            }
             return draft
         } catch {
             try? FileManager.default.removeItem(at: sourceURL)
@@ -102,6 +114,10 @@ final class EditDraftStore: ObservableObject {
     }
 }
 
+enum DraftCreationError: Error {
+    case emptySource
+}
+
 private actor DraftFileIO {
     func write(_ data: Data, to url: URL) throws {
         try data.write(to: url, options: [.atomic])
@@ -115,6 +131,10 @@ private actor DraftFileIO {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         try encoder.encode(draft).write(to: url, options: [.atomic])
+    }
+
+    func removeSource(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
     }
 
     func discard(sourceURL: URL?, metadataURL: URL, root: URL) {

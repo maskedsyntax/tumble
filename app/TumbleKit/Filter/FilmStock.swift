@@ -663,7 +663,7 @@ private struct SharedFilmManifest {
         guard let url = bundle.url(forResource: "film-stocks", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              (root["version"] as? NSNumber)?.intValue == 1,
+              (root["version"] as? NSNumber)?.intValue == 2,
               let complete = root["completeProductID"] as? String,
               let packValues = root["packs"] as? [[String: Any]],
               let stockValues = root["stocks"] as? [[String: Any]] else { return nil }

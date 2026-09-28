@@ -9,6 +9,7 @@ struct TumbleSettingsView: View {
     @State private var analyticsEnabled = false
     @State private var showAccount = false
     @State private var showComplete = false
+    var onReplayIntroduction: (() -> Void)? = nil
 
     private var showsUpgrade: Bool {
         if DebugLaunch.previewsFreeSettings { return true }
@@ -63,12 +64,21 @@ struct TumbleSettingsView: View {
                         }
 
                         settingsSection("Help") {
+                            if let onReplayIntroduction {
+                                Button {
+                                    dismiss()
+                                    onReplayIntroduction()
+                                } label: {
+                                    settingRow("Try the introduction again", detail: "Explore films and the postcard finish", icon: "sparkles.rectangle.stack")
+                                }
+                                .buttonStyle(.plain)
+                            }
                             Link(destination: URL(string: "mailto:aftaab@aftaab.dev?subject=Tumble%203")!) {
                                 settingRow("Contact support", detail: "Questions, feedback, or a problem", icon: "envelope")
                             }
                         }
 
-                        Text("Tumble \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0")")
+                        Text("Tumble \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.1")")
                             .font(Typography.sans(12))
                             .foregroundStyle(Palette.cream.opacity(0.42))
                             .padding(.top, 8)
@@ -100,14 +110,14 @@ struct TumbleSettingsView: View {
             .frame(width: 52, height: 52)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("PRO FILMS")
+                Text("TUMBLE COMPLETE")
                     .font(Typography.sans(9, weight: .bold))
                     .tracking(1.2)
                     .foregroundStyle(Palette.gold)
-                Text("Unlock pro filters")
+                Text("Unlock every film")
                     .font(Typography.display(21))
                     .foregroundStyle(Palette.cream)
-                Text("15 more films · one-time purchase")
+                Text("15 additional films · pay once")
                     .font(Typography.sans(11, weight: .semibold))
                     .foregroundStyle(Palette.cream.opacity(0.58))
             }

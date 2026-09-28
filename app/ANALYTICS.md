@@ -1,83 +1,65 @@
 # Tumble analytics contract
 
-Tumble sends anonymous product analytics to PostHog project `585380`. The app
-does not call `identify`; the SDK-generated installation identifier is shared
-with the Lock Screen capture extension through `group.com.tumble`.
+Tumble sends anonymous, consent-gated product analytics to PostHog project
+`585380`. Schema version 3 describes the canvas-first 3.1 product. The app
+does not call `identify`; no event is collected or backfilled before consent.
 
-Every event includes `schema_version` and `build_channel`. Custom events also
-include `entitlement` and (when known) `source_screen`. Production insights
-must filter to `build_channel = app_store`.
+Every event includes `schema_version`, `build_channel`, and `entitlement`.
+Production insights must filter to `build_channel = app_store`.
 
-## Events
+## Primary funnel
 
-| Event | Required properties |
+`home_viewed → source_selected → studio_opened → finish_opened → export_completed`
+
+| Event | Properties |
 | --- | --- |
-| `onboarding_started` | common properties |
-| `onboarding_step_completed` | `step` |
-| `onboarding_completed` | `path`, `tier` |
-| `photo_captured` | `source`; `remaining_after` when limited |
-| `photo_developed` | `source`, `method`, `film_stock_id` |
-| `photo_removed` | `state` |
-| `film_stock_selected` | `film_stock_id`, `pack_id` |
-| `postcard_frame_selected` | `frame_style`, `scope` |
-| `photo_saved` | `format`, `frame_style`, `photo_count` |
-| `photo_save_failed` | `reason`, `format`, `photo_count` |
-| `paywall_viewed` | `type`, `source`; optional `pack_id`, `remaining_shots` |
-| `purchase_started` | `product_id`, `product_type`, `source` |
-| `purchase_finished` | `product_id`, `product_type`, `source`, `outcome` |
-| `restore_finished` | `source`, `outcome`, `entitlement` |
-| `permission_responded` | `permission`, `outcome`, `context` |
+| `home_viewed` | common properties |
+| `home_entry_selected` | `entry_point`; optional `film_stock_id`, `intended_format` |
+| `source_selected` | `source`: `library` or `camera` |
+| `source_preparation_finished` | `source`, `outcome`; safe optional `reason` |
+| `studio_opened` | `source`, `initial_film_stock_id` |
+| `film_previewed` | `film_stock_id`, `pack_id`, `premium` |
+| `original_comparison_used` | common properties |
+| `finish_opened` | `film_stock_id`, `premium` |
+| `finish_format_selected` | `format`: `photo` or `postcard` |
+| `postcard_configured` | `frame_style`, `has_note` (boolean only) |
+| `premium_export_gated` | `film_stock_id`, `action` |
+| `export_started` | `format`, `action`, `premium` |
+| `export_completed` | `format`, `action`, `frame_style` |
+| `export_failed` | safe `reason`, `format`, `action` |
+| `paywall_viewed` | `type`, `source` |
+| `purchase_started` / `purchase_finished` | product, source, safe outcome |
+| `restore_finished` | source, safe outcome, entitlement |
+| `permission_responded` | permission, outcome, context |
 
-Screens use PostHog's `$screen` event with the stable names declared by
-`AnalyticsScreen`. PostHog also captures application lifecycle and `$exception`
-events in the main app.
+Legacy 3.0 events remain defined only so upgrades and extension code keep
+working. They are not part of the 3.1 funnel.
 
 ## Privacy constraints
 
-- Never add photo bytes, photo IDs, filenames, captions, free-form text, URLs,
-  contacts, location, or advertising identifiers.
+- Never send pixels, image data, filenames, photo IDs, note content, captions,
+  crop coordinates, URLs, contacts, location, or advertising identifiers.
+- `has_note` is a boolean. The handwritten note itself never crosses the
+  analytics boundary.
 - Session replay masks all text, images, and sandboxed system views. Logs and
-  network telemetry are disabled, and replay pauses while the live camera is
-  open.
-- The Lock Screen extension sends `photo_captured` only; it never records
-  screens, lifecycle, errors, or replay.
+  network telemetry are disabled, and replay pauses while the camera is open.
 - `TumbleAnalytics` is the sole SDK boundary. UI and domain files must not
-  import `PostHog` directly.
+  import PostHog directly.
 
-## PostHog workspace
+## Measurement views
 
-- Existing dashboard: `Analytics basics (wizard)`, ID `2047785`.
-- Rename it to `Tumble — Product Health` and filter its production tiles to
-  `build_channel = app_store`.
-- Create `Tumble — Revenue & Reliability` for paywall conversion, purchase
-  outcomes, save failures, exceptions, and replay playlists.
-- Project timezone: `Asia/Kolkata`; IP/geolocation enrichment: disabled;
-  replay retention: 30 days.
+| View | Definition |
+| --- | --- |
+| Home discovery | `home_entry_selected → studio_opened`, broken down by `entry_point` |
+| Editing funnel | Primary funnel, seven-day conversion window, broken down by source |
+| Studio completion | `studio_opened → export_completed`, broken down by format |
+| Film discovery | `film_previewed`, broken down by pack and premium |
+| Complete conversion | `premium_export_gated → paywall_viewed → purchase_finished(completed)` |
+| Export reliability | `export_failed / (export_completed + export_failed)`, by reason and action |
+| Postcard adoption | `finish_format_selected`, photo versus postcard |
 
-Dashboard definitions:
+Initial launch targets are approximately 3% App Store conversion and at least
+40% Studio-to-export completion among consenting users. Recalibrate after the
+first 30 days because current volume is low.
 
-| Dashboard | Tile | Definition |
-| --- | --- | --- |
-| Product Health | Activation | Funnel: `onboarding_started` → `photo_captured` → `photo_developed` → `onboarding_completed`, seven-day conversion window |
-| Product Health | Core action | Weekly unique installations performing `photo_captured`, `photo_developed`, and `photo_saved` |
-| Product Health | Capture-to-develop | Funnel: `photo_captured` → `photo_developed`, broken down by capture `source` |
-| Product Health | Retention | New users who complete onboarding and return for `photo_captured`, shown as D1/D7/D30 |
-| Product Health | Feature adoption | Weekly uniques for `film_stock_selected` and `postcard_frame_selected` |
-| Revenue & Reliability | Roll conversion | Funnel: roll `paywall_viewed` → `purchase_started` → completed `purchase_finished`, broken down by `source` |
-| Revenue & Reliability | Film conversion | The same funnel for film-pack and film-bundle product types, broken down by `pack_id` |
-| Revenue & Reliability | Purchase outcomes | `purchase_finished` count broken down by `outcome` and `product_type` |
-| Revenue & Reliability | Save reliability | Formula: `photo_save_failed` / (`photo_saved` + `photo_save_failed`), broken down by `reason` |
-| Revenue & Reliability | Crashes | `$exception` count and unique affected installations by app version |
-| Revenue & Reliability | Permissions | `permission_responded` broken down by `permission` and `outcome` |
-
-Create replay playlists for sessions containing `$exception` or
-`photo_save_failed`. Keep the base replay sample at 10%; exceptions and save
-failures should be retained at 100% through server-side replay triggers.
-
-## App Store privacy
-
-`AppPrivacy.json` is the canonical App Store Connect declaration for this
-integration. It declares anonymous device identifiers, product interaction,
-other usage data, purchase history, crash data, and other diagnostics. None are
-linked to the user or used for tracking; photo and replay content is not
-declared because all images and text are masked before replay capture.
+`AppPrivacy.json` remains the canonical App Store Connect privacy declaration.

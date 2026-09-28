@@ -48,16 +48,44 @@ public enum PostcardFrameStyle: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Approximate height/width ratio of the rendered frame, so previews and
-    /// thumbnails can be sized to fit instead of clipped.
-    public var aspect: CGFloat {
+    /// Canonical rendered height/width ratio. Preview and export code must use
+    /// this instead of applying a second aspect-ratio constraint around the
+    /// frame view. Classic Instant grows a handwriting row only when needed.
+    public func renderAspect(hasNote: Bool) -> CGFloat {
         switch self {
         case .none: return 1.0
-        case .classicInstant: return 1.16
-        case .vintagePostcard: return 1.37
+        case .classicInstant: return hasNote ? 1.22 : 1.09
+        case .vintagePostcard: return 1.42
         case .borderedFilm: return 1.25
-        case .deckledEdge: return 1.2
+        case .deckledEdge: return 1.18
         }
+    }
+
+    /// Kept for source compatibility with older call sites. New rendering code
+    /// should use `renderAspect(hasNote:)` so notes are accounted for.
+    public var aspect: CGFloat { renderAspect(hasNote: false) }
+
+    /// Largest export that keeps both dimensions inside App Store-safe bounds.
+    public func exportWidth(hasNote: Bool, maximumDimension: CGFloat = 4096) -> CGFloat {
+        floor(maximumDimension / max(1, renderAspect(hasNote: hasNote)))
+    }
+
+    /// Fits the complete on-screen card, including its soft shadow, inside a
+    /// preview canvas. The returned width leaves at least `clearance` around
+    /// the card's visual bounds rather than only around its layout frame.
+    public func previewWidth(
+        inside availableSize: CGSize,
+        hasNote: Bool,
+        clearance: CGFloat = 16
+    ) -> CGFloat {
+        let contentWidth = max(1, availableSize.width - clearance * 2)
+        let contentHeight = max(1, availableSize.height - clearance * 2)
+        let horizontalShadowRatio: CGFloat = 0.12
+        let verticalShadowRatio: CGFloat = 0.16
+        return min(
+            contentWidth / (1 + horizontalShadowRatio),
+            contentHeight / (renderAspect(hasNote: hasNote) + verticalShadowRatio)
+        )
     }
 
     /// The stored preference, migrating the old "save as postcard" toggle:

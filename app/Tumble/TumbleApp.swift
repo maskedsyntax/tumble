@@ -22,11 +22,13 @@ struct TumbleApp: App {
             )
         }
         TumbleAnalytics.shared.configure(.mainApp)
+        ReviewPrompter.shared.recordInstallationIfNeeded()
     }
 
     @State private var app = AppModel()
     @AppStorage("tumble.hasOnboarded") private var legacyOnboarded = false
     @AppStorage("tumble.v3.hasIntroduced") private var hasIntroducedV3 = false
+    @AppStorage("tumble.v3.1.hasIntroduced") private var hasIntroducedStudio = false
 
     private let container: ModelContainer = {
         do { return try PhotoStore.makeContainer() }
@@ -37,19 +39,26 @@ struct TumbleApp: App {
         ProcessInfo.processInfo.arguments.contains("-skipOnboard")
     }
 
+    private var forceIntroduction: Bool {
+        ProcessInfo.processInfo.arguments.contains("-introductionDemo")
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasIntroducedV3 || skipOnboarding {
-                    CameraWorkspace()
-                } else if legacyOnboarded {
+                if forceIntroduction {
+                    TumbleThreeOnboarding {}
+                } else if hasIntroducedStudio || skipOnboarding {
+                    StudioHomeView()
+                } else if legacyOnboarded || hasIntroducedV3 {
                     TumbleChangedView {
-                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedV3 = true }
+                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedStudio = true }
                     }
                 } else {
                     TumbleThreeOnboarding {
                         legacyOnboarded = true
-                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedV3 = true }
+                        hasIntroducedV3 = true
+                        withAnimation(.easeInOut(duration: 0.35)) { hasIntroducedStudio = true }
                     }
                     .transition(.opacity)
                 }

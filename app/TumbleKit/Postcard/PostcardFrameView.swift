@@ -69,7 +69,10 @@ public struct PostcardFrameView: View {
                 DeckledEdgeFrame(image: image, age: age, note: note, seed: seed, width: width)
             }
         }
-        .frame(width: width)
+        .frame(
+            width: width,
+            height: width * style.renderAspect(hasNote: !(note?.isEmpty ?? true))
+        )
     }
 }
 

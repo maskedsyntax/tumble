@@ -57,11 +57,11 @@ struct VintagePostcardFrame: View {
         HStack(alignment: .top, spacing: width * 0.04) {
             VStack(alignment: .leading, spacing: width * 0.006) {
                 Text("POST CARD")
-                    .font(Typography.display(width * 0.042, weight: .semibold))
+                    .font(Typography.displayFixed(width * 0.042, weight: .semibold))
                     .tracking(width * 0.008)
                     .foregroundStyle(ink.opacity(0.72))
                 Text("Correspondence")
-                    .font(Typography.sans(width * 0.02))
+                    .font(Typography.sansFixed(width * 0.02))
                     .tracking(width * 0.002)
                     .foregroundStyle(ink.opacity(0.42))
             }
@@ -116,7 +116,7 @@ struct VintagePostcardFrame: View {
     private var noteArea: some View {
         HStack(spacing: 0) {
             Text(note?.isEmpty == false ? note! : "Wish you were here.")
-                .font(Typography.script(width * 0.052))
+                .font(Typography.scriptFixed(width * 0.052))
                 .foregroundStyle(ink.opacity(note?.isEmpty == false ? 0.78 : 0.3))
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)

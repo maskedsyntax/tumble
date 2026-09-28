@@ -28,8 +28,8 @@ settings:
     DEVELOPMENT_TEAM: GVGJLY2H53
     # CURRENT_PROJECT_VERSION only matters for uploads from a Mac: Xcode Cloud
     # sets CFBundleVersion from its own build number and ignores this.
-    MARKETING_VERSION: "3.0.0"
-    CURRENT_PROJECT_VERSION: "28"
+    MARKETING_VERSION: "3.1.0"
+    CURRENT_PROJECT_VERSION: "32"
     TARGETED_DEVICE_FAMILY: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
@@ -164,6 +164,28 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tumble.analytics.tests
 
+  TumbleAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - TumbleAppTests
+    dependencies:
+      - target: Tumble
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.app.tests
+
+  TumbleUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - TumbleUITests
+    dependencies:
+      - target: Tumble
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tumble.ui.tests
+
 schemes:
   Tumble:
     build:
@@ -177,4 +199,6 @@ schemes:
       targets:
         - TumbleKitTests
         - TumbleAnalyticsTests
+        - TumbleAppTests
+        - TumbleUITests
       gatherCoverageData: true
