@@ -242,7 +242,7 @@ public enum FilmStockCatalog {
         FilmStock(
             id: LegacyID.fadedInstant,
             name: "Faded Instant",
-            blurb: "Milky blacks, muted colour.",
+            blurb: "Milky blacks, muted color.",
             packID: PackID.core,
             // Unchanged from v1.1 so upgrading prints keep their exact look.
             grade: FilmGrade(
@@ -312,7 +312,7 @@ public enum FilmStockCatalog {
         FilmStock(
             id: "everyday",
             name: "Everyday",
-            blurb: "Clean colour, a little grain.",
+            blurb: "Clean color, a little grain.",
             packID: PackID.core,
             grade: FilmGrade(
                 saturation: 1.08,

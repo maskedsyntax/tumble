@@ -19,76 +19,55 @@ struct CompletePaywallView: View {
     var body: some View {
         ZStack {
             GraincoreBackground()
-            ScrollView {
-                VStack(spacing: 22) {
-                    Image(systemName: "camera.filters")
-                        .font(.system(size: 42, weight: .medium))
-                        .foregroundStyle(Palette.gold)
-                    Text("Tumble Complete")
-                        .font(Typography.display(34))
-                        .foregroundStyle(Palette.cream)
-                    Text("Preview every film. Unlock fifteen additional looks with one payment—yours forever.")
-                        .font(Typography.sans(15))
-                        .foregroundStyle(Palette.cream.opacity(0.72))
-                        .multilineTextAlignment(.center)
-
-                    HStack(spacing: 9) {
-                        CompletePreviewTile(stockID: "disposable", scene: .blueHourRooftop)
-                        CompletePreviewTile(stockID: "silver", scene: .warmPortrait)
-                        CompletePreviewTile(stockID: "goldenHour", scene: .beachMorning)
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        benefit("Ninety-Six", "Disposable colour and hard flash")
-                        benefit("Darkroom", "Five hand-printed monochrome looks")
-                        benefit("Long Summer", "Leaks, haze and golden light")
-                    }
-                    .padding(18)
-                    .background(.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 22))
-
-                    Button { Task { await buy() } } label: {
-                        Group {
-                            if busy { ProgressView().tint(Palette.ink) }
-                            else if isComplete { Text("Tumble Complete is unlocked") }
-                            else { Text("Own every film · \(product?.displayPrice ?? "…")") }
-                        }
-                        .font(Typography.sans(16, weight: .bold))
-                        .foregroundStyle(Palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Palette.gold, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(product == nil || busy || isComplete)
-
-                    Button("Restore or link purchases") { Task { await restore() } }
-                        .font(Typography.sans(14, weight: .semibold))
-                        .foregroundStyle(Palette.cream.opacity(0.72))
-                        .disabled(busy)
-
-                    if let message {
-                        Text(message)
-                            .font(Typography.sans(13))
-                            .foregroundStyle(Palette.cream.opacity(0.72))
-                    }
-                }
-                .padding(.horizontal, 26)
-                .padding(.top, 72)
-                .padding(.bottom, 36)
-            }
-            VStack {
+            VStack(spacing: 0) {
                 HStack {
                     Spacer()
-                    Button { close() } label: {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(Palette.cream)
-                            .padding(10)
-                            .background(.black.opacity(0.28), in: Circle())
-                    }
+                    IconButton("xmark", accessibilityLabel: "Close") { close() }
                 }
-                Spacer()
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+                ScrollView {
+                    VStack(spacing: 22) {
+                        VStack(spacing: 8) {
+                            Text("One purchase · Yours forever")
+                                .trackedLabel()
+                                .foregroundStyle(Palette.amber)
+                            Text("Tumble Complete")
+                                .font(Typography.largeTitle)
+                                .foregroundStyle(Palette.textPrimary)
+                                .accessibilityAddTraits(.isHeader)
+                            Text("Preview every film on your own photos. Unlock fifteen more looks with one payment.")
+                                .font(Typography.body)
+                                .foregroundStyle(Palette.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        HStack(spacing: 10) {
+                            CompletePreviewTile(stockID: "disposable", scene: .blueHourRooftop)
+                            CompletePreviewTile(stockID: "silver", scene: .warmPortrait)
+                            CompletePreviewTile(stockID: "goldenHour", scene: .beachMorning)
+                        }
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            benefit("Ninety-Six", "Disposable color and hard flash")
+                            benefit("Darkroom", "Five hand-printed monochrome looks")
+                            benefit("Long Summer", "Leaks, haze and golden light")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                        .background(Palette.blueDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.hairline))
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+                    .padding(.bottom, 20)
+                }
+                .scrollIndicators(.hidden)
+
+                purchaseArea
             }
-            .padding(20)
         }
         .task {
             await app.startStore()
@@ -97,14 +76,58 @@ struct CompletePaywallView: View {
         .sheet(isPresented: $showAccount) { AccountView().environment(app) }
     }
 
+    private var purchaseArea: some View {
+        VStack(spacing: 10) {
+            if let message {
+                Text(message)
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button { Task { await buy() } } label: {
+                Group {
+                    if busy { ProgressView().tint(Palette.ink) }
+                    else if isComplete { Text("Tumble Complete is unlocked") }
+                    else { Text("Own every film · \(product?.displayPrice ?? "…")") }
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle(height: 54))
+            .disabled(product == nil || busy || isComplete)
+
+            Text("One-time purchase · No subscription")
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textSecondary)
+
+            Button("Restore or link purchases") { Task { await restore() } }
+                .font(Typography.headline)
+                .foregroundStyle(Palette.textPrimary)
+                .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
+                .disabled(busy)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        .background(
+            LinearGradient(
+                colors: [Palette.blueDeep.opacity(0), Palette.blueDeep.opacity(0.9)],
+                startPoint: .top,
+                endPoint: .center
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
     private func benefit(_ title: String, _ detail: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.gold)
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Palette.amber)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Typography.sans(14, weight: .bold)).foregroundStyle(Palette.cream)
-                Text(detail).font(Typography.sans(12)).foregroundStyle(Palette.cream.opacity(0.62))
+                Text(title).font(Typography.headline).foregroundStyle(Palette.textPrimary)
+                Text(detail).font(Typography.caption).foregroundStyle(Palette.textSecondary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func buy() async {
@@ -161,20 +184,22 @@ private struct CompletePreviewTile: View {
     private var stock: FilmStock { FilmStockCatalog.resolve(stockID) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Group {
-                if let image { Image(uiImage: image).resizable().scaledToFill() }
-                else { Color.black.opacity(0.22).overlay(ProgressView().tint(Palette.gold)) }
-            }
-            .frame(height: 92)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 6) {
+            Color.clear
+                .aspectRatio(3 / 4, contentMode: .fit)
+                .overlay {
+                    if let image { Image(uiImage: image).resizable().scaledToFill() }
+                    else { Palette.blueDeep.overlay(ProgressView().tint(Palette.amber)) }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.hairline))
             Text(stock.name)
-                .font(Typography.sans(10, weight: .bold))
-                .foregroundStyle(Palette.cream)
+                .font(Typography.captionEmphasized)
+                .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
         .task {
             #if DEBUG
             let captureSource = DebugLaunch.demoImageData.flatMap(UIImage.init(data:))
@@ -184,7 +209,7 @@ private struct CompletePreviewTile: View {
             let source = captureSource ?? UIImage(named: "onboarding-editorial") ?? scene.image(size: 420)
             let chosenStock = stock
             image = await Task.detached(priority: .utility) {
-                TumblePhotoFilter.renderLivePreview(from: source, stock: chosenStock, maxDimension: 280)
+                TumblePhotoFilter.renderLivePreview(from: source, stock: chosenStock, maxDimension: 420)
             }.value
         }
     }

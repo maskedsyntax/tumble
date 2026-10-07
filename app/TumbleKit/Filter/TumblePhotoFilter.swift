@@ -209,30 +209,36 @@ public enum TumblePhotoFilter {
         case 3: input.oriented(.left)
         default: input
         }
-        let image = normalized(rotated)
+        let image = straightened(normalized(rotated), degrees: recipe.straighten)
         let extent = image.extent
-        let cropRect: CGRect
-        if recipe.cropPreset == .freeform {
-            let crop = recipe.crop.clamped
-            cropRect = CGRect(
-                x: extent.minX + extent.width * crop.x,
-                y: extent.minY + extent.height * crop.y,
-                width: extent.width * crop.width,
-                height: extent.height * crop.height
-            )
-        } else if let aspect = recipe.cropPreset.aspectRatio {
-            let sourceAspect = extent.width / extent.height
-            if sourceAspect > aspect {
-                let width = extent.height * aspect
-                cropRect = CGRect(x: extent.midX - width / 2, y: extent.minY, width: width, height: extent.height)
-            } else {
-                let height = extent.width / aspect
-                cropRect = CGRect(x: extent.minX, y: extent.midY - height / 2, width: extent.width, height: height)
-            }
-        } else {
-            cropRect = extent
-        }
-        return normalized(image.cropped(to: cropRect.integral))
+        let cropRect = CropGeometry.cropRect(for: recipe, in: extent.size)
+            .offsetBy(dx: extent.minX, dy: extent.minY)
+        return normalized(image.cropped(to: cropRect.integral.intersection(extent)))
+    }
+
+    /// Rotates clockwise about the center, then keeps the largest centered
+    /// rectangle of the original aspect, so no empty corners are exported.
+    private static func straightened(_ image: CIImage, degrees: Double) -> CIImage {
+        let angle = CropGeometry.clampStraighten(degrees)
+        guard abs(angle) > 0.001 else { return image }
+        let extent = image.extent
+        let center = CGPoint(x: extent.midX, y: extent.midY)
+        // Core Image is y-up, so a negative angle turns the picture clockwise.
+        let rotation = CGAffineTransform(translationX: center.x, y: center.y)
+            .rotated(by: -angle * .pi / 180)
+            .translatedBy(x: -center.x, y: -center.y)
+        let scale = CropGeometry.inscribedScale(width: extent.width, height: extent.height, degrees: angle)
+        let inner = CGRect(
+            x: center.x - extent.width * scale / 2,
+            y: center.y - extent.height * scale / 2,
+            width: extent.width * scale,
+            height: extent.height * scale
+        )
+        return normalized(
+            image.clampedToExtent()
+                .transformed(by: rotation)
+                .cropped(to: inner.integral.insetBy(dx: 1, dy: 1))
+        )
     }
 
     private static func dissolve(original: CIImage, graded: CIImage, amount: Double) -> CIImage {

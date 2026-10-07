@@ -10,7 +10,7 @@
   "stocks": [
     { "id": "original", "name": "Original", "blurb": "Straight off the sensor.", "packID": "core", "grade": {} },
     {
-      "id": "fadedInstant", "name": "Faded Instant", "blurb": "Milky blacks, muted colour.", "packID": "core",
+      "id": "fadedInstant", "name": "Faded Instant", "blurb": "Milky blacks, muted color.", "packID": "core",
       "grade": { "saturation": 0.62, "contrast": 0.80, "brightness": 0.030, "blackLift": 0.110, "warmth": 0.30, "halation": 0.16, "grain": 0.24, "vignette": 0.16 }
     },
     {
@@ -26,7 +26,7 @@
       "grade": { "saturation": 0.74, "contrast": 0.88, "brightness": 0.045, "blackLift": 0.130, "warmth": 0.85, "halation": 0.20, "grain": 0.22, "vignette": 0.08, "fade": 0.26, "highlightTint": { "red": 0.030, "green": 0.018, "blue": -0.010 }, "highlightStrength": 0.8 }
     },
     {
-      "id": "everyday", "name": "Everyday", "blurb": "Clean colour, a little grain.", "packID": "core",
+      "id": "everyday", "name": "Everyday", "blurb": "Clean color, a little grain.", "packID": "core",
       "grade": { "saturation": 1.08, "contrast": 1.04, "blackLift": 0.020, "warmth": 0.25, "halation": 0.06, "grain": 0.12, "vignette": 0.10 }
     },
     {

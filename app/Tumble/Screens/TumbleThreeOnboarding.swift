@@ -23,64 +23,61 @@ struct TumbleThreeOnboarding: View {
         ZStack {
             GraincoreBackground()
             ScrollView {
-                VStack(spacing: 20) {
-                    VStack(spacing: 5) {
+                VStack(spacing: 22) {
+                    VStack(spacing: 8) {
                         Text("Tumble")
-                            .font(Typography.display(38))
-                            .foregroundStyle(Palette.cream)
+                            .trackedLabel()
+                            .foregroundStyle(Palette.amber)
                         Text("Give your photos the character of film.")
-                            .font(Typography.display(24))
-                            .foregroundStyle(Palette.cream)
+                            .font(Typography.heroTitle)
+                            .foregroundStyle(Palette.textPrimary)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text("Try a film, compare the original, then finish it as a photo or postcard.")
-                            .font(Typography.sans(14))
-                            .foregroundStyle(Palette.cream.opacity(0.66))
+                            .font(Typography.body)
+                            .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     samplePreview
 
                     HStack(spacing: 8) {
                         ForEach(sampleStocks, id: \.self) { id in
-                            let choice = FilmStockCatalog.resolve(id)
-                            Button(choice.name) {
+                            Chip(title: FilmStockCatalog.resolve(id).name, selected: stockID == id) {
+                                Haptics.selection()
                                 stockID = id
                                 showingOriginal = false
                             }
-                            .font(Typography.sans(11, weight: .bold))
-                            .foregroundStyle(stockID == id ? Palette.ink : Palette.cream)
-                            .padding(.horizontal, 13)
-                            .frame(height: 38)
-                            .background(stockID == id ? Palette.gold : Palette.cream.opacity(0.09), in: Capsule())
                         }
                     }
 
-                    HStack(spacing: 8) {
-                        formatButton("Photo", icon: "photo", selected: !postcard) { postcard = false }
-                        formatButton("Postcard", icon: "rectangle.portrait", selected: postcard) { postcard = true }
-                    }
+                    SegmentedPill(
+                        options: [false, true],
+                        selection: postcard,
+                        title: { $0 ? "Postcard" : "Photo" },
+                        icon: { $0 ? "rectangle.portrait.on.rectangle.portrait" : "photo" }
+                    ) { postcard = $0 }
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         Button { showAnalyticsChoice = true } label: {
                             Label("Start with my photo", systemImage: "photo.on.rectangle.angled")
-                                .font(Typography.sans(16, weight: .bold))
-                                .foregroundStyle(Palette.ink)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Palette.gold, in: Capsule())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PrimaryButtonStyle(height: 54))
 
                         Label("Edit without an account · Photos stay on device", systemImage: "lock.shield")
-                            .font(Typography.sans(11, weight: .semibold))
-                            .foregroundStyle(Palette.cream.opacity(0.52))
+                            .font(Typography.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 30)
+                .padding(.top, 24)
                 .padding(.bottom, 24)
             }
+            .scrollIndicators(.hidden)
         }
+        .animation(Motion.fade, value: postcard)
         .task(id: stockID) { await renderSample() }
         .alert("Help improve Tumble?", isPresented: $showAnalyticsChoice) {
             Button("Allow anonymous analytics") {
@@ -94,65 +91,54 @@ struct TumbleThreeOnboarding: View {
     }
 
     private var samplePreview: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                Color.black.opacity(0.28)
-                let image = showingOriginal ? source : (rendered ?? source)
-                if postcard {
-                    PostcardFrameView(
-                        style: .classicInstant,
-                        image: image,
-                        note: "September light",
-                        capturedAt: Date(timeIntervalSince1970: 1_757_865_600),
-                        seed: 31,
-                        width: 286
-                    )
-                    .aspectRatio(1 / PostcardFrameStyle.classicInstant.aspect, contentMode: .fit)
-                    .padding(16)
-                } else {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .padding(10)
-                }
+        let image = showingOriginal ? source : (rendered ?? source)
+        return ZStack {
+            Palette.canvas.opacity(0.55)
+            if postcard {
+                PostcardFrameView(
+                    style: .classicInstant,
+                    image: image,
+                    note: "September light",
+                    capturedAt: Date(timeIntervalSince1970: 1_757_865_600),
+                    seed: 31,
+                    width: 260
+                )
+                .aspectRatio(1 / PostcardFrameStyle.classicInstant.aspect, contentMode: .fit)
+                .padding(18)
+                .transition(.opacity)
+            } else {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
             }
-            .frame(height: 330)
-
+        }
+        .frame(height: 360)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Palette.hairline))
+        .overlay(alignment: .bottom) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(showingOriginal ? "ORIGINAL" : "FILM CHARACTER")
-                        .font(Typography.sans(9, weight: .bold))
-                        .tracking(1.1)
-                        .foregroundStyle(Palette.cream.opacity(0.48))
-                    Text(showingOriginal ? "Source photo" : stock.name)
-                        .font(Typography.sans(13, weight: .bold))
-                        .foregroundStyle(Palette.cream)
-                }
+                Text(showingOriginal ? "Original" : stock.name)
+                    .trackedLabel()
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(.black.opacity(0.55), in: Capsule())
                 Spacer()
                 Button(showingOriginal ? "Show Film" : "Compare Original") {
+                    Haptics.selection()
                     showingOriginal.toggle()
                 }
-                .font(Typography.sans(11, weight: .bold))
-                .foregroundStyle(Palette.gold)
+                .font(Typography.captionEmphasized)
+                .foregroundStyle(Palette.ink)
+                .padding(.horizontal, 12)
+                .frame(height: 30)
+                .background(Palette.cream, in: Capsule())
+                .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
             }
-            .padding(14)
-            .background(Palette.charcoalDeep.opacity(0.82))
+            .padding(10)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.cream.opacity(0.08)))
-    }
-
-    private func formatButton(_ title: String, icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(Typography.sans(13, weight: .bold))
-                .foregroundStyle(selected ? Palette.ink : Palette.cream)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(selected ? Palette.gold : Palette.cream.opacity(0.09), in: RoundedRectangle(cornerRadius: 15))
-        }
-        .buttonStyle(.plain)
+        .animation(Motion.fade, value: showingOriginal)
     }
 
     private func renderSample() async {

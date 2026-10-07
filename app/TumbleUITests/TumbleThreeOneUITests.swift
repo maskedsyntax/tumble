@@ -9,8 +9,8 @@ final class TumbleThreeOneUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Give your photos the character of film."].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Compare Original"].exists)
-        XCTAssertTrue(app.staticTexts["Photo"].exists)
-        XCTAssertTrue(app.staticTexts["Postcard"].exists)
+        XCTAssertTrue(app.buttons["Photo"].exists)
+        XCTAssertTrue(app.buttons["Postcard"].exists)
         app.buttons["Start with my photo"].tap()
         XCTAssertTrue(app.alerts["Help improve Tumble?"].waitForExistence(timeout: 3))
     }
@@ -33,15 +33,16 @@ final class TumbleThreeOneUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["Compare"].exists)
-        XCTAssertTrue(app.buttons["Composition"].exists)
+        XCTAssertTrue(app.buttons["Crop"].exists)
         XCTAssertGreaterThanOrEqual(app.buttons["Film"].frame.height, 44)
-        XCTAssertGreaterThanOrEqual(app.buttons["Composition"].frame.height, 44)
-        XCTAssertGreaterThanOrEqual(app.buttons["Film collection"].frame.height, 44)
+        XCTAssertGreaterThanOrEqual(app.buttons["Crop"].frame.height, 44)
+        XCTAssertGreaterThanOrEqual(app.buttons["Core"].frame.height, 44)
+        XCTAssertGreaterThanOrEqual(app.buttons["Adjust film amount"].frame.height, 44)
         app.buttons["Adjust film amount"].tap()
         XCTAssertTrue(app.buttons["Done adjusting film amount"].exists)
         app.buttons["Done adjusting film amount"].tap()
-        app.buttons["Composition"].tap()
-        XCTAssertTrue(app.buttons["Rotate"].exists)
+        app.buttons["Crop"].tap()
+        XCTAssertTrue(app.buttons["Rotate"].waitForExistence(timeout: 3))
         app.buttons["Film"].tap()
         app.buttons["Next"].tap()
         XCTAssertTrue(app.staticTexts["Finish"].waitForExistence(timeout: 5))
@@ -85,9 +86,31 @@ final class TumbleThreeOneUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Finish"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Postcard style"].exists)
+        XCTAssertTrue(app.buttons["Classic Instant"].exists)
+        XCTAssertTrue(app.buttons["Classic Instant"].isSelected)
         XCTAssertEqual(app.otherElements.matching(identifier: "Postcard style preview").count, 1)
-        app.buttons["Postcard style"].tap()
-        XCTAssertTrue(app.buttons["Vintage Postcard"].waitForExistence(timeout: 3))
+        app.buttons["Vintage Postcard"].tap()
+        XCTAssertTrue(app.buttons["Vintage Postcard"].isSelected)
+        XCTAssertEqual(app.otherElements.matching(identifier: "Postcard style preview").count, 1)
+    }
+
+    @MainActor
+    func testCropToolEditsOnTheCanvas() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-skipOnboard", "-studioDemo", "-demoStock", "fadedInstant",
+            "-studioTool", "crop", "-demoCrop", "portrait",
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Rotate"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Reset crop"].exists)
+        XCTAssertTrue(app.buttons["4 by 5"].isSelected)
+        XCTAssertTrue(app.descendants(matching: .any)["Straighten"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["Crop"].firstMatch.exists)
+        app.buttons["Square"].tap()
+        XCTAssertTrue(app.buttons["Square"].isSelected)
+        app.buttons["Film"].tap()
+        XCTAssertTrue(app.buttons["Compare"].waitForExistence(timeout: 3))
     }
 }

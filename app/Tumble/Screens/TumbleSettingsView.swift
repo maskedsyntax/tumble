@@ -49,13 +49,13 @@ struct TumbleSettingsView: View {
                                 )) {
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text("Share anonymous diagnostics")
-                                            .font(Typography.sans(15, weight: .semibold))
+                                            .font(Typography.headline)
                                         Text("Crash reports and masked usage events. Photo pixels are never included.")
-                                            .font(Typography.sans(12))
-                                            .foregroundStyle(Palette.cream.opacity(0.58))
+                                            .font(Typography.caption)
+                                            .foregroundStyle(Palette.textSecondary)
                                     }
                                 }
-                                .tint(Palette.gold)
+                                .tint(Palette.amber)
                             }
 
                             Link(destination: URL(string: "https://gettumbleapp.com/privacy")!) {
@@ -79,8 +79,8 @@ struct TumbleSettingsView: View {
                         }
 
                         Text("Tumble \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.1")")
-                            .font(Typography.sans(12))
-                            .foregroundStyle(Palette.cream.opacity(0.42))
+                            .font(Typography.caption)
+                            .foregroundStyle(Palette.textTertiary)
                             .padding(.top, 8)
                     }
                     .padding(20)
@@ -100,83 +100,83 @@ struct TumbleSettingsView: View {
     }
 
     private var upgradeCard: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 14) {
             ZStack {
-                Circle().fill(Palette.gold.opacity(0.18))
+                Circle().fill(Palette.amber.opacity(0.16))
                 Image(systemName: "camera.filters")
-                    .font(.system(size: 23, weight: .semibold))
-                    .foregroundStyle(Palette.gold)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(Palette.amber)
             }
-            .frame(width: 52, height: 52)
+            .frame(width: 48, height: 48)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("TUMBLE COMPLETE")
-                    .font(Typography.sans(9, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(Palette.gold)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Tumble Complete")
+                    .trackedLabel()
+                    .foregroundStyle(Palette.amber)
                 Text("Unlock every film")
-                    .font(Typography.display(21))
-                    .foregroundStyle(Palette.cream)
+                    .font(Typography.title)
+                    .foregroundStyle(Palette.textPrimary)
                 Text("15 additional films · pay once")
-                    .font(Typography.sans(11, weight: .semibold))
-                    .foregroundStyle(Palette.cream.opacity(0.58))
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 8)
-            Image(systemName: "arrow.up.right")
+            Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Palette.ink)
-                .frame(width: 31, height: 31)
-                .background(Palette.gold, in: Circle())
+                .frame(width: 30, height: 30)
+                .background(Palette.amber, in: Circle())
         }
-        .padding(17)
-        .background(
-            LinearGradient(
-                colors: [Palette.charcoalDeep.opacity(0.96), Palette.blueDeep.opacity(0.92)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-        )
+        .padding(16)
+        .background(Palette.surfaceRaised.opacity(0.92), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Palette.gold.opacity(0.30))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Palette.amber.opacity(0.28))
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func settingsSection<Content: View>(
         _ title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(title.uppercased())
-                .font(Typography.sans(10, weight: .bold))
-                .tracking(1.2)
-                .foregroundStyle(Palette.gold.opacity(0.78))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .trackedLabel()
+                .foregroundStyle(Palette.textSecondary)
                 .padding(.horizontal, 4)
-            VStack(spacing: 10, content: content)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 8, content: content)
         }
     }
 
     private func settingCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .foregroundStyle(Palette.cream)
+            .foregroundStyle(Palette.textPrimary)
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.charcoalDeep.opacity(0.62), in: RoundedRectangle(cornerRadius: 18))
+            .background(Palette.surfaceRaised.opacity(0.92), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Palette.hairline))
     }
 
     private func settingRow(_ title: String, detail: String, icon: String) -> some View {
         settingCard {
             HStack(spacing: 13) {
-                Image(systemName: icon).foregroundStyle(Palette.gold).frame(width: 24)
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Palette.amber)
+                    .frame(width: 24)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(Typography.sans(15, weight: .semibold))
-                    Text(detail).font(Typography.sans(12)).foregroundStyle(Palette.cream.opacity(0.58))
+                    Text(title).font(Typography.headline)
+                    Text(detail).font(Typography.caption).foregroundStyle(Palette.textSecondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Palette.cream.opacity(0.4))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textTertiary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

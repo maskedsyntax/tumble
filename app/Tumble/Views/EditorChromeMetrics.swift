@@ -5,35 +5,26 @@ import CoreGraphics
 /// hit region for touch and accessibility.
 enum EditorChromeMetrics {
     static let minimumHitTarget: CGFloat = 44
-    static let topBarHeight: CGFloat = 44
-    static let topBarControlVisual: CGFloat = 32
-    static let topBarPrimaryVisualHeight: CGFloat = 34
+    static let topBarHeight: CGFloat = 52
+    static let topBarPrimaryVisualHeight: CGFloat = 36
+    static let iconButtonVisual: CGFloat = 36
+    static let segmentVisualHeight: CGFloat = 34
+    static let chipVisualHeight: CGFloat = 32
     static let horizontalPadding: CGFloat = 12
-    static let canvasHorizontalPadding: CGFloat = 8
-    static let canvasVerticalPadding: CGFloat = 6
-    static let canvasCornerRadius: CGFloat = 18
+    static let canvasHorizontalPadding: CGFloat = 16
+    static let canvasVerticalPadding: CGFloat = 12
+    static let overlayInset: CGFloat = 26
 
-    // The film browser shows one collection at a time; the amount adjustment
-    // replaces that browser temporarily so the canvas remains the focal point.
-    static let studioFilmDockHeight: CGFloat = 224
-    static let studioAmountDockHeight: CGFloat = 134
-    static let studioCompositionDockHeight: CGFloat = 160
-    static let studioFreeformDockHeight: CGFloat = 234
-    static let studioFilmAccessibilityDockHeight: CGFloat = 258
-    static let studioCompositionAccessibilityDockHeight: CGFloat = 190
-    static let dockHorizontalPadding: CGFloat = 10
-    static let dockVerticalPadding: CGFloat = 6
-    static let dockGap: CGFloat = 6
-    static let toolSwitcherHeight: CGFloat = 54
-    static let filmBrowserHeaderHeight: CGFloat = 48
+    // Studio keeps one dock height for every tool and panel, so the photo
+    // never jumps when switching between Film, Amount, and Crop.
+    static let studioDockHeight: CGFloat = 242
+    static let studioDockLargeTextHeight: CGFloat = 264
+    static let studioDockAccessibilityHeight: CGFloat = 300
+    static let toolSwitcherHeight: CGFloat = 58
 
-    static let filmThumbnailWidth: CGFloat = 96
-    static let filmThumbnailHeight: CGFloat = 96
+    static let filmThumbnailWidth: CGFloat = 72
+    static let filmThumbnailHeight: CGFloat = 90
 
-    static let finishFormatRowHeight: CGFloat = 54
-    static let finishPhotoDockHeight: CGFloat = 54
-    static let finishPostcardDockHeight: CGFloat = 108
-    static let finishAccessibilityDockHeight: CGFloat = 164
-    static let finishActionVisualHeight: CGFloat = 46
-    static let finishActionCornerRadius: CGFloat = 11
+    static let frameTileWidth: CGFloat = 64
+    static let finishActionHeight: CGFloat = 50
 }

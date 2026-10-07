@@ -23,7 +23,7 @@ struct StudioHomeView: View {
         ZStack {
             GraincoreBackground()
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 28) {
                     header
                     hero
                     if let draft = app.drafts.activeDraft { resumeCard(draft) }
@@ -31,19 +31,22 @@ struct StudioHomeView: View {
                     postcardFeature
                     privacyLine
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 32)
             }
+            .scrollIndicators(.hidden)
 
             if importInProgress { importOverlay }
         }
+        .animation(Motion.fade, value: importInProgress)
         .task {
             await app.startStore()
             TumbleAnalytics.shared.screen(.home)
             TumbleAnalytics.shared.capture(.homeViewed)
 #if DEBUG
             if DebugLaunch.clearsDraft { await app.drafts.discard() }
+            if DebugLaunch.opensSettings { showSettings = true }
             if ProcessInfo.processInfo.arguments.contains("-cameraDemo") { showCamera = true }
             if ProcessInfo.processInfo.arguments.contains("-studioDemo") || ProcessInfo.processInfo.arguments.contains("-finishDemo") {
                 let data = DebugLaunch.demoImageData
@@ -60,6 +63,9 @@ struct StudioHomeView: View {
                         }
                         if let note = DebugLaunch.value(for: "-demoNote") {
                             draft.recipe.note = note
+                        }
+                        if let degrees = DebugLaunch.value(for: "-demoStraighten").flatMap(Double.init) {
+                            draft.recipe.straighten = degrees
                         }
                         app.drafts.update(draft.recipe)
                         studioDraft = app.drafts.activeDraft ?? draft
@@ -105,147 +111,115 @@ struct StudioHomeView: View {
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Tumble")
-                    .font(Typography.display(34))
-                    .foregroundStyle(Palette.cream)
-                Text("VINTAGE PHOTO STUDIO")
-                    .font(Typography.sans(9, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(Palette.gold)
-            }
+        HStack(alignment: .center) {
+            Text("Tumble")
+                .font(Typography.largeTitle)
+                .foregroundStyle(Palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
             Spacer()
-            Button { showSettings = true } label: {
-                ZStack {
-                    Circle()
-                        .fill(.black.opacity(0.28))
-                        .frame(
-                            width: EditorChromeMetrics.topBarControlVisual,
-                            height: EditorChromeMetrics.topBarControlVisual
-                        )
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.cream)
-                }
-                .frame(
-                    width: EditorChromeMetrics.minimumHitTarget,
-                    height: EditorChromeMetrics.minimumHitTarget
-                )
-                .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Settings")
+            IconButton("gearshape", accessibilityLabel: "Settings") { showSettings = true }
         }
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Give your photos\nthe character of film.")
-                    .font(Typography.display(34))
-                    .foregroundStyle(Palette.cream)
-                Text("Start with a favorite, find its film character, then finish it as a photo or postcard.")
-                    .font(Typography.sans(14))
-                    .foregroundStyle(Palette.cream.opacity(0.66))
+        VStack(alignment: .leading, spacing: 16) {
+            BeforeAfterHero()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Find the film in your photos.")
+                    .font(Typography.heroTitle)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Choose a favorite, try 21 film looks on it, then finish it as a photo or a postcard.")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Button {
-                begin(HomeEditIntent(entryPoint: .primary, initialFilmID: selectedStockID))
-            } label: {
-                Label("Choose a Photo", systemImage: "photo.on.rectangle.angled")
-                    .font(Typography.sans(15, weight: .bold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(Palette.gold, in: RoundedRectangle(cornerRadius: 14))
-            }
-            .buttonStyle(.plain)
+            VStack(spacing: 10) {
+                Button {
+                    begin(HomeEditIntent(entryPoint: .primary, initialFilmID: selectedStockID))
+                } label: {
+                    Label("Choose a Photo", systemImage: "photo.on.rectangle.angled")
+                }
+                .buttonStyle(PrimaryButtonStyle())
 
-            Button {
-                begin(HomeEditIntent(entryPoint: .camera, initialFilmID: selectedStockID))
-            } label: {
-                Label("Take a Photo", systemImage: "camera")
-                    .font(Typography.sans(13, weight: .bold))
-                    .foregroundStyle(Palette.cream)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: EditorChromeMetrics.minimumHitTarget)
-                    .background(Palette.cream.opacity(0.09), in: RoundedRectangle(cornerRadius: 13))
-                    .overlay(RoundedRectangle(cornerRadius: 13).stroke(Palette.cream.opacity(0.10)))
+                Button {
+                    begin(HomeEditIntent(entryPoint: .camera, initialFilmID: selectedStockID))
+                } label: {
+                    Label("Take a Photo", systemImage: "camera")
+                }
+                .buttonStyle(SecondaryButtonStyle(height: 46))
             }
         }
-        .padding(18)
-        .background(
-            LinearGradient(
-                colors: [Palette.charcoalDeep.opacity(0.96), Palette.blueDeep.opacity(0.88)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
-        )
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.gold.opacity(0.18)))
     }
 
     private func resumeCard(_ draft: EditDraft) -> some View {
         Button { studioDraft = draft } label: {
-            HStack(spacing: 11) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(Palette.gold)
+            HStack(spacing: 14) {
+                DraftThumbnail(draft: draft)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Continue your edit")
-                        .font(Typography.sans(15, weight: .bold))
-                    Text("Your private draft is waiting in Studio.")
-                        .font(Typography.sans(11))
-                        .foregroundStyle(Palette.cream.opacity(0.58))
+                        .font(Typography.headline)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("\(draft.recipe.stock.name) · saved privately in Studio")
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
                 }
-                Spacer()
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(Palette.gold)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textTertiary)
             }
-            .foregroundStyle(Palette.cream)
-            .padding(14)
-            .background(Palette.charcoalDeep.opacity(0.68), in: RoundedRectangle(cornerRadius: 17))
+            .padding(12)
+            .background(Palette.blueDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairline))
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 
     private var filmCollection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Find its film character")
-                        .font(Typography.display(24))
-                        .foregroundStyle(Palette.cream)
-                    Text("21 original interpretations across four collections")
-                        .font(Typography.sans(11))
-                        .foregroundStyle(Palette.cream.opacity(0.54))
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Film looks")
+                        .font(Typography.title)
+                        .foregroundStyle(Palette.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    Text("21 looks")
+                        .trackedLabel()
+                        .foregroundStyle(Palette.amber)
                 }
-                Spacer()
-                Text("21 LOOKS")
-                    .font(Typography.sans(9, weight: .bold))
-                    .tracking(1)
-                    .foregroundStyle(Palette.gold)
+                Text("Original interpretations in four collections")
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    homeFilmCard("fadedInstant", scene: .warmPortrait)
-                    homeFilmCard("disposable", scene: .blueHourRooftop)
-                    homeFilmCard("silver", scene: .sunlitPark)
-                    homeFilmCard("goldenHour", scene: .beachMorning)
+                HStack(alignment: .top, spacing: 14) {
+                    homeFilmCard("fadedInstant", sample: "sample-coastal-drive")
+                    homeFilmCard("disposable", sample: "sample-convenience-store")
+                    homeFilmCard("silver", sample: "sample-sidewalk-cafe")
+                    homeFilmCard("goldenHour", sample: "sample-beach-run")
                 }
+                .padding(.horizontal, 20)
             }
+            .padding(.horizontal, -20)
         }
     }
 
-    private func homeFilmCard(_ stockID: String, scene: FilmScene) -> some View {
+    private func homeFilmCard(_ stockID: String, sample: String) -> some View {
         Button {
             begin(HomeEditIntent(entryPoint: .filmCard, initialFilmID: stockID))
         } label: {
-            HomeFilmCard(stockID: stockID, scene: scene)
+            HomeFilmCard(stockID: stockID, sample: sample)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 
     private var postcardFeature: some View {
@@ -256,43 +230,40 @@ struct StudioHomeView: View {
                 intendedFormat: .postcard
             ))
         } label: {
-        VStack(alignment: .leading, spacing: 12) {
-            PostcardFrameView(
-                style: .classicInstant,
-                image: FilmScene.pinkDusk.image(size: 420),
-                note: "Wish you were here",
-                seed: 31,
-                width: 248
-            )
-            .frame(
-                width: 248,
-                height: 248 * PostcardFrameStyle.classicInstant.renderAspect(hasNote: true)
-            )
-            .frame(maxWidth: .infinity)
-            .rotationEffect(.degrees(-3))
+            VStack(alignment: .leading, spacing: 16) {
+                HomePostcardSample()
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("A signature finish")
-                    .font(Typography.display(22))
-                    .foregroundStyle(Palette.cream)
-                Text("Save a clean photograph—or turn it into a personal postcard with paper, frame, and a handwritten note.")
-                    .font(Typography.sans(12))
-                    .foregroundStyle(Palette.cream.opacity(0.62))
-                Label("Choose a photo for a postcard", systemImage: "arrow.right")
-                    .font(Typography.sans(12, weight: .bold))
-                    .foregroundStyle(Palette.gold)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("A signature finish")
+                        .font(Typography.title)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("Save a clean photograph, or turn it into a postcard with paper, frame, and a handwritten note.")
+                        .font(Typography.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        Text("Make a postcard")
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(Typography.headline)
+                    .foregroundStyle(Palette.amber)
+                    .padding(.top, 4)
+                }
             }
+            .padding(18)
+            .background(Palette.blueDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Palette.hairline))
+            .contentShape(Rectangle())
         }
-        .padding(15)
-        .background(Palette.charcoalDeep.opacity(0.58), in: RoundedRectangle(cornerRadius: 20))
-        }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 
     private var privacyLine: some View {
-        Label("Photos stay on device · No subscription", systemImage: "lock.shield")
-            .font(Typography.sans(11, weight: .semibold))
-            .foregroundStyle(Palette.cream.opacity(0.48))
+        Label("Photos stay on your device · No subscription", systemImage: "lock.shield")
+            .font(Typography.caption)
+            .foregroundStyle(Palette.textSecondary)
             .frame(maxWidth: .infinity)
     }
 
@@ -300,18 +271,19 @@ struct StudioHomeView: View {
         ZStack {
             Color.black.opacity(0.56).ignoresSafeArea()
             VStack(spacing: 12) {
-                ProgressView().controlSize(.large).tint(Palette.gold)
+                ProgressView().controlSize(.large).tint(Palette.amber)
                 Text("Preparing your photo")
-                    .font(Typography.display(22))
-                    .foregroundStyle(Palette.cream)
+                    .font(Typography.headline)
+                    .foregroundStyle(Palette.textPrimary)
                 Text("Copying it privately into Studio…")
-                    .font(Typography.sans(12))
-                    .foregroundStyle(Palette.cream.opacity(0.62))
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
-            .background(Palette.blueDeep.opacity(0.96), in: RoundedRectangle(cornerRadius: 24))
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
+        .transition(.opacity)
     }
 
     private func importPhoto(_ item: PhotosPickerItem) async {
@@ -371,34 +343,183 @@ struct StudioHomeView: View {
 
 private struct HomeFilmCard: View {
     let stockID: String
-    let scene: FilmScene
+    let sample: String
     @State private var image: UIImage?
 
     private var stock: FilmStock { FilmStockCatalog.resolve(stockID) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 8) {
             Group {
                 if let image { Image(uiImage: image).resizable().scaledToFill() }
-                else { Color.black.opacity(0.24).overlay(ProgressView().tint(Palette.gold)) }
+                else { Palette.blueDeep.overlay(ProgressView().tint(Palette.amber)) }
             }
-            .frame(width: 216, height: 146)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            Text(stock.name)
-                .font(Typography.sans(12, weight: .bold))
-                .foregroundStyle(Palette.cream)
-            Text(stock.blurb)
-                .font(Typography.sans(9))
-                .foregroundStyle(Palette.cream.opacity(0.52))
-                .lineLimit(1)
+            .frame(width: 188, height: 235)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairline))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(stock.name)
+                    .font(Typography.headline)
+                    .foregroundStyle(Palette.textPrimary)
+                Text(stock.blurb)
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(2, reservesSpace: true)
+                    .multilineTextAlignment(.leading)
+            }
         }
-        .frame(width: 216, alignment: .leading)
+        .frame(width: 188, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Choose a photo to try this look")
         .task {
-            let source = UIImage(named: "onboarding-editorial") ?? scene.image(size: 480)
+            let source = UIImage(named: sample) ?? UIImage(named: "onboarding-editorial") ?? FilmScene.warmPortrait.image(size: 480)
             let selectedStock = stock
             image = await Task.detached(priority: .utility) {
-                TumblePhotoFilter.renderLivePreview(from: source, stock: selectedStock, maxDimension: 360)
+                TumblePhotoFilter.renderLivePreview(from: source, stock: selectedStock, maxDimension: 520)
+            }.value
+        }
+    }
+}
+
+/// The neutral editorial sample split down the middle: as shot on the left,
+/// with a film look on the right. Drag the divider to compare.
+private struct BeforeAfterHero: View {
+    @State private var original: UIImage? = UIImage(named: "onboarding-editorial")
+    @State private var film: UIImage?
+    @State private var split: CGFloat = 0.5
+    private let stock = FilmStockCatalog.resolve("fadedInstant")
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            ZStack(alignment: .leading) {
+                layer(film ?? original)
+                layer(original)
+                    .mask(alignment: .leading) {
+                        Rectangle().frame(width: width * split)
+                    }
+                Rectangle()
+                    .fill(Palette.cream)
+                    .frame(width: 2)
+                    .shadow(color: .black.opacity(0.35), radius: 3)
+                    .overlay {
+                        Circle()
+                            .fill(Palette.cream)
+                            .frame(width: 30, height: 30)
+                            .overlay(
+                                Image(systemName: "arrow.left.and.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(Palette.ink)
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 4, y: 1)
+                    }
+                    .offset(x: width * split - 1)
+            }
+            .overlay(alignment: .bottomLeading) { tag("Original").padding(12) }
+            .overlay(alignment: .bottomTrailing) { tag(stock.name).padding(12) }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        split = min(0.94, max(0.06, value.location.x / max(1, width)))
+                    }
+            )
+        }
+        .aspectRatio(1.05, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Palette.hairline))
+        .accessibilityElement()
+        .accessibilityLabel("Example photo, original and \(stock.name)")
+        .accessibilityValue("\(Int((split * 100).rounded())) percent original")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: split = min(0.94, split + 0.1)
+            case .decrement: split = max(0.06, split - 0.1)
+            @unknown default: break
+            }
+        }
+        .task {
+            guard film == nil, let source = original else { return }
+            let selectedStock = stock
+            film = await Task.detached(priority: .userInitiated) {
+                TumblePhotoFilter.renderLivePreview(from: source, stock: selectedStock, maxDimension: 900)
+            }.value
+        }
+    }
+
+    private func layer(_ image: UIImage?) -> some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Palette.blueDeep
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+    }
+
+    private func tag(_ text: String) -> some View {
+        Text(text)
+            .trackedLabel()
+            .foregroundStyle(Palette.textPrimary)
+            .padding(.horizontal, 9)
+            .frame(height: 24)
+            .background(.black.opacity(0.55), in: Capsule())
+    }
+}
+
+/// A finished postcard made from a bundled sample with a real film look.
+private struct HomePostcardSample: View {
+    @State private var image: UIImage?
+    private let width: CGFloat = 236
+
+    var body: some View {
+        Group {
+            if let image {
+                PostcardFrameView(
+                    style: .classicInstant,
+                    image: image,
+                    note: "Wish you were here",
+                    seed: 31,
+                    width: width
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 6).fill(Palette.printStock.opacity(0.2))
+            }
+        }
+        .frame(width: width, height: width * PostcardFrameStyle.classicInstant.renderAspect(hasNote: true))
+        .rotationEffect(.degrees(-3))
+        .accessibilityHidden(true)
+        .task {
+            guard image == nil else { return }
+            let source = UIImage(named: "sample-rainy-crosswalk") ?? FilmScene.pinkDusk.image(size: 480)
+            let stock = FilmStockCatalog.resolve("goldenHour")
+            image = await Task.detached(priority: .utility) {
+                TumblePhotoFilter.renderLivePreview(from: source, stock: stock, maxDimension: 520)
+            }.value
+        }
+    }
+}
+
+/// The active draft's photo, rendered with its current recipe.
+private struct DraftThumbnail: View {
+    @Environment(AppModel.self) private var app
+    let draft: EditDraft
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image { Image(uiImage: image).resizable().scaledToFill() }
+            else { Palette.surfaceRaised }
+        }
+        .accessibilityHidden(true)
+        .task(id: draft.id) {
+            guard let data = await app.drafts.sourceData(for: draft) else { return }
+            let recipe = draft.recipe
+            let capturedAt = draft.capturedAt
+            image = await Task.detached(priority: .utility) {
+                TumblePhotoFilter.renderEditedPreview(from: data, recipe: recipe, capturedAt: capturedAt, maxDimension: 180)
             }.value
         }
     }
@@ -415,27 +536,17 @@ private struct NeutralCameraView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            EditorBackground()
             VStack(spacing: 14) {
-                HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .frame(width: 44, height: 44)
-                            .background(.black.opacity(0.42), in: Circle())
-                    }
-                    Spacer()
-                    Text("Take a Photo")
-                        .font(Typography.display(23))
-                    Spacer()
-                    Button { camera.toggleFlash() } label: {
-                        Image(systemName: camera.flashMode == .on ? "bolt.fill" : "bolt.slash.fill")
-                            .frame(width: 44, height: 44)
-                            .background(.black.opacity(0.42), in: Circle())
-                    }
+                EditorTopBar(title: "Take a Photo") {
+                    IconButton("xmark", accessibilityLabel: "Close camera") { dismiss() }
+                } trailing: {
+                    IconButton(
+                        camera.flashMode == .on ? "bolt.fill" : "bolt.slash.fill",
+                        accessibilityLabel: camera.flashMode == .on ? "Flash on" : "Flash off"
+                    ) { camera.toggleFlash() }
                     .disabled(!camera.supportsFlash)
                 }
-                .foregroundStyle(Palette.cream)
-                .padding(.horizontal, 16)
 
                 ZStack {
                     if permission == .authorized {
@@ -446,7 +557,7 @@ private struct NeutralCameraView: View {
                                 .font(.system(size: 42, weight: .light))
                                 .foregroundStyle(Palette.gold)
                             Text(permission == .denied ? "Camera access is off" : "Camera access is needed to take a photo")
-                                .font(Typography.display(21))
+                                .font(Typography.headline)
                                 .multilineTextAlignment(.center)
                             if permission == .denied {
                                 Button("Open Settings") { openSettings() }
@@ -457,8 +568,8 @@ private struct NeutralCameraView: View {
                         .padding(24)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 28))
-                .overlay(RoundedRectangle(cornerRadius: 28).stroke(Palette.cream.opacity(0.12)))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Palette.hairline))
                 .aspectRatio(3 / 4, contentMode: .fit)
                 .padding(.horizontal, 16)
 
@@ -522,6 +633,7 @@ private struct NeutralCameraView: View {
     }
 
     private func capture() {
+        Haptics.soft()
         busy = true
         camera.captureResult { result in
             busy = false

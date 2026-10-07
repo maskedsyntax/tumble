@@ -19,6 +19,54 @@ struct TumbleThreeOneTests {
         #expect(recipe.frameID == "classic")
         #expect(recipe.note == "Wish you were here")
         #expect(recipe.quarterTurns == 3)
+        #expect(recipe.straighten == 0)
+        #expect(recipe.crop == NormalizedCrop(x: 0.1, y: 0.2, width: 0.7, height: 0.6))
+    }
+
+    @Test func straightenSurvivesARoundTripAndIsClamped() throws {
+        let recipe = EditRecipe(stockID: "silver", cropPreset: .portrait, straighten: -7.5)
+        let decoded = try JSONDecoder().decode(EditRecipe.self, from: JSONEncoder().encode(recipe))
+        #expect(decoded == recipe)
+        #expect(EditRecipe(straighten: 90).straighten == CropGeometry.straightenLimit)
+        #expect(EditRecipe(straighten: .nan).straighten == 0)
+    }
+
+    @Test func partialRecipeFallsBackToDefaults() throws {
+        let recipe = try JSONDecoder().decode(EditRecipe.self, from: Data(#"{"stockID":"silver"}"#.utf8))
+        #expect(recipe.stockID == "silver")
+        #expect(recipe.intensity == 1)
+        #expect(recipe.cropPreset == .original)
+        #expect(recipe.crop == .full)
+    }
+
+    @Test(arguments: [(1.0, 1.0), (1.5, 1.0), (1.0, 1.7778)])
+    func inscribedRectangleFitsInsideTheRotatedImage(width: Double, height: Double) {
+        #expect(CropGeometry.inscribedScale(width: width, height: height, degrees: 0) == 1)
+        for degrees in [-45.0, -10, 3.5, 10, 45] {
+            let scale = CropGeometry.inscribedScale(width: width, height: height, degrees: degrees)
+            #expect(scale > 0 && scale < 1)
+            // The inner rectangle, turned back into the source frame, must
+            // fit inside the source on both axes.
+            let theta = abs(degrees) * .pi / 180
+            let w = width * scale
+            let h = height * scale
+            #expect(w * cos(theta) + h * sin(theta) <= width + 1e-9)
+            #expect(w * sin(theta) + h * cos(theta) <= height + 1e-9)
+        }
+        let squareAt45 = CropGeometry.inscribedScale(width: 1, height: 1, degrees: 45)
+        #expect(abs(squareAt45 - 1 / 2.0.squareRoot()) < 1e-9)
+    }
+
+    @Test func centeredCropHasTheRequestedAspect() {
+        for imageAspect in [0.75, 1.0, 1.5] {
+            for preset in [CropPreset.square, .portrait, .story] {
+                let aspect = preset.aspectRatio!
+                let crop = CropGeometry.centeredCrop(aspect: aspect, imageAspect: imageAspect)
+                #expect(abs((crop.width * imageAspect) / crop.height - aspect) < 1e-9)
+                #expect(crop.x >= 0 && crop.y >= 0 && crop.x + crop.width <= 1 + 1e-9 && crop.y + crop.height <= 1 + 1e-9)
+            }
+        }
+        #expect(CropGeometry.centeredCrop(aspect: nil, imageAspect: 1.5) == .full)
     }
 
     @Test func reviewPromptRequiresThirdExportAndSevenDays() {

@@ -64,6 +64,31 @@ public enum Typography {
         return .system(size: size, weight: .regular, design: .serif).italic()
     }
 
+    // MARK: Semantic ramp
+    //
+    // Interface text uses these tokens. Each maps to a Dynamic Type text
+    // style, so it scales with the reader's setting. Serif (New York) is for
+    // brand headings only; editing chrome stays in the system sans. Nothing
+    // in the interface is set below `caption` (13 pt at the default size).
+
+    /// Brand wordmark and page titles on Home, introduction and paywall.
+    public static let largeTitle = Font.system(.largeTitle, design: .serif, weight: .semibold)
+    /// The one large serif line on Home and the introduction.
+    public static let heroTitle = Font.system(.title, design: .serif, weight: .semibold)
+    /// Section headings on brand surfaces.
+    public static let title = Font.system(.title2, design: .serif, weight: .semibold)
+    /// Centered title in an editor or sheet top bar.
+    public static let navTitle = Font.system(.headline, design: .default, weight: .semibold)
+    /// Row titles, button labels.
+    public static let headline = Font.system(.subheadline, design: .default, weight: .semibold)
+    public static let body = Font.system(.subheadline, design: .default, weight: .regular)
+    public static let callout = Font.system(.callout, design: .default, weight: .regular)
+    /// Supporting copy, captions under thumbnails. The interface minimum.
+    public static let caption = Font.system(.footnote, design: .default, weight: .regular)
+    public static let captionEmphasized = Font.system(.footnote, design: .default, weight: .semibold)
+    /// Uppercase, tracked label. Pair with `.labelStyle()`.
+    public static let label = Font.system(.caption, design: .default, weight: .bold)
+
     private static func fontExists(_ name: String) -> Bool {
         UIFont(name: name, size: 12) != nil
     }
@@ -92,5 +117,12 @@ public extension Text {
             .tracking(2)
             .textCase(.uppercase)
             .foregroundStyle(Palette.amber)
+    }
+
+    /// Uppercase tracked label set in `Typography.label`.
+    func trackedLabel() -> some View {
+        self.font(Typography.label)
+            .tracking(1.2)
+            .textCase(.uppercase)
     }
 }

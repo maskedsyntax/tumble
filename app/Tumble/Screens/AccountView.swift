@@ -23,7 +23,7 @@ struct AccountView: View {
                         privacyCard
                         if let message = app.account.message {
                             Text(message)
-                                .font(Typography.sans(13))
+                                .font(Typography.caption)
                                 .foregroundStyle(Palette.cream.opacity(0.72))
                                 .multilineTextAlignment(.center)
                         }
@@ -73,16 +73,15 @@ struct AccountView: View {
                 }
                 .frame(height: 78)
 
-                Text("OPTIONAL TUMBLE ACCOUNT")
-                    .font(Typography.sans(9, weight: .bold))
-                    .tracking(1.35)
-                    .foregroundStyle(Palette.gold)
+                Text("Optional Tumble account")
+                    .trackedLabel()
+                    .foregroundStyle(Palette.amber)
                 Text("Keep your films with you")
-                    .font(Typography.display(29))
+                    .font(Typography.heroTitle)
                     .foregroundStyle(Palette.cream)
                 Text("Sign in to carry purchases between iOS and Android. Taking photos and using Studio never needs an account.")
-                    .font(Typography.sans(13))
-                    .foregroundStyle(Palette.cream.opacity(0.66))
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -117,8 +116,8 @@ struct AccountView: View {
                 HStack(spacing: 9) {
                     ProgressView().tint(Palette.gold)
                     Text("Opening secure sign-in…")
-                        .font(Typography.sans(12, weight: .semibold))
-                        .foregroundStyle(Palette.cream.opacity(0.62))
+                        .font(Typography.captionEmphasized)
+                        .foregroundStyle(Palette.textSecondary)
                 }
             }
         }
@@ -134,10 +133,10 @@ struct AccountView: View {
     private func accountCard(name: String?, email: String?, providers: Set<String>) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(name ?? email ?? "Signed in")
-                .font(Typography.display(25)).foregroundStyle(Palette.cream)
-            if let email { Text(email).font(Typography.sans(13)).foregroundStyle(Palette.cream.opacity(0.62)) }
+                .font(Typography.title).foregroundStyle(Palette.cream)
+            if let email { Text(email).font(Typography.caption).foregroundStyle(Palette.textSecondary) }
             Text("Linked: " + providers.compactMap { TumbleAuthProvider(rawValue: $0)?.title }.sorted().joined(separator: " · "))
-                .font(Typography.sans(12, weight: .semibold)).foregroundStyle(Palette.gold)
+                .font(Typography.captionEmphasized).foregroundStyle(Palette.gold)
 
             Button { Task { await app.account.linkPurchases() } } label: {
                 Label(app.account.isLinkingPurchases ? "Linking…" : "Link existing purchases", systemImage: "arrow.triangle.2.circlepath")
@@ -177,11 +176,11 @@ struct AccountView: View {
                 .foregroundStyle(Palette.gold)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Your photos stay private")
-                    .font(Typography.sans(13, weight: .bold))
+                    .font(Typography.captionEmphasized)
                     .foregroundStyle(Palette.cream)
                 Text("Sign-in links purchase access only. Tumble never uploads photo pixels, filenames, drafts, crops, or notes.")
-                    .font(Typography.sans(12))
-                    .foregroundStyle(Palette.cream.opacity(0.58))
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
             }
         }
             .padding(16)
@@ -203,9 +202,9 @@ struct AccountView: View {
         NavigationStack {
             VStack(spacing: 18) {
                 Text("Confirm with Apple")
-                    .font(Typography.display(30))
+                    .font(Typography.heroTitle)
                 Text("Apple requires a fresh authorization before Tumble can revoke its token and delete your account.")
-                    .font(Typography.sans(14))
+                    .font(Typography.body)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Palette.cream.opacity(0.7))
                 SignInWithAppleButton(.continue) { request in

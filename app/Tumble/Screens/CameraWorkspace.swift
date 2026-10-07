@@ -487,31 +487,60 @@ struct TumbleChangedView: View {
     var body: some View {
         ZStack {
             GraincoreBackground()
-            VStack(spacing: 22) {
-                Spacer()
-                Image(systemName: "camera.filters")
-                    .font(.system(size: 64, weight: .light)).foregroundStyle(Palette.gold)
-                Text("Tumble is now a Studio")
-                    .font(Typography.display(35)).foregroundStyle(Palette.cream)
-                Text("Editing now leads the way. Choose a favorite photo, find its film character, and finish it as a photograph or personal postcard.")
-                    .font(Typography.sans(15)).foregroundStyle(Palette.cream.opacity(0.72))
-                    .multilineTextAlignment(.center).padding(.horizontal, 34)
-                VStack(alignment: .leading, spacing: 12) {
-                    Label("Choose a photo from your library", systemImage: "photo.on.rectangle.angled")
-                    Label("Preview every film on your photo", systemImage: "camera.filters")
-                    Label("Finish as a photo or postcard", systemImage: "rectangle.portrait")
-                    Label("Take a new photo whenever you want", systemImage: "camera")
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("What's new")
+                                .trackedLabel()
+                                .foregroundStyle(Palette.amber)
+                            Text("Tumble is now a Studio")
+                                .font(Typography.heroTitle)
+                                .foregroundStyle(Palette.textPrimary)
+                                .accessibilityAddTraits(.isHeader)
+                            Text("Editing now leads the way. Choose a favorite photo, find its film character, and finish it as a photograph or personal postcard.")
+                                .font(Typography.body)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        VStack(alignment: .leading, spacing: 18) {
+                            row("photo.on.rectangle.angled", "Choose a photo from your library")
+                            row("camera.filters", "Preview every film on your photo")
+                            row("crop.rotate", "Crop and straighten right on the photo")
+                            row("rectangle.portrait.on.rectangle.portrait", "Finish as a photo or postcard")
+                            row("camera", "Take a new photo whenever you want")
+                        }
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Palette.blueDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Palette.hairline))
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 56)
+                    .padding(.bottom, 24)
                 }
-                .font(Typography.sans(14, weight: .semibold)).foregroundStyle(Palette.cream)
-                Spacer()
-                Button(action: onDone) {
-                    Text("Enter the Studio")
-                        .font(Typography.sans(16, weight: .bold)).foregroundStyle(Palette.ink)
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Palette.gold, in: Capsule())
-                }
-                .padding(.horizontal, 28).padding(.bottom, 24)
+                .scrollIndicators(.hidden)
+
+                Button("Enter the Studio", action: onDone)
+                    .buttonStyle(PrimaryButtonStyle(height: 54))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
             }
         }
+    }
+
+    private func row(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Palette.amber)
+                .frame(width: 26)
+            Text(text)
+                .font(Typography.headline)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

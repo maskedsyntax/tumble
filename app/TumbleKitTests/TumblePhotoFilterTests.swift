@@ -1,5 +1,7 @@
 import Testing
 import CoreVideo
+import CoreImage
+import SwiftUI
 import UIKit
 @testable import TumbleKit
 
@@ -165,6 +167,91 @@ struct TumblePhotoFilterTests {
         if let image {
             #expect(max(image.size.width, image.size.height) <= 512)
             #expect(abs(image.size.width / image.size.height - 0.8) < 0.03)
+        }
+    }
+
+    /// Pixel size of encoded sample data (the renderer draws at screen scale).
+    private func pixelSize(_ data: Data) -> CGSize {
+        CIImage(data: data)?.extent.size ?? .zero
+    }
+
+    @Test @MainActor func unstraightenedFullCropKeepsTheSourceSize() {
+        let source = sampleData(CGSize(width: 600, height: 400))
+        let data = TumblePhotoFilter.renderEditedPhotoData(
+            from: source, recipe: EditRecipe(stockID: "everyday"), capturedAt: .now, maxDimension: 10_000
+        )
+        let image = data.flatMap(UIImage.init(data:))
+        #expect(image?.size == pixelSize(source))
+    }
+
+    @Test @MainActor func straightenKeepsAspectAndInscribedSize() {
+        let source = sampleData(CGSize(width: 600, height: 400))
+        let size = pixelSize(source)
+        let recipe = EditRecipe(stockID: "everyday", straighten: 10)
+        let data = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: recipe, capturedAt: .now, maxDimension: 10_000)
+        let image = data.flatMap(UIImage.init(data:))
+        let scale = CropGeometry.inscribedScale(width: size.width, height: size.height, degrees: 10)
+        #expect(image != nil)
+        if let image {
+            #expect(abs(image.size.width - size.width * scale) <= 4)
+            #expect(abs(image.size.height - size.height * scale) <= 4)
+        }
+    }
+
+    @Test @MainActor func offCenterAspectCropKeepsItsAspect() {
+        let source = sampleData(CGSize(width: 1800, height: 1200))
+        var crop = CropGeometry.centeredCrop(aspect: 0.8, imageAspect: 1.5)
+        crop.x = 0
+        let recipe = EditRecipe(stockID: "everyday", cropPreset: .portrait, crop: crop, straighten: -4)
+        let data = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: recipe, capturedAt: .now, maxDimension: 4096)
+        let image = data.flatMap(UIImage.init(data:))
+        #expect(image != nil)
+        if let image {
+            #expect(abs(image.size.width / image.size.height - 0.8) < 0.01)
+        }
+    }
+
+    @Test @MainActor func previewAndExportShareGeometry() {
+        let source = sampleData(CGSize(width: 1800, height: 1200))
+        var crop = CropGeometry.centeredCrop(aspect: 1, imageAspect: 1.5)
+        crop.x = 0.05
+        let recipe = EditRecipe(stockID: "everyday", cropPreset: .square, crop: crop, quarterTurns: 1, straighten: 6)
+        let export = TumblePhotoFilter.renderEditedPhotoData(from: source, recipe: recipe, capturedAt: .now, maxDimension: 900)
+            .flatMap(UIImage.init(data:))
+        let preview = TumblePhotoFilter.renderEditedPreview(from: source, recipe: recipe, capturedAt: .now, maxDimension: 900)
+        #expect(export != nil && preview != nil)
+        if let export, let preview {
+            #expect(abs(export.size.width / export.size.height - preview.size.width / preview.size.height) < 0.01)
+        }
+    }
+
+    @Test @MainActor func secondaryTextMeetsContrastOnEveryDarkSurface() {
+        func luminance(_ color: UIColor) -> Double {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            color.getRed(&r, green: &g, blue: &b, alpha: &a)
+            func channel(_ c: CGFloat) -> Double {
+                let v = Double(c)
+                return v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+        }
+        func composite(_ fg: UIColor, alpha: Double, over bg: UIColor) -> UIColor {
+            var fr: CGFloat = 0, fgc: CGFloat = 0, fb: CGFloat = 0, fa: CGFloat = 0
+            var br: CGFloat = 0, bgc: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+            fg.getRed(&fr, green: &fgc, blue: &fb, alpha: &fa)
+            bg.getRed(&br, green: &bgc, blue: &bb, alpha: &ba)
+            let a = CGFloat(alpha)
+            return UIColor(red: fr * a + br * (1 - a), green: fgc * a + bgc * (1 - a), blue: fb * a + bb * (1 - a), alpha: 1)
+        }
+        func contrast(_ a: UIColor, _ b: UIColor) -> Double {
+            let la = luminance(a), lb = luminance(b)
+            return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+        }
+        let cream = UIColor(Palette.cream)
+        for surface in [Palette.canvas, Palette.surface, Palette.surfaceRaised, Palette.blueDeep, Palette.blue] {
+            let bg = UIColor(surface)
+            #expect(contrast(composite(cream, alpha: Palette.textSecondaryOpacity, over: bg), bg) >= 4.5)
+            #expect(contrast(composite(cream, alpha: Palette.textTertiaryOpacity, over: bg), bg) >= 3.0)
         }
     }
 

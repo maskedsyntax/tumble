@@ -17,15 +17,16 @@ public struct GraincoreBackground: View {
             )
 
             // Off-center glow blobs - gold lower-left, gold upper-right, and
-            // lifted-blue on the loose corners.
+            // lifted-blue on the loose corners. Kept quiet so the backdrop
+            // never competes with photographs placed on it.
             GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
                 ZStack {
-                    blob(Palette.gold.opacity(0.42), at: CGPoint(x: 0.04 * w, y: 0.92 * h), radius: 0.7 * w)
-                    blob(Palette.gold.opacity(0.30), at: CGPoint(x: 0.98 * w, y: 0.02 * h), radius: 0.62 * w)
-                    blob(Palette.blueLift.opacity(0.42), at: CGPoint(x: 1.02 * w, y: 0.80 * h), radius: 0.7 * w)
-                    blob(Palette.blueLift.opacity(0.34), at: CGPoint(x: -0.02 * w, y: 0.12 * h), radius: 0.6 * w)
+                    blob(Palette.gold.opacity(0.16), at: CGPoint(x: 0.04 * w, y: 0.92 * h), radius: 0.7 * w)
+                    blob(Palette.gold.opacity(0.12), at: CGPoint(x: 0.98 * w, y: 0.02 * h), radius: 0.62 * w)
+                    blob(Palette.blueLift.opacity(0.26), at: CGPoint(x: 1.02 * w, y: 0.80 * h), radius: 0.7 * w)
+                    blob(Palette.blueLift.opacity(0.22), at: CGPoint(x: -0.02 * w, y: 0.12 * h), radius: 0.6 * w)
                 }
             }
             .allowsHitTesting(false)
@@ -48,5 +49,15 @@ public struct GraincoreBackground: View {
             )
             .frame(width: radius * 2, height: radius * 2)
             .position(center)
+    }
+}
+
+/// The flat graphite backdrop for editing screens. No grain, no glow: the
+/// photograph is the only thing on screen that carries color.
+public struct EditorBackground: View {
+    public init() {}
+
+    public var body: some View {
+        Palette.canvas.ignoresSafeArea()
     }
 }

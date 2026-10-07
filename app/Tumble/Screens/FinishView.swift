@@ -22,7 +22,9 @@ struct FinishView: View {
     @State private var shareImage: UIImage?
     @State private var pendingAction: FinishAction?
     @State private var resumeAfterUnlock = false
+    @State private var showSaved = false
     @FocusState private var noteFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(draft: EditDraft, recipe: Binding<EditRecipe>, onSaved: @escaping () -> Void) {
         self.draft = draft
@@ -42,24 +44,23 @@ struct FinishView: View {
 
     var body: some View {
         ZStack {
-            GraincoreBackground()
-            GeometryReader { proxy in
-                // Finish is a preview-first screen. Keep format and postcard
-                // configuration compact so the finished image stays dominant,
-                // especially on 4.7-inch phones and with larger text sizes.
-                let dockHeight = finishDockHeight
-                VStack(spacing: 0) {
-                    header.frame(height: EditorChromeMetrics.topBarHeight)
-                    preview
-                        .frame(maxHeight: .infinity)
-                        .layoutPriority(1)
-                        .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
-                        .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
-                    finishDock.frame(height: dockHeight)
+            EditorBackground()
+            VStack(spacing: 0) {
+                EditorTopBar(title: "Finish") {
+                    IconButton("chevron.left", accessibilityLabel: "Back to Studio") { dismiss() }
+                } trailing: {
+                    Color.clear.frame(width: EditorChromeMetrics.minimumHitTarget, height: 1)
                 }
+                preview
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .layoutPriority(1)
+                    .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
+                    .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
+                finishDock
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
+        .animation(Motion.spring(reduceMotion: reduceMotion), value: format)
         .interactiveDismissDisabled(busy)
         .task {
             TumbleAnalytics.shared.screen(.finish)
@@ -77,6 +78,12 @@ struct FinishView: View {
             Task { await perform(pendingAction) }
         }
         .overlay {
+            if showSaved {
+                savedConfirmation
+                    .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.94)))
+            }
+        }
+        .overlay {
             if showComplete {
                 CompletePaywallView(
                     source: "premium_export",
@@ -89,6 +96,7 @@ struct FinishView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showComplete)
+        .animation(Motion.fade, value: showSaved)
         .sheet(isPresented: $showShare) {
             if let shareImage {
                 FinishActivityView(items: [shareImage]) { completed, error in
@@ -115,50 +123,15 @@ struct FinishView: View {
         )) { Button("OK") { message = nil } } message: { Text(message ?? "") }
     }
 
-    private var header: some View {
-        HStack(spacing: 6) {
-            Button { dismiss() } label: {
-                ZStack {
-                    Circle()
-                        .fill(Palette.cream.opacity(0.09))
-                        .frame(
-                            width: EditorChromeMetrics.topBarControlVisual,
-                            height: EditorChromeMetrics.topBarControlVisual
-                        )
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Palette.cream)
-                }
-                .frame(
-                    width: EditorChromeMetrics.minimumHitTarget,
-                    height: EditorChromeMetrics.minimumHitTarget
-                )
-                .contentShape(Rectangle())
-            }
-            Text("Finish").font(Typography.display(20)).foregroundStyle(Palette.cream)
-            Spacer()
-            Label(recipe.stock.name, systemImage: "camera.filters")
-                .font(Typography.sans(9, weight: .bold))
-                .foregroundStyle(Palette.gold)
-                .padding(.horizontal, 8)
-                .frame(height: 26)
-                .background(Palette.cream.opacity(0.08), in: Capsule())
-                .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
-    }
-
     private var preview: some View {
         GeometryReader { proxy in
             ZStack {
-                Color.black.opacity(0.32)
                 if let filmPreview {
                     if format == .photo {
                         Image(uiImage: filmPreview)
                             .resizable()
                             .scaledToFit()
-                            .padding(12)
+                            .transition(.opacity)
                     } else {
                         let hasNote = !recipe.note.isEmpty
                         let aspect = activeFrame.renderAspect(hasNote: hasNote)
@@ -181,132 +154,132 @@ struct FinishView: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(activeFrame.displayName) postcard preview")
                         .accessibilityIdentifier("Postcard style preview")
+                        .transition(.opacity)
                     }
                 } else {
-                    ProgressView().tint(Palette.gold)
+                    ProgressView().tint(Palette.amber)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .clipShape(RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius)
-                .stroke(Palette.cream.opacity(0.08))
-        )
     }
 
     private var finishDock: some View {
-        VStack(spacing: 0) {
-            formatPicker
-                .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
+        VStack(spacing: 10) {
+            SegmentedPill(
+                options: [FinishFormat.photo, .postcard],
+                selection: format,
+                title: { $0.title },
+                icon: { $0.icon }
+            ) { choice in
+                format = choice
+                if choice == .postcard, recipe.frameStyle == .none {
+                    recipe.frameID = PostcardFrameStyle.classicInstant.rawValue
+                }
+                TumbleAnalytics.shared.capture(.finishFormatSelected(format: choice.rawValue))
+            }
+            .padding(.horizontal, 16)
+
             if format == .postcard {
-                postcardControls
-                    .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
-                    .padding(.bottom, 6)
+                VStack(spacing: 10) {
+                    framePicker
+                    noteField
+                        .padding(.horizontal, 16)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+
+            actionBar
         }
-        .background(Palette.blueDeep.opacity(0.98))
-        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
+        .padding(.top, 10)
+        .background(Palette.surface.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) { Rectangle().fill(Palette.hairline).frame(height: 1) }
     }
 
-    private var formatPicker: some View {
-        HStack(spacing: 0) {
-            formatButton(.photo)
-            formatButton(.postcard)
+    /// The four postcard styles, drawn as small finished postcards using the
+    /// photo being edited.
+    private var framePicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 12) {
+                ForEach(PostcardFrameStyle.allCases.filter { $0 != .none }) { style in
+                    frameTile(style)
+                }
+            }
+            .padding(.horizontal, 16)
         }
-        .frame(height: EditorChromeMetrics.finishFormatRowHeight)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Postcard style")
     }
 
-    private func formatButton(_ choice: FinishFormat) -> some View {
-        Button {
-            format = choice
-            if choice == .postcard, recipe.frameStyle == .none {
-                recipe.frameID = PostcardFrameStyle.classicInstant.rawValue
-            }
-            TumbleAnalytics.shared.capture(.finishFormatSelected(format: choice.rawValue))
+    private func frameTile(_ style: PostcardFrameStyle) -> some View {
+        let selected = activeFrame == style
+        let width = EditorChromeMetrics.frameTileWidth
+        let aspect = style.renderAspect(hasNote: false)
+        return Button {
+            guard !selected else { return }
+            Haptics.selection()
+            selectFrame(style)
         } label: {
-            Text(choice.title)
-                .font(Typography.sans(13, weight: .bold))
-                .foregroundStyle(format == choice ? Palette.gold : Palette.cream.opacity(0.64))
-            .frame(maxWidth: .infinity)
-            .frame(height: EditorChromeMetrics.minimumHitTarget)
-            .overlay(alignment: .bottom) {
-                Capsule()
-                    .fill(format == choice ? Palette.gold : Color.clear)
-                    .frame(width: 56, height: 3)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(format == choice ? .isSelected : [])
-    }
-
-    private var postcardControls: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(spacing: 4) {
-                    styleMenu
-                    noteField
-                }
-            } else {
-                HStack(spacing: 8) {
-                    styleMenu
-                    noteField
-                }
-            }
-        }
-    }
-
-    private var styleMenu: some View {
-        Menu {
-            ForEach(PostcardFrameStyle.allCases.filter { $0 != .none }) { style in
-                Button {
-                    selectFrame(style)
-                } label: {
-                    if activeFrame == style {
-                        Label(style.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(style.displayName)
+            VStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(selected ? Palette.cream.opacity(0.10) : Palette.surfaceRaised)
+                    if let filmPreview {
+                        PostcardFrameView(
+                            style: style,
+                            image: filmPreview,
+                            note: nil,
+                            capturedAt: draft.capturedAt,
+                            seed: draft.id.stableSeed,
+                            width: width
+                        )
+                        .frame(width: width, height: width * aspect)
+                        .allowsHitTesting(false)
                     }
                 }
+                .frame(width: width + 16, height: width * 1.3 + 12)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(selected ? Palette.amber : Palette.hairline, lineWidth: selected ? 2 : 1)
+                }
+                Text(style.shortName)
+                    .font(selected ? Typography.captionEmphasized : Typography.caption)
+                    .foregroundStyle(selected ? Palette.amber : Palette.textSecondary)
+                    .lineLimit(1)
             }
-        } label: {
-            HStack(spacing: 5) {
-                Text(activeFrame.shortName)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8, weight: .bold))
-            }
-            .font(Typography.sans(11, weight: .bold))
-            .foregroundStyle(Palette.cream)
-            .padding(.horizontal, 12)
-            .frame(height: EditorChromeMetrics.minimumHitTarget)
-            .background(Palette.cream.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
-            .frame(
-                maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil,
-                alignment: .leading
-            )
             .contentShape(Rectangle())
         }
-        .accessibilityLabel("Postcard style")
-        .accessibilityValue(activeFrame.displayName)
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(style.displayName)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var noteField: some View {
-        TextField("Write something small…", text: Binding(
-            get: { recipe.note },
-            set: { recipe.note = PostcardNote.clamp($0) }
-        ))
-        .font(Typography.script(18))
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .foregroundStyle(Palette.ink)
-        .focused($noteFocused)
-        .submitLabel(.done)
-        .onSubmit { noteFocused = false }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity)
+        HStack(spacing: 8) {
+            TextField("Add a note", text: Binding(
+                get: { recipe.note },
+                set: { recipe.note = PostcardNote.clamp($0) }
+            ))
+            .font(Typography.script(20))
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .foregroundStyle(Palette.ink)
+            .focused($noteFocused)
+            .submitLabel(.done)
+            .onSubmit { noteFocused = false }
+            .accessibilityLabel("Postcard note")
+
+            if noteFocused || !recipe.note.isEmpty {
+                Text("\(recipe.note.count)/\(PostcardNote.maxLength)")
+                    .font(Typography.caption.monospacedDigit())
+                    .foregroundStyle(Palette.ink.opacity(0.55))
+                    .accessibilityLabel("\(PostcardNote.maxLength - recipe.note.count) characters left")
+            }
+        }
+        .padding(.horizontal, 12)
         .frame(height: EditorChromeMetrics.minimumHitTarget)
-        .background(Palette.printStock, in: RoundedRectangle(cornerRadius: 11))
+        .background(Palette.printStock, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .contentShape(Rectangle())
+        .onTapGesture { noteFocused = true }
     }
 
     private func selectFrame(_ style: PostcardFrameStyle) {
@@ -319,47 +292,53 @@ struct FinishView: View {
 
     private var actionBar: some View {
         HStack(spacing: 10) {
-            actionButton(
-                .share,
-                title: "Share",
-                icon: "square.and.arrow.up",
-                primary: false
-            )
-            Spacer(minLength: 0)
-            actionButton(
-                .save,
-                title: premium ? "Unlock to Save" : "Save",
-                icon: premium ? "lock.fill" : "arrow.down.to.line.compact",
-                primary: true
-            )
+            Button { request(.share) } label: {
+                actionLabel(.share, title: "Share", icon: premium ? "lock.fill" : "square.and.arrow.up", primary: false)
+            }
+            .buttonStyle(SecondaryButtonStyle(height: EditorChromeMetrics.finishActionHeight))
+            .frame(maxWidth: 140)
+            .accessibilityLabel("Share")
+
+            Button { request(.save) } label: {
+                actionLabel(
+                    .save,
+                    title: premium ? "Unlock to Save" : "Save",
+                    icon: premium ? "lock.fill" : "arrow.down.to.line",
+                    primary: true
+                )
+            }
+            .buttonStyle(PrimaryButtonStyle(height: EditorChromeMetrics.finishActionHeight))
+            .accessibilityLabel(premium ? "Unlock to Save" : "Save")
         }
-        .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
-        .padding(.vertical, 4)
-        .background(Palette.blueDeep.opacity(0.98))
-        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
+        .disabled(busy || filmPreview == nil || showSaved)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
     }
 
-    private func actionButton(_ action: FinishAction, title: String, icon: String, primary: Bool) -> some View {
-        Button {
-            request(action)
-        } label: {
-            HStack(spacing: 7) {
-                if busy && pendingAction == action { ProgressView().tint(primary ? Palette.ink : Palette.cream) }
-                else { Image(systemName: icon) }
-                Text(title)
+    private func actionLabel(_ action: FinishAction, title: String, icon: String, primary: Bool) -> some View {
+        HStack(spacing: 7) {
+            if busy && pendingAction == action {
+                ProgressView().tint(primary ? Palette.ink : Palette.cream)
+            } else {
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold))
             }
-            .font(Typography.sans(13, weight: .bold))
-            .foregroundStyle(primary ? Palette.ink : Palette.cream)
-            .frame(maxWidth: .infinity)
-            .frame(height: EditorChromeMetrics.finishActionVisualHeight)
-            .background(
-                primary ? Palette.gold : Palette.cream.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: EditorChromeMetrics.finishActionCornerRadius)
-            )
-            .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
-            .contentShape(Rectangle())
+            Text(title)
         }
-        .disabled(busy || filmPreview == nil)
+    }
+
+    private var savedConfirmation: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 44, weight: .regular))
+                .foregroundStyle(Palette.amber)
+            Text("Saved to Photos")
+                .font(Typography.headline)
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 22)
+        .background(Palette.surfaceRaised.opacity(0.96), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     private func request(_ action: FinishAction) {
@@ -371,15 +350,6 @@ struct FinishView: View {
         }
         TumbleAnalytics.shared.capture(.exportStarted(format: formatName, action: action.rawValue, premium: false))
         Task { await perform(action) }
-    }
-
-    private var finishDockHeight: CGFloat {
-        if dynamicTypeSize.isAccessibilitySize, format == .postcard {
-            return EditorChromeMetrics.finishAccessibilityDockHeight
-        }
-        return format == .postcard
-            ? EditorChromeMetrics.finishPostcardDockHeight
-            : EditorChromeMetrics.finishPhotoDockHeight
     }
 
     private func perform(_ action: FinishAction) async {
@@ -416,6 +386,9 @@ struct FinishView: View {
                 TumbleAnalytics.shared.capture(.postcardConfigured(frameStyle: activeFrame.rawValue, hasNote: !recipe.note.isEmpty))
             }
             ReviewPrompter.shared.recordSuccessfulExport()
+            Haptics.success()
+            showSaved = true
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 600 : 900))
             await app.drafts.discard()
             onSaved()
         }
@@ -481,6 +454,7 @@ private enum FinishFormat: String {
     case postcard
 
     var title: String { rawValue.capitalized }
+    var icon: String { self == .photo ? "photo" : "rectangle.portrait.on.rectangle.portrait" }
 }
 
 private enum FinishAction: String, Equatable {

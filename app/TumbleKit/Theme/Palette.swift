@@ -18,6 +18,32 @@ public enum Palette {
 
     /// The cream stock a developed print is mounted on.
     public static let printStock = Color(hex: 0xF4ECDA)
+
+    // MARK: Editor surfaces
+    //
+    // Editing screens sit on near-neutral graphite so film color is judged
+    // against something that does not tint it. The navy "graincore" palette
+    // above stays for brand surfaces (Home, introduction, paywall).
+
+    /// Behind the photograph being edited.
+    public static let canvas = Color(hex: 0x0D0E10)
+    /// Docks, bars and sheets on editing screens.
+    public static let surface = Color(hex: 0x16181B)
+    /// Chips, fields and thumbnails placed on `surface`.
+    public static let surfaceRaised = Color(hex: 0x1F2226)
+    /// One-pixel separators on either palette.
+    public static let hairline = cream.opacity(0.08)
+
+    // MARK: Text
+
+    public static let textPrimary = cream
+    /// Supporting copy. Meets 4.5:1 on `surface`, `canvas` and `blueDeep`.
+    public static let textSecondary = cream.opacity(textSecondaryOpacity)
+    /// De-emphasised labels; never used below 13 pt.
+    public static let textTertiary = cream.opacity(textTertiaryOpacity)
+
+    public static let textSecondaryOpacity = 0.72
+    public static let textTertiaryOpacity = 0.56
 }
 
 public extension Color {

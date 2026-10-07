@@ -25,6 +25,12 @@ struct StudioView: View {
     @State private var sourceData: Data?
     @State private var previewWorker = StudioPreviewWorker()
     @State private var selectedPackID: String
+    @State private var amountBeforeAdjusting: Double = 1
+    @State private var previewStockID: String?
+    @State private var previewIsStale = false
+    @State private var cropBase: UIImage?
+    @State private var cropBaseRecipe: EditRecipe?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(FilmStockCatalog.storageKey) private var lastSelectedStockID = FilmStockCatalog.defaultStock.id
 
     init(draft: EditDraft, onSaved: @escaping () -> Void) {
@@ -44,25 +50,22 @@ struct StudioView: View {
 
     var body: some View {
         ZStack {
-            GraincoreBackground()
-            GeometryReader { proxy in
-                let dockHeight = studioDockHeight
-                VStack(spacing: 0) {
-                    topBar.frame(height: EditorChromeMetrics.topBarHeight)
-                    previewSurface
-                        .frame(maxHeight: .infinity)
-                        .layoutPriority(1)
-                        .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
-                        .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
-                    editorDock.frame(height: dockHeight)
-                }
+            EditorBackground()
+            VStack(spacing: 0) {
+                topBar
+                canvas
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .layoutPriority(1)
+                editorDock
+                    .frame(height: dockHeight)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             }
         }
-        .safeAreaPadding(.top, 2)
         .interactiveDismissDisabled()
         .task {
             sourceData = await app.drafts.sourceData(for: draft)
             await renderPreview(requestedRecipe: recipe)
+            if selectedTool == .crop { await renderCropBase() }
             TumbleAnalytics.shared.screen(.studio)
             TumbleAnalytics.shared.capture(.studioOpened(
                 source: draft.sourceKind.rawValue,
@@ -71,10 +74,29 @@ struct StudioView: View {
         }
         .onChange(of: recipe) { oldValue, value in
             app.drafts.update(value)
+            let geometryOnly = oldValue.stockID == value.stockID
+                && oldValue.intensity == value.intensity
+                && oldValue.quarterTurns == value.quarterTurns
+            if selectedTool == .crop, geometryOnly {
+                // The crop canvas draws geometry live; refresh the finished
+                // preview once, when the crop tool is left.
+                previewIsStale = true
+                return
+            }
             schedulePreviewRender(
                 value,
                 debounce: oldValue.stockID == value.stockID ? .milliseconds(45) : .zero
             )
+            if selectedTool == .crop { Task { await renderCropBase() } }
+        }
+        .onChange(of: selectedTool) { _, tool in
+            adjustingAmount = false
+            if tool == .crop {
+                Task { await renderCropBase() }
+            } else if previewIsStale {
+                previewIsStale = false
+                schedulePreviewRender(recipe, debounce: .zero)
+            }
         }
         .onAppear { TumbleAnalytics.shared.pauseReplay() }
         .onDisappear {
@@ -102,274 +124,271 @@ struct StudioView: View {
         }
     }
 
-    private var topBar: some View {
-        HStack(spacing: 7) {
-            Button { showDiscard = true } label: {
-                ZStack {
-                    Circle()
-                        .fill(Palette.cream.opacity(0.09))
-                        .frame(
-                            width: EditorChromeMetrics.topBarControlVisual,
-                            height: EditorChromeMetrics.topBarControlVisual
-                        )
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .frame(
-                    width: EditorChromeMetrics.minimumHitTarget,
-                    height: EditorChromeMetrics.minimumHitTarget
-                )
-                .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Cancel editing")
+    // MARK: Top bar
 
-            Text(recipe.stock.name)
-                .font(Typography.sans(12, weight: .bold))
-                .lineLimit(1)
-            Spacer()
+    private var topBar: some View {
+        EditorTopBar(title: selectedTool == .crop ? "Crop" : nil) {
+            IconButton("xmark", accessibilityLabel: "Cancel editing") { showDiscard = true }
+        } trailing: {
+            if selectedTool == .film { compareButton }
             Button { openFinish() } label: {
-                ZStack {
-                    Capsule().fill(Palette.gold)
-                        .frame(height: EditorChromeMetrics.topBarPrimaryVisualHeight)
-                    HStack(spacing: 4) {
-                        Text("Next")
-                        Image(systemName: "arrow.right")
-                    }
-                    .padding(.horizontal, 12)
+                HStack(spacing: 5) {
+                    Text("Next")
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .bold))
                 }
-                .font(Typography.sans(12, weight: .bold))
-                .foregroundStyle(Palette.ink)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(height: EditorChromeMetrics.minimumHitTarget)
-                .contentShape(Rectangle())
             }
+            .buttonStyle(PrimaryButtonStyle(fill: false, height: EditorChromeMetrics.topBarPrimaryVisualHeight))
+            .accessibilityLabel("Next")
             .disabled(preview == nil)
         }
-        .foregroundStyle(Palette.cream)
-        .padding(.horizontal, EditorChromeMetrics.horizontalPadding)
     }
 
-    private var previewSurface: some View {
+    private var compareButton: some View {
+        Button {
+            showingOriginal.toggle()
+            Haptics.selection()
+            if showingOriginal { TumbleAnalytics.shared.capture(.originalComparisonUsed) }
+        } label: {
+            Image(systemName: "circle.lefthalf.filled")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(showingOriginal ? Palette.ink : Palette.textPrimary)
+                .frame(width: EditorChromeMetrics.iconButtonVisual, height: EditorChromeMetrics.iconButtonVisual)
+                .background(showingOriginal ? Palette.cream : Palette.surfaceRaised, in: Circle())
+                .overlay(Circle().stroke(Palette.hairline))
+                .frame(width: EditorChromeMetrics.minimumHitTarget, height: EditorChromeMetrics.minimumHitTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel("Compare")
+        .accessibilityValue(showingOriginal ? "Showing original" : "Showing film")
+        .accessibilityHint("Double tap to switch between Original and Film. Touch and hold the photo to peek.")
+    }
+
+    // MARK: Canvas
+
+    @ViewBuilder private var canvas: some View {
+        switch selectedTool {
+        case .crop:
+            CropCanvas(base: cropBase, recipe: $recipe)
+                .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
+                .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
+                .transition(.opacity)
+        case .film:
+            resultCanvas
+                .transition(.opacity)
+        }
+    }
+
+    private var resultCanvas: some View {
         ZStack {
-            Color.black.opacity(0.34)
             if let image = shownImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .padding(8)
+                    .id(showsOriginal ? "original" : (previewStockID ?? recipe.stockID))
+                    .transition(.opacity)
+                    .accessibilityLabel(showsOriginal ? "Original photo" : "Photo with \(recipe.stock.name)")
             } else {
-                ProgressView().tint(Palette.gold)
-            }
-            VStack {
-                Spacer()
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text((showingOriginal || pressingOriginal) ? "ORIGINAL" : recipe.stock.name.uppercased())
-                            .font(Typography.sans(9, weight: .bold))
-                            .tracking(1)
-                        if !showingOriginal && !pressingOriginal {
-                            Text(recipe.stock.blurb)
-                                .font(Typography.sans(9))
-                                .lineLimit(1)
-                        }
-                    }
-                    .foregroundStyle(Palette.cream)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 6)
-                    .background(.black.opacity(0.62), in: RoundedRectangle(cornerRadius: 10))
-                    .frame(maxWidth: 200, alignment: .leading)
-                    Spacer()
-                    Button {
-                        showingOriginal.toggle()
-                        if showingOriginal { TumbleAnalytics.shared.capture(.originalComparisonUsed) }
-                    } label: {
-                        Label("Compare", systemImage: "circle.lefthalf.filled")
-                            .font(Typography.sans(9, weight: .bold))
-                            .padding(.horizontal, 8)
-                            .frame(height: 28)
-                            .background(Palette.cream.opacity(0.90), in: Capsule())
-                            .foregroundStyle(Palette.ink)
-                            .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
-                            .contentShape(Rectangle())
-                    }
-                    .accessibilityHint("Double tap to switch between Original and Film")
-                }
-                .padding(8)
+                ProgressView().tint(Palette.amber)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: EditorChromeMetrics.canvasCornerRadius, style: .continuous)
-                .stroke(Palette.cream.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.20), radius: 12, y: 7)
+        .animation(Motion.fade, value: previewStockID)
+        .animation(Motion.fade, value: showsOriginal)
+        .padding(.horizontal, EditorChromeMetrics.canvasHorizontalPadding)
+        .padding(.vertical, EditorChromeMetrics.canvasVerticalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
         .onLongPressGesture(minimumDuration: 0.08, maximumDistance: 44, pressing: { pressed in
             if pressed, !pressingOriginal {
                 TumbleAnalytics.shared.capture(.originalComparisonUsed)
             }
             pressingOriginal = pressed
         }, perform: {})
+        .overlay(alignment: .topLeading) {
+            if showsOriginal {
+                Text("Original")
+                    .trackedLabel()
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(.black.opacity(0.6), in: Capsule())
+                    .padding(EditorChromeMetrics.overlayInset)
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
+            }
+        }
     }
+
+    // MARK: Dock
 
     private var editorDock: some View {
         VStack(spacing: 0) {
-            if adjustingAmount && selectedTool == .film {
-                filmBrowserHeader
-                    .padding(.horizontal, 16)
-                    .frame(height: EditorChromeMetrics.filmBrowserHeaderHeight)
-                amountPanel
-                    .padding(.horizontal, 18)
-                    .frame(maxHeight: .infinity)
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    toolPanel
-                        .padding(.horizontal, EditorChromeMetrics.dockHorizontalPadding)
-                        .padding(.vertical, selectedTool == .film ? 2 : EditorChromeMetrics.dockVerticalPadding)
+            Group {
+                switch selectedTool {
+                case .film:
+                    if adjustingAmount {
+                        amountPanel
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        filmBrowser
+                            .transition(.opacity)
+                    }
+                case .crop:
+                    cropControls
+                        .transition(.opacity)
                 }
-                .frame(height: max(0, studioDockHeight - EditorChromeMetrics.toolSwitcherHeight))
-                .scrollBounceBehavior(.basedOnSize)
-
-                toolSwitcher
-                    .frame(height: EditorChromeMetrics.toolSwitcherHeight)
             }
+            .frame(maxHeight: .infinity)
+
+            SegmentedPill(
+                options: StudioTool.allCases,
+                selection: selectedTool,
+                title: { $0.title },
+                icon: { $0.icon }
+            ) { selectedTool = $0 }
+            .padding(.horizontal, 16)
+            .frame(height: EditorChromeMetrics.toolSwitcherHeight)
         }
-        .background(Palette.blueDeep.opacity(0.98))
-        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
-        .clipped()
+        .padding(.bottom, 2)
+        .background(Palette.surface.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) { Rectangle().fill(Palette.hairline).frame(height: 1) }
+        .animation(Motion.spring(reduceMotion: reduceMotion), value: adjustingAmount)
+        .animation(Motion.fade, value: selectedTool)
     }
 
-    private var toolSwitcher: some View {
-        HStack(spacing: 0) {
-            ForEach(StudioTool.allCases) { tool in
-                Button {
-                    withAnimation(.easeOut(duration: 0.18)) { selectedTool = tool }
-                } label: {
-                    Label(tool.title, systemImage: tool.icon)
-                    .font(Typography.sans(12, weight: selectedTool == tool ? .bold : .semibold))
-                    .foregroundStyle(selectedTool == tool ? Palette.gold : Palette.cream.opacity(0.68))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: EditorChromeMetrics.minimumHitTarget)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selectedTool == tool ? .isSelected : [])
-            }
-        }
-        .overlay(alignment: .top) { Divider().overlay(Palette.cream.opacity(0.08)) }
-        .frame(height: EditorChromeMetrics.toolSwitcherHeight)
-    }
-
-    @ViewBuilder private var toolPanel: some View {
-        switch selectedTool {
-        case .film:
-            filmControls
-        case .crop:
-            cropControls
-        }
-    }
-
-    private var filmControls: some View {
+    private var filmBrowser: some View {
         VStack(alignment: .leading, spacing: 4) {
-            filmBrowserHeader
-                .padding(.horizontal, 6)
-                .frame(height: EditorChromeMetrics.filmBrowserHeaderHeight)
-            filmPicker
-        }
-        .foregroundStyle(Palette.cream)
-    }
-
-    private var filmBrowserHeader: some View {
-        HStack(spacing: 12) {
-            Menu {
-                ForEach(FilmStockCatalog.packs) { pack in
-                    Button {
-                        selectPack(pack.id)
-                    } label: {
-                        if selectedPackID == pack.id {
-                            Label(pack.name, systemImage: "checkmark")
-                        } else {
-                            Text(pack.name)
+            HStack(spacing: 6) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(FilmStockCatalog.packs) { pack in
+                            Chip(title: pack.name, selected: selectedPackID == pack.id) {
+                                Haptics.selection()
+                                withAnimation(Motion.fade) { selectedPackID = pack.id }
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(FilmStockCatalog.packs.first(where: { $0.id == selectedPackID })?.name ?? "Films")
-                        .font(Typography.display(18))
-                        .lineLimit(1)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Palette.gold)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Film collection")
+
+                IconButton("slider.horizontal.3", accessibilityLabel: "Adjust film amount") { beginAdjustingAmount() }
+                    .padding(.trailing, 8)
+            }
+            filmPicker
+        }
+        .padding(.top, 6)
+        .foregroundStyle(Palette.textPrimary)
+    }
+
+    private var filmPicker: some View {
+        ScrollViewReader { reader in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(
+                        FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == selectedPackID })?.stocks ?? []
+                    ) { stock in
+                        FilmThumbnailCard(
+                            stock: stock,
+                            sourceData: sourceData,
+                            draftID: draft.id,
+                            capturedAt: draft.capturedAt,
+                            selected: recipe.stockID == stock.id,
+                            amount: recipe.intensity,
+                            premium: !app.purchases.isUnlocked(stock)
+                        ) {
+                            if recipe.stockID == stock.id {
+                                beginAdjustingAmount()
+                            } else {
+                                selectFilm(stock)
+                            }
+                        }
+                        .id(stock.id)
+                    }
                 }
-                .foregroundStyle(Palette.cream)
-                .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
-                .contentShape(Rectangle())
+                .padding(.horizontal, 16)
             }
-            .accessibilityLabel("Film collection")
-            .accessibilityValue(FilmStockCatalog.packs.first(where: { $0.id == selectedPackID })?.name ?? "Films")
-
-            Spacer(minLength: 8)
-
-            Button {
-                withAnimation(.easeOut(duration: 0.16)) { adjustingAmount.toggle() }
-            } label: {
-                Text(adjustingAmount ? "Done" : "Amount \(Int(recipe.intensity * 100))")
-                    .font(Typography.sans(12, weight: .bold))
-                    .foregroundStyle(Palette.gold)
-                    .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
-                    .contentShape(Rectangle())
+            .onAppear { reader.scrollTo(recipe.stockID, anchor: .center) }
+            .onChange(of: selectedPackID) { _, _ in
+                reader.scrollTo(recipe.stockID, anchor: .center)
             }
-            .accessibilityLabel(adjustingAmount ? "Done adjusting film amount" : "Adjust film amount")
         }
     }
 
     private var amountPanel: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(recipe.stock.name)
-                    .font(Typography.sans(13, weight: .bold))
-                if !app.purchases.isUnlocked(recipe.stock) {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Palette.gold)
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                IconButton("xmark", accessibilityLabel: "Cancel film amount") {
+                    recipe.intensity = amountBeforeAdjusting
+                    adjustingAmount = false
                 }
-                Spacer()
-                Text("\(Int(recipe.intensity * 100))%")
-                    .font(Typography.sans(12, weight: .bold))
-                    .monospacedDigit()
+                Spacer(minLength: 0)
+                VStack(spacing: 2) {
+                    HStack(spacing: 5) {
+                        Text(recipe.stock.name)
+                            .font(Typography.headline)
+                        if !app.purchases.isUnlocked(recipe.stock) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Palette.amber)
+                                .accessibilityLabel("Tumble Complete")
+                        }
+                    }
+                    Text(recipe.stock.blurb)
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Palette.textPrimary)
+                Spacer(minLength: 0)
+                IconButton("checkmark", accessibilityLabel: "Done adjusting film amount") {
+                    adjustingAmount = false
+                }
             }
-            .foregroundStyle(Palette.cream)
-            CompactAmountSlider(value: $recipe.intensity)
+            .padding(.horizontal, 8)
+
+            HStack(spacing: 14) {
+                CompactAmountSlider(value: $recipe.intensity)
+                Text("\(Int((recipe.intensity * 100).rounded()))")
+                    .font(.system(.title3, design: .rounded, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Palette.textPrimary)
+                    .frame(width: 48, alignment: .trailing)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 20)
         }
+        .frame(maxHeight: .infinity)
     }
 
     private var cropControls: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    sectionTitle("Crop")
-                    Text("Choose the final composition")
-                        .font(Typography.sans(9))
-                        .foregroundStyle(Palette.cream.opacity(0.45))
+        VStack(spacing: 6) {
+            HStack(spacing: 4) {
+                IconButton("rotate.right", accessibilityLabel: "Rotate") { rotateQuarterTurn() }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(CropPreset.allCases) { preset in
+                            Chip(title: preset.label, selected: recipe.cropPreset == preset) {
+                                selectCropPreset(preset)
+                            }
+                            .accessibilityLabel(preset.accessibilityName)
+                        }
+                    }
+                    .padding(.horizontal, 4)
                 }
-                Spacer()
-                Button { recipe.quarterTurns = (recipe.quarterTurns + 1) % 4 } label: {
-                    Label("Rotate", systemImage: "rotate.right")
-                        .font(Typography.sans(11, weight: .bold))
-                        .foregroundStyle(Palette.gold)
-                        .frame(height: EditorChromeMetrics.minimumHitTarget)
-                        .contentShape(Rectangle())
-                }
+                IconButton("arrow.counterclockwise", accessibilityLabel: "Reset crop") { resetGeometry() }
             }
-            chipRow(CropPreset.allCases, selection: recipe.cropPreset) { preset in
-                recipe.cropPreset = preset
-                if preset != .freeform { recipe.crop = .full }
-            } label: { $0.label }
+            .padding(.horizontal, 8)
 
-            if recipe.cropPreset == .freeform { freeformControls }
+            StraightenRuler(degrees: $recipe.straighten)
+                .padding(.horizontal, 16)
         }
-        .foregroundStyle(Palette.cream)
+        .padding(.top, 6)
+        .frame(maxHeight: .infinity, alignment: .top)
     }
+
+    // MARK: Actions
 
     private func openFinish() {
         app.drafts.update(recipe)
@@ -380,10 +399,10 @@ struct StudioView: View {
         showFinish = true
     }
 
-    private func selectPack(_ packID: String) {
-        guard let firstStock = FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == packID })?.stocks.first else { return }
-        selectedPackID = packID
-        selectFilm(firstStock)
+    private func beginAdjustingAmount() {
+        amountBeforeAdjusting = recipe.intensity
+        Haptics.selection()
+        adjustingAmount = true
     }
 
     private func selectFilm(_ stock: FilmStock) {
@@ -391,7 +410,7 @@ struct StudioView: View {
         selectedPackID = stock.packID
         lastSelectedStockID = stock.id
         showingOriginal = false
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
         TumbleAnalytics.shared.capture(.filmPreviewed(
             filmStockID: stock.id,
             packID: stock.packID,
@@ -399,106 +418,50 @@ struct StudioView: View {
         ))
     }
 
-    private var filmPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 8) {
-                ForEach(
-                    FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == selectedPackID })?.stocks ?? []
-                ) { stock in
-                    FilmThumbnailCard(
-                        stock: stock,
-                        sourceData: sourceData,
-                        draftID: draft.id,
-                        capturedAt: draft.capturedAt,
-                        selected: recipe.stockID == stock.id,
-                        premium: !app.purchases.isUnlocked(stock)
-                    ) {
-                        selectFilm(stock)
-                    }
-                }
-            }
+    private var cropBaseAspect: Double {
+        guard let cropBase, cropBase.size.height > 0 else { return 1 }
+        return cropBase.size.width / cropBase.size.height
+    }
+
+    private func selectCropPreset(_ preset: CropPreset) {
+        guard preset != recipe.cropPreset else { return }
+        Haptics.selection()
+        let current = CropGeometry.effectiveCrop(for: recipe, imageAspect: cropBaseAspect)
+        withAnimation(Motion.spring(reduceMotion: reduceMotion)) {
+            recipe.cropPreset = preset
+            // Free keeps whatever is framed now; a locked shape starts as the
+            // largest centered crop of that shape.
+            recipe.crop = preset == .freeform ? current : .full
         }
     }
 
-    private var freeformControls: some View {
-        VStack(spacing: 6) {
-            cropSlider("Width", value: $recipe.crop.width)
-            cropSlider("Height", value: $recipe.crop.height)
-            cropSlider("Horizontal", value: Binding(
-                get: { recipe.crop.x },
-                set: { recipe.crop.x = min(1 - recipe.crop.width, $0) }
-            ), upper: max(0.001, 1 - recipe.crop.width))
-            cropSlider("Vertical", value: Binding(
-                get: { recipe.crop.y },
-                set: { recipe.crop.y = min(1 - recipe.crop.height, $0) }
-            ), upper: max(0.001, 1 - recipe.crop.height))
-        }
-        .padding(8)
-        .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 12))
+    private func rotateQuarterTurn() {
+        Haptics.selection()
+        recipe.quarterTurns = (recipe.quarterTurns + 1) % 4
+        // The image changes shape, so any drawn crop no longer applies.
+        recipe.crop = .full
     }
 
-    private func cropSlider(_ name: String, value: Binding<Double>, upper: Double = 1) -> some View {
-        HStack {
-            Text(name).font(Typography.sans(10, weight: .semibold)).frame(width: 68, alignment: .leading)
-            Slider(value: value, in: (name == "Width" || name == "Height" ? 0.2 : 0)...upper)
-                .tint(Palette.gold)
+    private func resetGeometry() {
+        Haptics.soft()
+        withAnimation(Motion.spring(reduceMotion: reduceMotion)) {
+            recipe.cropPreset = .original
+            recipe.crop = .full
+            recipe.quarterTurns = 0
+            recipe.straighten = 0
         }
     }
 
-    private func chipRow<T: Identifiable & Equatable>(
-        _ values: [T], selection: T, action: @escaping (T) -> Void, label: @escaping (T) -> String
-    ) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
-                ForEach(values) { value in
-                    Button(label(value)) { action(value) }
-                        .font(Typography.sans(11, weight: .semibold))
-                        .foregroundStyle(selection == value ? Palette.gold : Palette.cream.opacity(0.70))
-                        .frame(minWidth: 54)
-                        .frame(height: EditorChromeMetrics.minimumHitTarget)
-                        .overlay(alignment: .bottom) {
-                            Capsule()
-                                .fill(selection == value ? Palette.gold : Color.clear)
-                                .frame(width: 30, height: 3)
-                        }
-                        .contentShape(Rectangle())
-                }
-            }
-        }
-    }
+    // MARK: Derived
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(Typography.display(18)).foregroundStyle(Palette.cream)
-    }
+    private var showsOriginal: Bool { showingOriginal || pressingOriginal }
 
-    private var shownImage: UIImage? { (showingOriginal || pressingOriginal) ? originalPreview : preview }
+    private var shownImage: UIImage? { showsOriginal ? originalPreview : preview }
 
-    private var compactToolNeedsRoom: Bool {
-        selectedTool == .crop && recipe.cropPreset == .freeform
-    }
-
-    private var studioDockHeight: CGFloat {
-        if adjustingAmount && selectedTool == .film {
-            return EditorChromeMetrics.studioAmountDockHeight
-        }
-        if dynamicTypeSize.isAccessibilitySize {
-            switch selectedTool {
-            case .film:
-                return EditorChromeMetrics.studioFilmAccessibilityDockHeight
-            case .crop:
-                return compactToolNeedsRoom
-                    ? EditorChromeMetrics.studioFilmAccessibilityDockHeight
-                    : EditorChromeMetrics.studioCompositionAccessibilityDockHeight
-            }
-        }
-        switch selectedTool {
-        case .film:
-            return EditorChromeMetrics.studioFilmDockHeight
-        case .crop:
-            return compactToolNeedsRoom
-                ? EditorChromeMetrics.studioFreeformDockHeight
-                : EditorChromeMetrics.studioCompositionDockHeight
-        }
+    private var dockHeight: CGFloat {
+        if dynamicTypeSize.isAccessibilitySize { return EditorChromeMetrics.studioDockAccessibilityHeight }
+        if dynamicTypeSize >= .xLarge { return EditorChromeMetrics.studioDockLargeTextHeight }
+        return EditorChromeMetrics.studioDockHeight
     }
 
     private func schedulePreviewRender(_ requestedRecipe: EditRecipe, debounce: Duration) {
@@ -534,18 +497,36 @@ struct StudioView: View {
         ) else { return }
         guard !Task.isCancelled, requestedRecipe == recipe else { return }
         preview = rendered.preview
+        previewStockID = requestedRecipe.stockID
         if let original = rendered.original {
             originalPreview = original
             originalPreviewRecipe = sourceRecipe
         }
     }
 
+
+    /// The film-rendered photo after quarter turns, before straightening and
+    /// cropping: what the crop canvas draws its geometry over.
+    private func renderCropBase() async {
+        guard let data = sourceData else { return }
+        var baseRecipe = recipe
+        baseRecipe.straighten = 0
+        baseRecipe.cropPreset = .original
+        baseRecipe.crop = .full
+        baseRecipe.frameID = PostcardFrameStyle.none.rawValue
+        baseRecipe.note = ""
+        guard baseRecipe != cropBaseRecipe else { return }
+        let capturedAt = draft.capturedAt
+        guard let image = await previewWorker.renderBase(data: data, recipe: baseRecipe, capturedAt: capturedAt) else { return }
+        cropBase = image
+        cropBaseRecipe = baseRecipe
+    }
 }
 
 private struct CompactAmountSlider: View {
     @Binding var value: Double
 
-    private let knobDiameter: CGFloat = 18
+    private let knobDiameter: CGFloat = 22
 
     var body: some View {
         GeometryReader { proxy in
@@ -555,14 +536,14 @@ private struct CompactAmountSlider: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Palette.cream.opacity(0.16))
-                    .frame(height: 3)
+                    .frame(height: 4)
                 Capsule()
-                    .fill(Palette.gold)
-                    .frame(width: knobCenter, height: 3)
+                    .fill(Palette.amber)
+                    .frame(width: knobCenter, height: 4)
                 Circle()
                     .fill(Palette.cream)
                     .frame(width: knobDiameter, height: knobDiameter)
-                    .shadow(color: .black.opacity(0.22), radius: 2, y: 1)
+                    .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
                     .offset(x: knobCenter - (knobDiameter / 2))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -570,14 +551,16 @@ private struct CompactAmountSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        value = min(1, max(0, (gesture.location.x - knobDiameter / 2) / travel))
+                        let next = min(1, max(0, (gesture.location.x - knobDiameter / 2) / travel))
+                        if (value < 1 && next >= 1) || (value > 0 && next <= 0) { Haptics.soft() }
+                        value = next
                     }
             )
         }
         .frame(height: EditorChromeMetrics.minimumHitTarget)
         .accessibilityElement()
         .accessibilityLabel("Film amount")
-        .accessibilityValue("\(Int(value * 100)) percent")
+        .accessibilityValue("\(Int((value * 100).rounded())) percent")
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: value = min(1, value + 0.05)
@@ -594,6 +577,7 @@ private struct FilmThumbnailCard: View {
     let draftID: UUID
     let capturedAt: Date
     let selected: Bool
+    let amount: Double
     let premium: Bool
     let action: () -> Void
 
@@ -601,45 +585,62 @@ private struct FilmThumbnailCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 6) {
                 Group {
                     if let image {
                         Image(uiImage: image).resizable().scaledToFill()
                     } else {
-                        Color.black.opacity(0.24).overlay(ProgressView().tint(Palette.gold))
+                        Palette.surfaceRaised.overlay(ProgressView().tint(Palette.amber))
                     }
                 }
                 .frame(
                     width: EditorChromeMetrics.filmThumbnailWidth,
                     height: EditorChromeMetrics.filmThumbnailHeight
                 )
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 9)
-                        .stroke(selected ? Palette.gold : Palette.cream.opacity(0.12), lineWidth: selected ? 2 : 1)
-                }
-                .overlay(alignment: .topTrailing) {
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(alignment: .bottomTrailing) {
                     if premium {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Palette.ink)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Palette.textPrimary)
                             .frame(width: 20, height: 20)
-                            .background(Palette.gold, in: Circle())
+                            .background(.black.opacity(0.6), in: Circle())
                             .padding(5)
                     }
                 }
+                .overlay(alignment: .bottomLeading) {
+                    if selected {
+                        HStack(spacing: 3) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 9, weight: .bold))
+                            Text("\(Int((amount * 100).rounded()))")
+                                .font(.system(size: 11, weight: .bold).monospacedDigit())
+                        }
+                        .foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 6)
+                        .frame(height: 20)
+                        .background(Palette.amber, in: Capsule())
+                        .padding(5)
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(selected ? Palette.amber : Palette.hairline, lineWidth: selected ? 2 : 1)
+                }
 
                 Text(stock.name)
-                    .font(Typography.sans(10, weight: selected ? .bold : .semibold))
-                    .foregroundStyle(selected ? Palette.gold : Palette.cream.opacity(0.82))
-                    .lineLimit(1)
+                    .font(selected ? Typography.captionEmphasized : Typography.caption)
+                    .foregroundStyle(selected ? Palette.amber : Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: EditorChromeMetrics.filmThumbnailWidth + 8, alignment: .top)
             }
-            .frame(width: EditorChromeMetrics.filmThumbnailWidth, alignment: .leading)
+            .frame(width: EditorChromeMetrics.filmThumbnailWidth + 8)
             .frame(minHeight: EditorChromeMetrics.minimumHitTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
         .task(id: "\(draftID.uuidString)|\(stock.id)|\(sourceData == nil ? 0 : 1)") {
             guard let sourceData else { return }
             let key = "\(draftID.uuidString)|\(stock.id)"
@@ -653,6 +654,7 @@ private struct FilmThumbnailCard: View {
             }
         }
         .accessibilityLabel("\(stock.name). \(stock.blurb)\(premium ? ". Tumble Complete" : "")")
+        .accessibilityHint(selected ? "Double tap to adjust the amount" : "")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
@@ -697,6 +699,16 @@ private struct StudioPreviewResult: @unchecked Sendable {
 /// detached GPU renders fighting each other. Cancelled queued requests exit
 /// before decoding or rendering; the newest request runs next.
 private actor StudioPreviewWorker {
+    func renderBase(data: Data, recipe: EditRecipe, capturedAt: Date) -> UIImage? {
+        guard !Task.isCancelled else { return nil }
+        return TumblePhotoFilter.renderEditedPreview(
+            from: data,
+            recipe: recipe,
+            capturedAt: capturedAt,
+            maxDimension: 1200
+        )
+    }
+
     func render(
         data: Data,
         recipe: EditRecipe,
@@ -732,14 +744,14 @@ private enum StudioTool: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .film: return "Film"
-        case .crop: return "Composition"
+        case .crop: return "Crop"
         }
     }
 
     var icon: String {
         switch self {
         case .film: return "camera.filters"
-        case .crop: return "crop"
+        case .crop: return "crop.rotate"
         }
     }
 }
