@@ -132,7 +132,7 @@ struct CompletePaywallView: View {
 
     private func buy() async {
         guard app.account.isSignedIn else {
-            message = "Sign in to buy once and use your films on iOS and Android."
+            message = "Sign in to buy once and keep your films on every device you use."
             showAccount = true
             return
         }

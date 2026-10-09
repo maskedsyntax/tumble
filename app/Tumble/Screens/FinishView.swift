@@ -59,6 +59,7 @@ struct FinishView: View {
                 finishDock
                     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             }
+            .repairingSafeArea()
         }
         .animation(Motion.spring(reduceMotion: reduceMotion), value: format)
         .interactiveDismissDisabled(busy)

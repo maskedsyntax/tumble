@@ -60,6 +60,7 @@ struct StudioView: View {
                     .frame(height: dockHeight)
                     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             }
+            .repairingSafeArea()
         }
         .interactiveDismissDisabled()
         .task {
@@ -295,6 +296,7 @@ struct StudioView: View {
                             sourceData: sourceData,
                             draftID: draft.id,
                             capturedAt: draft.capturedAt,
+                            quarterTurns: recipe.quarterTurns,
                             selected: recipe.stockID == stock.id,
                             amount: recipe.intensity,
                             premium: !app.purchases.isUnlocked(stock)
@@ -311,8 +313,14 @@ struct StudioView: View {
                 .padding(.horizontal, 16)
             }
             .onAppear { reader.scrollTo(recipe.stockID, anchor: .center) }
-            .onChange(of: selectedPackID) { _, _ in
-                reader.scrollTo(recipe.stockID, anchor: .center)
+            .onChange(of: selectedPackID) { _, packID in
+                // Show the selected film if it is in this collection;
+                // otherwise start the strip at the collection's first film.
+                if recipe.stock.packID == packID {
+                    reader.scrollTo(recipe.stockID, anchor: .center)
+                } else if let first = FilmStockCatalog.groupedByPack.first(where: { $0.pack.id == packID })?.stocks.first {
+                    reader.scrollTo(first.id, anchor: .leading)
+                }
             }
         }
     }
@@ -576,6 +584,7 @@ private struct FilmThumbnailCard: View {
     let sourceData: Data?
     let draftID: UUID
     let capturedAt: Date
+    let quarterTurns: Int
     let selected: Bool
     let amount: Double
     let premium: Bool
@@ -586,18 +595,20 @@ private struct FilmThumbnailCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Group {
-                    if let image {
-                        Image(uiImage: image).resizable().scaledToFill()
-                    } else {
-                        Palette.surfaceRaised.overlay(ProgressView().tint(Palette.amber))
+                Color.clear
+                    .frame(
+                        width: EditorChromeMetrics.filmThumbnailWidth,
+                        height: EditorChromeMetrics.filmThumbnailHeight
+                    )
+                    .overlay {
+                        if let image {
+                            Image(uiImage: image).resizable().scaledToFill()
+                        } else {
+                            Palette.surfaceRaised.overlay(ProgressView().tint(Palette.amber))
+                        }
                     }
-                }
-                .frame(
-                    width: EditorChromeMetrics.filmThumbnailWidth,
-                    height: EditorChromeMetrics.filmThumbnailHeight
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(alignment: .bottomTrailing) {
                     if premium {
                         Image(systemName: "lock.fill")
@@ -641,13 +652,14 @@ private struct FilmThumbnailCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle())
-        .task(id: "\(draftID.uuidString)|\(stock.id)|\(sourceData == nil ? 0 : 1)") {
+        .task(id: "\(draftID.uuidString)|\(stock.id)|\(quarterTurns)|\(sourceData == nil ? 0 : 1)") {
             guard let sourceData else { return }
-            let key = "\(draftID.uuidString)|\(stock.id)"
+            let key = "\(draftID.uuidString)|\(stock.id)|\(quarterTurns)"
             if let data = await FilmThumbnailRepository.shared.thumbnail(
                 key: key,
                 sourceData: sourceData,
                 stock: stock,
+                quarterTurns: quarterTurns,
                 capturedAt: capturedAt
             ) {
                 image = UIImage(data: data)
@@ -669,11 +681,12 @@ private actor FilmThumbnailRepository {
         key: String,
         sourceData: Data,
         stock: FilmStock,
+        quarterTurns: Int,
         capturedAt: Date
     ) -> Data? {
         if let cached = values[key] { return cached }
         guard !Task.isCancelled else { return nil }
-        let recipe = EditRecipe(stockID: stock.id)
+        let recipe = EditRecipe(stockID: stock.id, quarterTurns: quarterTurns)
         guard let image = TumblePhotoFilter.renderEditedPreview(
             from: sourceData,
             recipe: recipe,

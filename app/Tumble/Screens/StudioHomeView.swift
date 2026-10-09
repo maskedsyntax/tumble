@@ -39,7 +39,12 @@ struct StudioHomeView: View {
 
             if importInProgress { importOverlay }
         }
-        .animation(Motion.fade, value: importInProgress)
+        .background {
+            // The picker is hosted on its own view, apart from the Studio
+            // cover below.
+            Color.clear
+                .photosPicker(isPresented: $showPhotoPicker, selection: $selectedItem, matching: .images)
+        }
         .task {
             await app.startStore()
             TumbleAnalytics.shared.screen(.home)
@@ -81,12 +86,12 @@ struct StudioHomeView: View {
         .onChange(of: showPhotoPicker) { _, shown in
             if !shown, selectedItem == nil, !importInProgress { pendingIntent = nil }
         }
-        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedItem, matching: .images)
         .fullScreenCover(isPresented: $showCamera) {
             NeutralCameraView { data in
                 showCamera = false
                 Task { await createDraft(data: data, source: .camera) }
             }
+            .repairingSafeArea()
         }
         .fullScreenCover(item: $studioDraft) { draft in
             StudioView(draft: draft) {
@@ -99,6 +104,7 @@ struct StudioHomeView: View {
         }
         .fullScreenCover(isPresented: $showIntroduction) {
             TumbleThreeOnboarding { showIntroduction = false }
+                .repairingSafeArea()
         }
         .alert("Tumble", isPresented: Binding(
             get: { message != nil },
@@ -350,12 +356,14 @@ private struct HomeFilmCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Group {
-                if let image { Image(uiImage: image).resizable().scaledToFill() }
-                else { Palette.blueDeep.overlay(ProgressView().tint(Palette.amber)) }
-            }
-            .frame(width: 188, height: 235)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            Color.clear
+                .frame(width: 188, height: 235)
+                .overlay {
+                    if let image { Image(uiImage: image).resizable().scaledToFill() }
+                    else { Palette.blueDeep.overlay(ProgressView().tint(Palette.amber)) }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairline))
             VStack(alignment: .leading, spacing: 2) {
                 Text(stock.name)

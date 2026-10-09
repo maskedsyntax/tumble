@@ -79,7 +79,7 @@ struct AccountView: View {
                 Text("Keep your films with you")
                     .font(Typography.heroTitle)
                     .foregroundStyle(Palette.cream)
-                Text("Sign in to carry purchases between iOS and Android. Taking photos and using Studio never needs an account.")
+                Text("Sign in to keep your purchases on every device you use. Taking photos and using Studio never needs an account.")
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
