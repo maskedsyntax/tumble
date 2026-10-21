@@ -34,14 +34,14 @@ xcodebuild -scheme Tumble -destination 'platform=iOS Simulator,name=iPhone 17 Pr
 
 | Target | Responsibility |
 |---|---|
-| `Tumble` | SwiftUI camera workspace, Studio, onboarding, settings, Complete storefront, draft recovery, and conditional Legacy Drawer. |
+| `Tumble` | SwiftUI camera workspace, Studio, onboarding, settings, Complete storefront, draft recovery, and the Drawer of finished prints. |
 | `TumbleKit` | Domain models, camera, canonical film catalog, recipe renderer, StoreKit access, persistence, and Graincore theme. |
 | `TumbleAnalytics` | Consent-gated, masked diagnostics and product analytics. |
 
 The Lock Screen capture, Control Center, widget, Live Activity, and Dynamic
 Island targets are retired from the generated Tumble 3 project. The existing
 App Group and SwiftData content remain available so upgraded users can browse,
-finish, export, and delete old prints from **Settings → Legacy Drawer**.
+finish, export, and delete old prints under **From the roll** in the Drawer.
 
 ## Product contracts
 
@@ -50,6 +50,9 @@ finish, export, and delete old prints from **Settings → Legacy Drawer**.
 - One recoverable draft is written atomically under Application Support and is
   excluded from backups. It is cleared only after Photos confirms a save or the
   user confirms discard.
+- Every save or completed share files the export in the Drawer as one print
+  per draft: the finished JPEG, the source, and the `EditRecipe`, so it can be
+  reopened in Studio. Drawer prints stay on device in the App Group container.
 - Preview and export use the same `EditRecipe`: orientation, crop, film and
   intensity, then postcard frame and note.
 - Exports are metadata-free sRGB JPEGs capped at a 4096-pixel long edge.

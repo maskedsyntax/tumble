@@ -28,7 +28,12 @@ final class EditDraftStore: ObservableObject {
     /// Replaces the active draft transactionally: the new source and metadata
     /// are durable before the old source is removed. A failed import therefore
     /// leaves the recoverable draft untouched.
-    func create(imageData: Data, source: EditSourceKind, recipe: EditRecipe) async throws -> EditDraft {
+    func create(
+        imageData: Data,
+        source: EditSourceKind,
+        recipe: EditRecipe,
+        capturedAt: Date = Date()
+    ) async throws -> EditDraft {
         guard !imageData.isEmpty else { throw DraftCreationError.emptySource }
         persistTask?.cancel()
         persistTask = nil
@@ -43,6 +48,7 @@ final class EditDraftStore: ObservableObject {
                 id: id,
                 sourceFile: sourceName,
                 sourceKind: source,
+                capturedAt: capturedAt,
                 recipe: recipe
             )
             try await fileIO.persist(draft, to: metadataURL)

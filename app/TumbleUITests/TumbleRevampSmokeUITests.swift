@@ -156,9 +156,15 @@ final class TumbleRevampSmokeUITests: XCTestCase {
         let postcard = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'A signature finish'")).firstMatch
         XCTAssertTrue(postcard.exists)
 
-        // A vertical swipe that starts on the before/after hero must scroll.
+        // A horizontal drag on the before/after hero moves its divider...
         let hero = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Example photo'")).firstMatch
         XCTAssertTrue(hero.exists)
+        let splitBefore = hero.value as? String
+        hero.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: hero.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5)))
+        XCTAssertNotEqual(hero.value as? String, splitBefore, "Dragging the hero did not move its divider")
+
+        // ...and a vertical swipe that starts on it must scroll.
         let start = hero.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
         start.press(forDuration: 0.01, thenDragTo: hero.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -0.6)))
         XCTAssertLessThan(app.buttons["Choose a Photo"].frame.minY, 300, "Home did not scroll from the hero")
@@ -303,6 +309,62 @@ final class TumbleRevampSmokeUITests: XCTestCase {
         }
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.navigationBars["Settings"].buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["Choose a Photo"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testFinishedPhotoLandsInDrawerAndReopensInStudio() {
+        let app = launch(["-skipOnboard", "-clearDraft", "-finishDemo", "-demoStock", "fadedInstant"])
+        let save = app.buttons["Save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 15))
+        save.tap()
+        let saved = app.staticTexts["Saved to Photos"]
+        if !saved.waitForExistence(timeout: 2), springboard.alerts.firstMatch.exists {
+            allowPhotosIfAsked()
+        }
+        XCTAssertTrue(saved.exists || saved.waitForExistence(timeout: 8), "No save confirmation")
+
+        let drawerCard = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Your Drawer'")).firstMatch
+        XCTAssertTrue(drawerCard.waitForExistence(timeout: 10), "Home does not show the Drawer after a save")
+        drawerCard.tap()
+
+        // Newest first, so the first finished photo is the one just saved.
+        let print = app.buttons.matching(NSPredicate(format: "label CONTAINS ' photo, '")).firstMatch
+        XCTAssertTrue(print.waitForExistence(timeout: 5), "The saved photo is not in the Drawer")
+        print.tap()
+        XCTAssertTrue(app.buttons["Save to Photos"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Share"].exists)
+        app.buttons["Edit Again"].tap()
+        waitForStudio(app)
+    }
+
+    @MainActor
+    func testSavedPostcardIsFiledAsAPostcard() {
+        let app = launch([
+            "-skipOnboard", "-clearDraft", "-finishDemo", "-demoStock", "fadedInstant",
+            "-demoFrame", "classicInstant", "-demoNote", "Lisbon, again",
+        ])
+        let save = app.buttons["Save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 15))
+        save.tap()
+        let saved = app.staticTexts["Saved to Photos"]
+        if !saved.waitForExistence(timeout: 2), springboard.alerts.firstMatch.exists {
+            allowPhotosIfAsked()
+        }
+        XCTAssertTrue(app.buttons["Drawer"].waitForExistence(timeout: 10))
+        app.buttons["Drawer"].tap()
+        let postcard = app.buttons.matching(NSPredicate(format: "label CONTAINS ' postcard, '")).firstMatch
+        XCTAssertTrue(postcard.waitForExistence(timeout: 5), "The saved postcard is not in the Drawer")
+    }
+
+    @MainActor
+    func testRollPrintsStayInTheDrawer() {
+        let app = launch(["-skipOnboard", "-clearDraft", "-seed", "-count", "3"])
+        XCTAssertTrue(app.buttons["Drawer"].waitForExistence(timeout: 8))
+        app.buttons["Drawer"].tap()
+        XCTAssertTrue(app.staticTexts["From the roll"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Nothing in your Drawer yet"].exists)
+        app.buttons["Close Drawer"].tap()
         XCTAssertTrue(app.buttons["Choose a Photo"].waitForExistence(timeout: 5))
     }
 

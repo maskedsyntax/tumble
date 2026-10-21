@@ -33,6 +33,10 @@ public final class Photo {
     public var frameStyleRaw: String?
     /// Where the shot came from: the app or the lock-screen extension.
     public var source: String = PhotoSource.app.rawValue
+    /// The encoded `PrintEdit` behind a print finished in Studio. Its raw image
+    /// is the edit's source and its developed image the finished export. nil
+    /// for prints from the retired roll.
+    public var editData: Data?
 
     public init(
         id: UUID = UUID(),
@@ -86,8 +90,39 @@ public extension Photo {
     /// so prints visibly warm as the days pass.
     static let agingSpan: TimeInterval = 60 * 60 * 24 * 30 // ~30 days
 
+    /// The Studio edit this print was finished from, if it has one.
+    var edit: PrintEdit? {
+        get {
+            guard let editData else { return nil }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try? decoder.decode(PrintEdit.self, from: editData)
+        }
+        set {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            editData = newValue.flatMap { try? encoder.encode($0) }
+        }
+    }
+
+    var isStudioEdit: Bool { editData != nil }
+
     func ageFraction(now: Date = Date()) -> Double {
         let elapsed = now.timeIntervalSince(capturedAt)
         return min(1, max(0, elapsed / Photo.agingSpan))
+    }
+}
+
+/// What reopening a finished print in Studio needs besides its source pixels.
+public struct PrintEdit: Codable, Equatable, Sendable {
+    public var recipe: EditRecipe
+    public var sourceKind: EditSourceKind
+    /// When the source was captured or imported; postcards print this date.
+    public var capturedAt: Date
+
+    public init(recipe: EditRecipe, sourceKind: EditSourceKind, capturedAt: Date) {
+        self.recipe = recipe
+        self.sourceKind = sourceKind
+        self.capturedAt = capturedAt
     }
 }

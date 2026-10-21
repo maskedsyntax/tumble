@@ -25,7 +25,8 @@ JPEG. Photo pixels, drafts, crops, and handwritten notes remain on-device.
 - 21 baked-in film looks across Core, Ninety-Six, Darkroom, and Long Summer.
 - Real-time graded camera preview and permission-minimized photo import.
 - Original/Film comparison, intensity, rotate, crop, and four postcard frames.
-- One recoverable private draft; no permanent in-app library for new photos.
+- One recoverable private draft, and an on-device Drawer of every finished
+  photo and postcard that can be shared again or reopened in Studio.
 - One-time purchase rather than a subscription.
 
 ## Main workflow
@@ -42,6 +43,6 @@ film ownership.
 ## Constraints
 
 - Do not imply real-film emulation is scientifically exact.
-- Do not show the retired daily roll, shake development, Drawer, Dynamic Island
+- Do not show the retired daily roll, shake development, Dynamic Island
   capture, or “no account” language in current release materials.
 - Do not show fabricated reviews, adoption, or customer outcomes.

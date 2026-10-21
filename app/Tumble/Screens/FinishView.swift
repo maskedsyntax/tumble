@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 import TumbleAnalytics
 import TumbleKit
@@ -6,6 +7,7 @@ import UIKit
 struct FinishView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let draft: EditDraft
@@ -20,6 +22,7 @@ struct FinishView: View {
     @State private var showComplete = false
     @State private var showShare = false
     @State private var shareImage: UIImage?
+    @State private var shareData: Data?
     @State private var pendingAction: FinishAction?
     @State private var resumeAfterUnlock = false
     @State private var showSaved = false
@@ -108,6 +111,7 @@ struct FinishView: View {
                             frameStyle: activeFrame.rawValue
                         ))
                         ReviewPrompter.shared.recordSuccessfulExport()
+                        if let shareData { Task { await keepInDrawer(shareData) } }
                     } else {
                         TumbleAnalytics.shared.capture(.exportFailed(
                             reason: error == nil ? "cancelled" : "share",
@@ -371,6 +375,7 @@ struct FinishView: View {
                 return
             }
             shareImage = image
+            shareData = data
             showShare = true
         case .save:
             let result = await PhotoLibrarySaver.saveImageData(data)
@@ -387,12 +392,24 @@ struct FinishView: View {
                 TumbleAnalytics.shared.capture(.postcardConfigured(frameStyle: activeFrame.rawValue, hasNote: !recipe.note.isEmpty))
             }
             ReviewPrompter.shared.recordSuccessfulExport()
+            await keepInDrawer(data)
             Haptics.success()
             showSaved = true
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 600 : 900))
             await app.drafts.discard()
             onSaved()
         }
+    }
+
+    /// Files what was just exported in the Drawer, as the format it went out in.
+    private func keepInDrawer(_ finished: Data) async {
+        var source = sourceData
+        if source == nil { source = await app.drafts.sourceData(for: draft) }
+        guard let source else { return }
+        var kept = recipe
+        kept.frameID = activeFrame.rawValue
+        if format == .photo { kept.note = "" }
+        await DrawerArchive.keep(draft: draft, recipe: kept, source: source, finished: finished, in: context)
     }
 
     private func renderFilmPreview() async {
@@ -420,33 +437,13 @@ struct FinishView: View {
             availableSource = await app.drafts.sourceData(for: draft)
         }
         guard let source = availableSource else { return nil }
-        var exportRecipe = recipe
-        exportRecipe.frameID = PostcardFrameStyle.none.rawValue
-        exportRecipe.note = ""
-        let filmData = await Task.detached(priority: .userInitiated) {
-            TumblePhotoFilter.renderEditedPhotoData(
-                from: source,
-                recipe: exportRecipe,
-                capturedAt: draft.capturedAt
-            )
-        }.value
-        guard format == .postcard, let filmData, let image = UIImage(data: filmData) else { return filmData }
-
-        let hasNote = !recipe.note.isEmpty
-        let width = activeFrame.exportWidth(hasNote: hasNote)
-        let content = PostcardFrameView(
-            style: activeFrame,
-            image: image,
-            note: hasNote ? recipe.note : nil,
+        return await FinishedExport.render(
+            source: source,
+            recipe: recipe,
+            frame: format == .postcard ? activeFrame : .none,
             capturedAt: draft.capturedAt,
-            seed: draft.id.stableSeed,
-            width: width
+            seed: draft.id.stableSeed
         )
-        .frame(width: width, height: width * activeFrame.renderAspect(hasNote: hasNote))
-        .background(Color.white)
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 1
-        return renderer.uiImage?.jpegData(compressionQuality: 0.92)
     }
 }
 

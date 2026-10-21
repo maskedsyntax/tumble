@@ -1,5 +1,6 @@
 import AVFoundation
 import PhotosUI
+import SwiftData
 import SwiftUI
 import TumbleAnalytics
 import TumbleKit
@@ -7,7 +8,9 @@ import UIKit
 
 struct StudioHomeView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.modelContext) private var context
     @AppStorage(FilmStockCatalog.storageKey) private var selectedStockID = FilmStockCatalog.defaultStock.id
+    @Query(sort: \Photo.capturedAt, order: .reverse) private var drawerPrints: [Photo]
 
     @State private var selectedItem: PhotosPickerItem?
     @State private var pendingIntent: HomeEditIntent?
@@ -15,6 +18,9 @@ struct StudioHomeView: View {
     @State private var studioDraft: EditDraft?
     @State private var showCamera = false
     @State private var showSettings = false
+    @State private var showDrawer = false
+    /// A finished print reopened from the Drawer, shown once the Drawer closes.
+    @State private var reopenedDraft: EditDraft?
     @State private var showIntroduction = false
     @State private var importInProgress = false
     @State private var message: String?
@@ -27,6 +33,7 @@ struct StudioHomeView: View {
                     header
                     hero
                     if let draft = app.drafts.activeDraft { resumeCard(draft) }
+                    if !drawerPrints.isEmpty { drawerCard }
                     filmCollection
                     postcardFeature
                     privacyLine
@@ -50,8 +57,11 @@ struct StudioHomeView: View {
             TumbleAnalytics.shared.screen(.home)
             TumbleAnalytics.shared.capture(.homeViewed)
 #if DEBUG
+            DebugSeed.run(in: context)
+            await DebugSeed.drawerDemo(in: context)
             if DebugLaunch.clearsDraft { await app.drafts.discard() }
             if DebugLaunch.opensSettings { showSettings = true }
+            if ProcessInfo.processInfo.arguments.contains("-openDrawer") { showDrawer = true }
             if ProcessInfo.processInfo.arguments.contains("-cameraDemo") { showCamera = true }
             if ProcessInfo.processInfo.arguments.contains("-studioDemo") || ProcessInfo.processInfo.arguments.contains("-finishDemo") {
                 let data = DebugLaunch.demoImageData
@@ -99,6 +109,18 @@ struct StudioHomeView: View {
             }
             .environment(app)
         }
+        .fullScreenCover(isPresented: $showDrawer, onDismiss: {
+            guard let reopenedDraft else { return }
+            self.reopenedDraft = nil
+            studioDraft = reopenedDraft
+        }) {
+            DrawerLibraryView { draft in
+                reopenedDraft = draft
+                showDrawer = false
+            }
+            .environment(app)
+            .repairingSafeArea()
+        }
         .sheet(isPresented: $showSettings) {
             TumbleSettingsView(onReplayIntroduction: { showIntroduction = true }).environment(app)
         }
@@ -123,7 +145,10 @@ struct StudioHomeView: View {
                 .foregroundStyle(Palette.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             Spacer()
-            IconButton("gearshape", accessibilityLabel: "Settings") { showSettings = true }
+            HStack(spacing: 4) {
+                IconButton("tray.full", accessibilityLabel: "Drawer") { showDrawer = true }
+                IconButton("gearshape", accessibilityLabel: "Settings") { showSettings = true }
+            }
         }
     }
 
@@ -132,7 +157,7 @@ struct StudioHomeView: View {
             BeforeAfterHero()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Find the film in your photos.")
+                Text("Your photos, on film.")
                     .font(Typography.heroTitle)
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -186,6 +211,35 @@ struct StudioHomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle())
+    }
+
+    private var drawerCard: some View {
+        Button { showDrawer = true } label: {
+            HStack(spacing: 14) {
+                DrawerFan(prints: Array(drawerPrints.filter { $0.developedImageName != nil }.prefix(3)))
+                    .frame(width: 76, height: 60)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Your Drawer")
+                        .font(Typography.headline)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(drawerPrints.count == 1 ? "1 finished print" : "\(drawerPrints.count) finished prints")
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textTertiary)
+            }
+            .padding(12)
+            .background(Palette.blueDeep.opacity(0.72), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairline))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Your Drawer, \(drawerPrints.count) finished \(drawerPrints.count == 1 ? "print" : "prints")")
     }
 
     private var filmCollection: some View {
@@ -389,6 +443,33 @@ private struct HomeFilmCard: View {
     }
 }
 
+/// A pan that begins only when the movement is mostly horizontal, reporting the
+/// touch's x position in the view.
+private struct HorizontalPan: UIGestureRecognizerRepresentable {
+    let onChange: (CGFloat) -> Void
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        return pan
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        guard recognizer.state == .began || recognizer.state == .changed else { return }
+        onChange(context.converter.localLocation.x)
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = recognizer as? UIPanGestureRecognizer else { return true }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
+    }
+}
+
 /// The neutral editorial sample split down the middle: as shot on the left,
 /// with a film look on the right. Drag the divider to compare.
 private struct BeforeAfterHero: View {
@@ -423,15 +504,18 @@ private struct BeforeAfterHero: View {
                     }
                     .offset(x: width * split - 1)
             }
+            // The aspect-filled photo overflows below the visible card; size the
+            // hit area to the card so it doesn't swallow touches on the copy.
+            .frame(width: width, height: proxy.size.height, alignment: .topLeading)
             .overlay(alignment: .bottomLeading) { tag("Original").padding(12) }
             .overlay(alignment: .bottomTrailing) { tag(stock.name).padding(12) }
             .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        split = min(0.94, max(0.06, value.location.x / max(1, width)))
-                    }
-            )
+            // A SwiftUI DragGesture here, even a simultaneous one, stops Home
+            // scrolling when a swipe starts on the hero. The pan only begins
+            // for horizontal movement, leaving vertical swipes to the
+            // ScrollView; a tap still places the divider.
+            .onTapGesture { location in moveSplit(to: location.x, width: width) }
+            .gesture(HorizontalPan { x in moveSplit(to: x, width: width) })
         }
         .aspectRatio(1.05, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -453,6 +537,10 @@ private struct BeforeAfterHero: View {
                 TumblePhotoFilter.renderLivePreview(from: source, stock: selectedStock, maxDimension: 900)
             }.value
         }
+    }
+
+    private func moveSplit(to x: CGFloat, width: CGFloat) {
+        split = min(0.94, max(0.06, x / max(1, width)))
     }
 
     private func layer(_ image: UIImage?) -> some View {
@@ -511,6 +599,43 @@ private struct HomePostcardSample: View {
 }
 
 /// The active draft's photo, rendered with its current recipe.
+/// The newest few prints, fanned like a small stack on the table.
+private struct DrawerFan: View {
+    let prints: [Photo]
+
+    var body: some View {
+        ZStack {
+            ForEach(Array(prints.enumerated().reversed()), id: \.element.id) { i, photo in
+                DrawerFanCard(photo: photo)
+                    .frame(width: 44, height: 54)
+                    .rotationEffect(.degrees(Double(i) * -9 + (prints.count > 1 ? 6 : 0)))
+                    .offset(x: CGFloat(i) * -11 + (prints.count > 1 ? 8 : 0))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct DrawerFanCard: View {
+    let photo: Photo
+    @State private var image: UIImage?
+
+    var body: some View {
+        Color.clear
+            .overlay {
+                if let image { Image(uiImage: image).resizable().scaledToFill() }
+                else { Palette.surfaceRaised }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Palette.cream.opacity(0.7), lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
+            .task(id: "\(photo.developedImageName ?? "")|\(photo.capturedAt.timeIntervalSince1970)") {
+                // An undeveloped roll print stays face-down.
+                image = await PhotoThumbnailRepository.shared.image(named: photo.developedImageName, maxPixelSize: 180)
+            }
+    }
+}
+
 private struct DraftThumbnail: View {
     @Environment(AppModel.self) private var app
     let draft: EditDraft

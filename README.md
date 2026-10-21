@@ -28,5 +28,7 @@ unlocks fifteen more with one $4.99 purchase.
 - `web/` — product website, privacy policy, terms, and support.
 - `marketing/` — current product claims and release assets.
 
-The retired daily roll, shake-to-develop flow, and Drawer remain only as a
-read-only legacy path for existing iOS photos.
+Everything you save or share from Studio is kept in the Drawer on Home,
+where it can be shared again or reopened for editing. The retired daily roll
+and shake-to-develop flow survive only as "From the roll" prints in the
+Drawer, for existing iOS photos.

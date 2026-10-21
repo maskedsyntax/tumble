@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 import TumbleAnalytics
 import TumbleKit
@@ -177,89 +176,5 @@ struct TumbleSettingsView: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-struct DrawerLibraryView: View {
-    @Environment(AppModel.self) private var app
-    @Environment(\.modelContext) private var context
-    @Environment(\.dismiss) private var dismiss
-    @Query(sort: \Photo.capturedAt, order: .reverse) private var photos: [Photo]
-    @State private var selected: Photo?
-
-    var body: some View {
-        ZStack {
-            GraincoreBackground()
-            VStack(spacing: 14) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Drawer").font(Typography.display(28)).foregroundStyle(Palette.cream)
-                        Text("Your saved prints")
-                            .font(Typography.sans(12)).foregroundStyle(Palette.cream.opacity(0.58))
-                    }
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark").foregroundStyle(Palette.cream)
-                            .padding(10).background(.black.opacity(0.28), in: Circle())
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                if photos.isEmpty {
-                    Spacer()
-                    Text("The Drawer is empty.").font(Typography.display(23)).foregroundStyle(Palette.cream)
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 18) {
-                            ForEach(photos) { photo in
-                                DrawerPrintTile(photo: photo) {
-                                    selected = photo
-                                    if !photo.isDeveloped { Task { await finish(photo) } }
-                                }
-                            }
-                        }
-                        .padding(20)
-                    }
-                }
-            }
-            .padding(.top, 10)
-        }
-        .fullScreenCover(item: $selected) { PrintStage(photo: $0, developed: photos.filter(\.isDeveloped)).environment(app) }
-    }
-
-    private func finish(_ photo: Photo) async {
-        guard let raw = await PhotoStore.loadImageDataAsync(named: photo.rawImageName) else { return }
-        let grade = photo.filmStock.grade
-        let capturedAt = photo.capturedAt
-        guard let rendered = await Task.detached(priority: .userInitiated, operation: {
-            TumblePhotoFilter.renderMemoryPhotoData(from: raw, grade: grade, capturedAt: capturedAt)
-        }).value else { return }
-        photo.developedImageName = try? await PhotoStore.writeImageAsync(rendered, id: photo.id, kind: .developed)
-        photo.developProgress = 1
-        photo.isDeveloped = true
-        try? context.save()
-    }
-}
-
-private struct DrawerPrintTile: View {
-    let photo: Photo
-    let action: () -> Void
-    @State private var image: UIImage?
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                PrintView(image: image, isDeveloped: photo.isDeveloped, width: 132)
-                Text(photo.isDeveloped ? photo.filmStock.name : "Finish developing")
-                    .font(Typography.sans(11, weight: .semibold))
-                    .foregroundStyle(photo.isDeveloped ? Palette.cream.opacity(0.68) : Palette.gold)
-            }
-        }
-        .buttonStyle(.plain)
-        .task(id: photo.developedImageName) {
-            let name = photo.developedImageName ?? photo.rawImageName
-            image = await PhotoThumbnailRepository.shared.image(named: name, maxPixelSize: 420)
-        }
     }
 }
