@@ -7,24 +7,6 @@ public enum Entitlement: String, Sendable, CaseIterable, Comparable {
     case plus
     case unlimited
 
-    /// Shots granted each morning. `nil` means no daily limit (Unlimited).
-    public var dailyQuota: Int? {
-        switch self {
-        case .free: 12
-        case .plus: 72
-        case .unlimited: nil
-        }
-    }
-
-    /// Display price mirroring the site's Pricing cards.
-    public var priceLabel: String {
-        switch self {
-        case .free: "Free"
-        case .plus: "$5.99"
-        case .unlimited: "$11.99"
-        }
-    }
-
     /// The StoreKit product id for the paid tiers.
     public var productID: String? {
         switch self {

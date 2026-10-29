@@ -15,9 +15,9 @@ public enum RestoreOutcome: String, Sendable, CaseIterable {
     case error
 }
 
-/// StoreKit 2, one-time purchases only. Loads the Plus and Unlimited products,
-/// tracks owned entitlements, and resolves the highest tier - which then drives
-/// the daily Roll. No subscriptions, ever.
+/// StoreKit 2, one-time purchases only. Loads the retired Plus and Unlimited
+/// tiers and the film products, tracks owned entitlements, and resolves the
+/// access state. No subscriptions, ever.
 @MainActor
 @Observable
 public final class PurchaseManager {
@@ -51,8 +51,8 @@ public final class PurchaseManager {
         return .free(legacyPackIDs: legacyPacks)
     }
 
-    /// Tier products (daily Roll) plus the one-time film-pack unlocks. Packs are
-    /// separate buys - they never change the Roll tier - so they load here but
+    /// Retired tier products plus the one-time film-pack unlocks. Packs are
+    /// separate buys - they never change the tier - so they load here but
     /// resolve their ownership through `ownsPack`, not `entitlement`.
     @ObservationIgnored private let tierProductIDs = ["com.tumble.plus", "com.tumble.unlimited"]
     @ObservationIgnored private lazy var productIDs: [String] =
