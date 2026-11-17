@@ -86,9 +86,9 @@ export default function FilmLooks() {
 
         <div>
           <Stamp frame="21">Four rolls</Stamp>
-          <h2 className="mt-5 max-w-xl font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-cream sm:text-5xl lg:text-6xl">
+          <h2 className="mt-5 max-w-xl font-display text-4xl font-semibold leading-[1.06] tracking-[-0.015em] text-cream sm:text-5xl lg:text-6xl">
             Not a filter.
-            <span className="block text-gold">A film stock.</span>
+            <span className="block font-medium italic text-gold">A film stock.</span>
           </h2>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-cream/72">
             Pick the character at develop time. Natural skin, softer contrast, subtle

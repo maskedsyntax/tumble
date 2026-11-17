@@ -1,25 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Caveat, Hanken_Grotesk, Space_Mono } from "next/font/google";
+import { Besley, Caveat, Courier_Prime, Libre_Franklin } from "next/font/google";
 import { APP_STORE_URL } from "@/lib/app-store";
 import "./globals.css";
 
-// Display — a humanist grotesque with optical character; analog, not a default serif.
-const bricolage = Bricolage_Grotesque({
+// Display — a Clarendon revival. The face of old postcards, photo-studio
+// signage and print-shop ephemera: warm, sturdy, and nothing like the
+// grotesques every AI landing page ships with.
+const besley = Besley({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
+  style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
 });
 
-// Body — warm, legible, and deliberately not Inter.
-const hanken = Hanken_Grotesk({
+// Body — Franklin Gothic, the American print grotesque of photo-lab envelopes
+// and newspaper captions. Clarendon's natural partner.
+const franklin = Libre_Franklin({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-// Utility — the film voice: frame counters, date stamps, edge printing, prices.
-const spaceMono = Space_Mono({
+// Utility — the typed label on a print sleeve: frame counters, date stamps,
+// edge printing, prices.
+const courier = Courier_Prime({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-mono",
@@ -93,8 +98,8 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/favicon.svg" }],
+    icon: [{ url: "/icon-64.png", type: "image/png", sizes: "64x64" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -131,7 +136,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bricolage.variable} ${hanken.variable} ${spaceMono.variable} ${caveat.variable}`}
+      className={`${besley.variable} ${franklin.variable} ${courier.variable} ${caveat.variable}`}
     >
       <body>
         <script

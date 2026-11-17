@@ -4,7 +4,7 @@
 @theme {
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Space Mono — the film voice: frame counters, date stamps, edge printing. */
+  /* Courier Prime — the typed sleeve label: frame counters, date stamps, edge printing. */
   --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
   /* Caveat — the same handwriting the app writes postcard notes in. */
   --font-script: var(--font-script), ui-rounded, cursive;

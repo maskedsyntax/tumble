@@ -32,7 +32,7 @@ export default function RollExplainer() {
         {BEATS.map((b) => (
           <div key={b.kicker} className="border-t border-cream/12 pt-5">
             <Stamp frame={b.frame}>{b.kicker}</Stamp>
-            <h2 className="mt-4 font-display text-2xl font-bold leading-snug text-cream">
+            <h2 className="mt-4 font-display text-2xl font-semibold leading-snug text-cream">
               {b.title}
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-cream/72">{b.body}</p>

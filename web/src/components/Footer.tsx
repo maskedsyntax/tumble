@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import { Sprockets } from "./FilmEdge";
 
 export default function Footer() {
@@ -7,8 +8,9 @@ export default function Footer() {
         <Sprockets className="opacity-60" />
 
         <div className="mt-8 flex flex-col items-center justify-between gap-5 sm:flex-row">
-          <div className="flex items-baseline gap-3">
-            <span className="font-display text-lg font-bold tracking-tight text-cream">Tumble</span>
+          <div className="flex items-center gap-3">
+            <BrandMark size={28} />
+            <span className="font-display text-lg font-semibold text-cream">Tumble</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-cream/45">
               Film for iPhone &amp; Android
             </span>

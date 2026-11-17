@@ -59,7 +59,7 @@ export default function AppShowcase() {
     <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 md:grid-cols-2 md:gap-16 md:py-20">
       <div className="order-2 md:order-1">
         <Stamp frame="HOME">The Drawer</Stamp>
-        <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-cream sm:text-4xl">
+        <h2 className="mt-4 font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
           Your shots pile up,
           <br />
           not scroll past.
@@ -96,7 +96,7 @@ export default function AppShowcase() {
                 <span className="font-mono text-[11px] text-cream/45">▚ ▘ ▐</span>
               </div>
               <div className="px-5 pt-3">
-                <div className="font-display text-lg font-bold tracking-tight text-gold">tumble</div>
+                <div className="font-display text-lg font-semibold text-gold">tumble</div>
                 <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-cream/45">
                   Today&rsquo;s roll · 8 of 12
                 </div>

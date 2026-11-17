@@ -20,9 +20,9 @@ export default function ProductJourney() {
         <div className="grid items-end gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
           <div className="max-w-4xl">
             <Stamp frame="21 LOOKS">Camera → Studio</Stamp>
-            <h2 className="mt-5 font-display text-4xl font-extrabold leading-[0.94] tracking-tight text-cream sm:text-5xl lg:text-7xl">
+            <h2 className="mt-5 font-display text-4xl font-semibold leading-[1.06] tracking-[-0.015em] text-cream sm:text-5xl lg:text-6xl">
               One workspace for the shot.
-              <span className="text-gold"> One Studio for the finish.</span>
+              <span className="font-medium italic text-gold"> One Studio for the finish.</span>
             </h2>
           </div>
           <p className="max-w-xl text-lg leading-relaxed text-cream/72 lg:pb-2">
@@ -84,7 +84,7 @@ function RitualItem({ number, title, body }: { number: string; title: string; bo
     <li className="flex gap-4 border-b border-cream/12 py-6 last:border-b-0 md:border-r md:border-b-0 md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
       <span className="pt-1 font-mono text-[10px] font-bold tracking-[0.16em] text-gold">{number}</span>
       <div>
-        <h3 className="font-display text-xl font-bold text-cream">{title}</h3>
+        <h3 className="font-display text-xl font-semibold text-cream">{title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-cream/58 sm:text-base">{body}</p>
       </div>
     </li>

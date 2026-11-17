@@ -38,7 +38,7 @@ export default function Releases() {
       <div className="grid gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <div>
           <Stamp>Shipping log</Stamp>
-          <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-cream sm:text-4xl">
+          <h2 className="mt-4 font-display text-3xl font-semibold leading-tight text-cream sm:text-4xl">
             On the App Store since July, now developing across platforms.
           </h2>
           <p className="mt-4 leading-relaxed text-cream/75">
@@ -86,7 +86,7 @@ export default function Releases() {
                 >
                   {e.tag}
                 </span>
-                <h3 className="font-display text-xl font-bold text-cream">{e.title}</h3>
+                <h3 className="font-display text-xl font-semibold text-cream">{e.title}</h3>
               </div>
               <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-cream/70">{e.body}</p>
             </li>

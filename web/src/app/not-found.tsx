@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { APP_STORE_URL } from "@/lib/app-store";
+import BrandMark from "@/components/BrandMark";
 import { Sprockets, Stamp } from "@/components/FilmEdge";
 
 export const metadata: Metadata = {
@@ -18,9 +19,10 @@ export default function NotFound() {
         <header className="flex items-center justify-between gap-4 pt-8">
           <Link
             href="/"
-            className="shrink-0 font-display text-lg font-bold tracking-tight text-gold transition hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
+            className="inline-flex shrink-0 items-center gap-2.5 font-display text-lg font-semibold text-cream transition hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
           >
-            tumble
+            <BrandMark size={30} />
+            <span>Tumble<span className="text-gold">.</span></span>
           </Link>
           <div className="hidden sm:block">
             <Stamp frame="404">Void</Stamp>
@@ -32,7 +34,7 @@ export default function NotFound() {
             <BlankPrint />
           </div>
 
-          <h1 className="mt-8 w-full max-w-[18rem] font-display text-[1.95rem] font-extrabold leading-[0.95] tracking-tight text-cream sm:max-w-md sm:text-[clamp(2.4rem,5vw,3.6rem)]">
+          <h1 className="mt-8 w-full max-w-[18rem] font-display text-[1.95rem] font-semibold leading-[1.06] tracking-[-0.015em] text-cream sm:max-w-md sm:text-[clamp(2.4rem,5vw,3.6rem)]">
             This one never
             <br />
             came out.
@@ -46,7 +48,7 @@ export default function NotFound() {
           <div className="mt-8 flex w-full max-w-[18rem] flex-col items-stretch gap-3 sm:mt-9 sm:max-w-md sm:flex-row sm:items-center sm:justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 font-display text-base font-extrabold tracking-tight text-ink shadow-[0_16px_38px_-16px_rgba(223,171,104,0.85)] ring-1 ring-inset ring-cream/30 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-16px_rgba(223,171,104,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
+            className="inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 font-display text-base font-semibold text-ink shadow-[0_16px_38px_-16px_rgba(223,171,104,0.85)] ring-1 ring-inset ring-cream/30 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-16px_rgba(223,171,104,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
           >
             Back to Tumble
           </Link>
@@ -54,7 +56,7 @@ export default function NotFound() {
             href={APP_STORE_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-2xl border border-cream/20 px-5 py-3 font-display text-base font-bold tracking-tight text-cream transition hover:border-cream/45 hover:bg-cream/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
+            className="inline-flex items-center justify-center rounded-2xl border border-cream/20 px-5 py-3 font-display text-base font-semibold text-cream transition hover:border-cream/45 hover:bg-cream/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
           >
             Get the app
           </a>

@@ -208,9 +208,9 @@ export default function PostcardFrames() {
       <div className="mx-auto max-w-7xl">
       <div className="mb-12 max-w-3xl">
         <Stamp frame="v1.2">Postcard studio</Stamp>
-        <h2 className="mt-5 font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-cream sm:text-5xl lg:text-6xl">
+        <h2 className="mt-5 font-display text-4xl font-semibold leading-[1.06] tracking-[-0.015em] text-cream sm:text-5xl lg:text-6xl">
           Made to be sent,
-          <span className="block text-gold">not scrolled.</span>
+          <span className="block font-medium italic text-gold">not scrolled.</span>
         </h2>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-cream/72">
           Pick one of four tactile finishes, add a note in your own hand, and save a postcard that looks kept rather than exported.

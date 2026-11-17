@@ -204,7 +204,7 @@ export default function FilmPacks() {
     <section className="relative z-10 mx-auto max-w-5xl px-6 py-14 md:py-18">
       <div className="mb-10 max-w-2xl">
         <Stamp>Coming next</Stamp>
-        <h2 className="mt-4 font-display text-3xl leading-tight font-bold text-cream sm:text-4xl">
+        <h2 className="mt-4 font-display text-3xl leading-tight font-semibold text-cream sm:text-4xl">
           Load a different roll.
         </h2>
         <p className="mt-4 leading-relaxed text-cream/75">
