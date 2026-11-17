@@ -44,7 +44,7 @@ export default function Pricing() {
 
         <div className="mt-14 rounded-[2rem] border border-gold/30 bg-gold/[0.09] px-6 py-10 text-center shadow-[0_30px_80px_-45px_rgba(223,171,104,0.65)] sm:px-10">
           <p className="font-script text-2xl text-gold sm:text-3xl">Your next photo is ready.</p>
-          <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-14 items-center justify-center rounded-2xl bg-gold px-8 font-display text-lg font-semibold text-ink transition hover:-translate-y-0.5 hover:bg-cream focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
+          <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-14 items-center justify-center rounded-full bg-gold px-8 text-base font-semibold text-ink transition hover:-translate-y-0.5 hover:bg-cream focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
             Download Tumble
           </a>
           <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/45">iPhone + Android · free to start · no subscription</p>

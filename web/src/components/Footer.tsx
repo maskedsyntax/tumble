@@ -16,7 +16,7 @@ export default function Footer() {
             </span>
           </div>
 
-          <nav className="flex items-center gap-7 font-mono text-[11px] uppercase tracking-[0.12em] text-cream/60">
+          <nav className="flex items-center gap-6 text-sm text-cream/60">
             <a href="/updates" className="transition hover:text-cream">
               Updates
             </a>

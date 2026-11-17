@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { APP_STORE_URL } from "@/lib/app-store";
+import BrandMark from "./BrandMark";
 import { Stamp } from "./FilmEdge";
 
 export default function Hero() {
@@ -16,15 +17,21 @@ export default function Hero() {
             A private film camera and Studio. Capture or import, choose from 21
             film looks, and finish every photo on your device.
           </p>
-          <div className="mt-10 flex flex-col items-center gap-x-6 gap-y-4 sm:flex-row sm:justify-center md:justify-start">
-            <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="group inline-flex min-h-14 items-center gap-3 rounded-xl bg-gold py-3 pl-5 pr-6 text-ink shadow-[0_14px_30px_-18px_rgba(223,171,104,0.7)] transition hover:-translate-y-0.5 hover:bg-cream focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold" aria-label="Download Tumble on the App Store">
-              <AppleMark />
-              <span className="text-left leading-none">
-                <span className="block text-[11px] font-medium text-ink/60">Download on the</span>
-                <span className="mt-1 block font-display text-[1.2rem] font-semibold">App Store</span>
+          <div className="mt-10 flex flex-col items-center gap-4 md:items-start">
+            <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-3.5 whitespace-nowrap rounded-[1.15rem] bg-cream py-1.5 pl-1.5 pr-5 text-ink shadow-[0_22px_44px_-22px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.08)] transition duration-200 hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold" aria-label="Get Tumble on the App Store">
+              <BrandMark size={46} className="transition duration-300 group-hover:-rotate-6" />
+              <span className="flex flex-col text-left">
+                <span className="text-base font-semibold leading-tight">Get Tumble</span>
+                <span className="mt-0.5 flex items-center gap-1 text-[12.5px] leading-tight text-ink/55">
+                  <AppleMark />
+                  App Store · Free to start
+                </span>
               </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-3 text-ink/35 transition duration-200 group-hover:translate-x-1 group-hover:text-ink" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </a>
-            <span className="text-sm text-cream/55">Free to start · pay once</span>
+            <span className="pl-1 text-sm text-cream/55">Pay once. No subscription, no ads.</span>
           </div>
         </div>
 
@@ -53,7 +60,7 @@ export default function Hero() {
 
 function AppleMark() {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="12" height="12" className="-mt-px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M16.365 1.43c0 1.14-.42 2.2-1.12 3-.77.88-2.03 1.56-3.06 1.48-.14-1.1.4-2.24 1.05-2.96.74-.82 2.05-1.44 3.13-1.52.02.13.02.26.02.4l-.02-.4zM20.5 17.02c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.52-4.12 3.53-1.54.02-1.94-1-4.03-.99-2.09.01-2.52 1.01-4.06.99-1.73-.02-3.05-1.78-4.04-3.35C1.13 15.9.87 11.2 2.6 8.72c1.02-1.47 2.63-2.34 4.14-2.34 1.54 0 2.5 1.01 3.77 1.01 1.23 0 1.98-1.01 3.77-1.01 1.34 0 2.76.73 3.77 1.99-3.31 1.81-2.77 6.54.68 7.66l-.02-.01z" />
     </svg>
   );

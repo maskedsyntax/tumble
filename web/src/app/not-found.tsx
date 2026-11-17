@@ -48,7 +48,7 @@ export default function NotFound() {
           <div className="mt-8 flex w-full max-w-[18rem] flex-col items-stretch gap-3 sm:mt-9 sm:max-w-md sm:flex-row sm:items-center sm:justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 font-display text-base font-semibold text-ink shadow-[0_16px_38px_-16px_rgba(223,171,104,0.85)] ring-1 ring-inset ring-cream/30 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-16px_rgba(223,171,104,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
+            className="inline-flex items-center justify-center rounded-full bg-gold px-6 py-3 text-[15px] font-semibold text-ink shadow-[0_16px_38px_-16px_rgba(223,171,104,0.85)] ring-1 ring-inset ring-cream/30 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-16px_rgba(223,171,104,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
           >
             Back to Tumble
           </Link>
@@ -56,7 +56,7 @@ export default function NotFound() {
             href={APP_STORE_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-2xl border border-cream/20 px-5 py-3 font-display text-base font-semibold text-cream transition hover:border-cream/45 hover:bg-cream/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
+            className="inline-flex items-center justify-center rounded-full border border-cream/20 px-6 py-3 text-[15px] font-semibold text-cream transition hover:border-cream/45 hover:bg-cream/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-blue"
           >
             Get the app
           </a>
